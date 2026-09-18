@@ -42,19 +42,23 @@ export function PresentBar() {
             >
               🤮 숨김
             </button>
+            {/* v1.1 D — 켜짐/꺼짐이 한눈에 보이도록 상태 점과 라벨을 함께 보여 준다 (기본 켜짐) */}
             <button
               type="button"
               disabled={!hasVotes}
+              aria-pressed={highlightTop && hasVotes}
               onClick={() => setHighlightTop(!highlightTop)}
               title={hasVotes ? undefined : '아직 득표가 없습니다'}
               className={clsx(
-                'rounded-lg border px-2.5 py-1.5 text-[12px] disabled:opacity-35',
+                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] disabled:opacity-35',
                 highlightTop && hasVotes
-                  ? 'border-[#3D4A7A] bg-[#EEF0F7] text-[#3D4A7A]'
-                  : 'border-eb-line',
+                  ? 'border-[#3D4A7A] bg-[#3D4A7A] font-semibold text-white'
+                  : 'border-eb-line bg-white text-eb-muted',
               )}
             >
+              <span aria-hidden>{highlightTop && hasVotes ? '◉' : '○'}</span>
               상위 득표 하이라이트
+              <span className="font-semibold">{highlightTop && hasVotes ? '켬' : '끔'}</span>
             </button>
           </>
         ) : null}

@@ -171,3 +171,134 @@ PNG(176KB) 다운로드와 파일명 패턴 → 2단계 확인 후 전체 초기
 CDP 터치 이벤트로 서랍의 카드를 🐦 파랑새에 드롭 성공, 패널 시트 열고 닫기 →
 폰 390×844에서 "휴대폰에서는 보기 전용입니다" 배너·서랍 없음·세로 스크롤·드래그 비활성.
 반응형 리팩터 후 1~5단계와 6~9단계 E2E를 전부 다시 돌려 회귀가 없음을 확인했다.
+
+---
+
+# v1.1 — 조 번호 입장 · 폰 완전 지원 · 운영자 페이지
+
+## A. 조 번호 입장
+
+- **조 모델**은 `src/lib/teams.ts` 하나에 모았다. `TEAM_COUNT`(= `NEXT_PUBLIC_TEAM_COUNT`, 기본 30,
+  1~99 클램프) · `teamSlug(7) → 't07'` · `teamTitle(7) → '7조'` · `teamNoOf('t07') → 7`.
+  `teamNoOf`는 `^t\d{2}$`만 조로 인정하므로 v1.0의 8자 임의 slug 보드는 계속 "레거시 보드"로 열린다.
+- 홈(`/`)은 **조 칩 그리드 + 이름 + 입장하기** 한 화면이다. 칩은 `auto-fill minmax(52px,1fr)`
+  그리드에 높이 44px로, 폰에서도 데스크톱에서도 같은 컴포넌트 하나로 처리된다.
+  마지막 입장(조·이름)은 `localStorage['eb:last-entry']`에 넣고 다음에 미리 고른다.
+- 입장 로직: `loadBoard(slug)` → 없으면 `createBoard({ title, slug })` → 다시 `loadBoard`.
+  **만든 사람은 호스트가 되지 않는다** — `writeHostToken`을 호출하지 않으므로 토큰은 보드에만 남고
+  아무 브라우저에도 없다. 운영자가 `/admin`에서 가져간다(§C).
+- `CreateBoardInput.slug`(선택)를 두 어댑터에 넣었다.
+  - 로컬: 같은 slug가 이미 있으면 새로 만들지 않고 기존 스냅샷을 돌려준다.
+  - Supabase: `slug`가 주어지면 먼저 `loadBoard`로 확인하고, 그래도 insert가 실패하면(동시 입장으로
+    unique 위반) 한 번 더 `loadBoard`해서 그 보드를 돌려준다. 시드는 insert에 성공한 쪽만 넣으므로
+    46장이 두 번 들어가지 않는다. **스키마 변경은 없다.**
+- 신원은 홈에서 미리 저장한다(`saveIdentity(slug, name, boardId)` → `eb:me:<slug>`), 그래서 보드에
+  도착했을 때 참가 모달이 뜨지 않는다. 링크로 바로 온 사람에게만 모달이 뜨고, 거기서도 이름만 받는다.
+- **역할 제거**: `JoinModal`·`PresenceList`·`Panel`에서 역할 표시를 없앴다. `Participant.role`은
+  `Role | undefined` 선택 필드로 남겨 v1.0에 저장된 `eb:me:*` 값이 그대로 로드되게 했다
+  (`design.ts`의 `ROLE_LABEL`/`ROLES`도 타입 호환용으로 남아 있지만 어디서도 쓰지 않는다).
+
+## B. 폰(≤768px) 완전 지원
+
+- `useCanWrite()`에서 **폰 보기 전용 게이트를 삭제**했다. 이제 단계·잠금만 본다. 배너도 없앴다.
+- **탭해서 놓기(`CardActionSheet`)**가 새 1순위 경로다. 카드 → 5칸(이모지·이름·정의 한 줄) +
+  풀로 되돌리기 + (투표 단계면) 스티커 붙이기/떼기 + 상세 보기. 이동은 드래그와 **같은**
+  `movePlacement`를 쓴다. 🤮가 숨겨져 있으면 그 칸은 시트에서도 빠진다.
+  - 폰: 카드 탭 → 시트. 태블릿·데스크톱: **길게 누르기 500ms** 또는 카드 상세의 "다른 칸으로 이동".
+  - 키보드: 카드 포커스 후 `Enter`/`Space`가 (v1.0의 상세 대신) 이동 시트를 연다. 시트 안에
+    "상세 보기"가 있어 상세로 가는 길은 유지된다. 숫자키 1~5/0 이동은 그대로.
+  - 길게 누르기와 클릭이 겹치지 않도록 `suppressClick` ref로 long-press 뒤 클릭 한 번을 삼킨다.
+    dnd-kit의 `listeners.onPointerDown`을 우리 핸들러 안에서 먼저 호출해 센서 동작을 깨지 않는다.
+- `TouchSensor`의 delay를 120 → **150ms**(tolerance 8)로 올렸다. 짧은 탭은 드래그를 시작하지 않고
+  시트/상세가 열린다. 드래그는 폰에서도 그대로 된다.
+- 레이아웃
+  - 상단바: 폰 전용 `TopBarPhone`. 조 이름(17px 볼드) · 단계 칩 · 🔒 · 투표 중이면 `●●○` ·
+    👥 수 · ⋯ 메뉴(타이머 위젯, 호스트면 단계 3버튼, 내보내기 3종, 호스트 동작, 토큰).
+    **발표 모드는 폰에서 아예 제공하지 않는다.**
+  - 보드: 5칸 세로 스택(기존 `stacked`), 아래에 서랍 핸들 자리를 `env(safe-area-inset-bottom)`까지 비운다.
+  - 풀: 하단 서랍을 태블릿에서 폰까지 확장. 폰은 45vh(태블릿 42vh), 핸들 높이 44px, 검색·+빈 카드 모두 44px.
+  - 패널: 📊 플로팅 버튼(48px) → 오른쪽 전체 높이 시트(92vw).
+  - 카드 상세(`CardPopover`)는 폰에서 하단 시트가 된다(`items-end`, `rounded-t-2xl`, 85vh).
+  - 투표 타깃: 폰에서 칩의 ● 버튼을 36×36px로 키웠다. 액션 시트에도 스티커 행이 있다.
+  - 칩은 폰에서 최소 40px 높이·14px 글자. `globals.css`에 `overflow-x: hidden`, layout에
+    `viewport-fit=cover`를 넣어 360px에서 가로 스크롤이 없다.
+- 태블릿·데스크톱 레이아웃은 그대로 두고 회귀 테스트로 확인했다(아래 검증).
+
+## C. 운영자 페이지 `/admin`
+
+- 게이트는 `NEXT_PUBLIC_OPERATOR_KEY`. `?key=`도 받고 `localStorage['eb:operator-key']`에 기억한다.
+  **환경변수가 비면 게이트가 꺼지고** 상단에 "키가 설정되지 않아 누구에게나 열려 있다"는 경고가 뜬다.
+  README에 편의용 구분일 뿐 보안이 아니라고 적었다(RLS는 어차피 익명 허용).
+- **호스트 모델**: 조 보드의 `host_token`을 아무도 갖지 않게 만들고, `/admin`의
+  "호스트 권한 이 브라우저에 가져오기"가 각 보드의 토큰(`boardHostToken()`: Supabase는 컬럼,
+  로컬은 `settings`)을 읽어 `eb:host:<slug>`에 저장한다. 기존 토큰 복사/입력 기능은 그대로 남겼다.
+- **어댑터 인터페이스를 바꾸지 않았다.** 관리 화면은 `t01…tNN`을 직접 돌면서 `loadBoard`를 부른다
+  (동시 6개, `mapLimit`). 로컬 모드에서는 이게 곧 `eb:board:*` 읽기라 두 모드에서 코드가 같다.
+- **라이브는 5초 폴링**으로 했다. 30개 보드에 realtime 채널 30개를 여는 것보다 단순하고 두 어댑터에서
+  똑같이 동작한다. 체크박스로 끌 수 있고 수동 "새로고침"도 있다.
+- 집계(`src/lib/aggregate.ts`)는 순수 함수다. 카드 문구로 행을 묶고(참가자가 만든 카드 포함),
+  칸별로 "그 칸에 놓은 조 수"를 센다. 행마다 최댓값 칸을 색으로 강조하고, 열 머리글을 누르면 정렬한다.
+  예상≠실제는 **그 카드를 놓은 조 중** 예상과 다른 조의 비율이다(`expected2`가 있으면 둘 다 정답).
+- 일괄 내보내기는 `export.ts`에 `exportAllCsv`/`exportAllJson`/`exportLinksCsv`를 더했다.
+  파일명은 `elephant-board_all_{yyyyMMdd-HHmm}.csv|json`, CSV는 BOM 포함.
+- 위험 구역의 "모든 조 초기화"는 경고 → `초기화` 입력의 2단계다(보드 하나짜리 `ResetDialog`와 같은 규칙).
+
+## D. 작은 것들
+
+- 참가 모달 플레이스홀더 `예) 제일런`, 역할 입력 제거.
+- 발표 모드의 "상위 득표 하이라이트" 버튼이 켜짐/꺼짐을 분명히 보여 준다(`◉ … 켬` / `○ … 끔`,
+  `aria-pressed`, 켜졌을 때는 채운 배경). 기본값은 켜짐 그대로.
+- 로컬 모드에서 위 모든 것이 그대로 동작한다(검증도 로컬 모드로 했다).
+
+## v1.1에서 새로 생긴 파일
+
+`src/lib/teams.ts` · `src/lib/admin.ts` · `src/lib/aggregate.ts` · `src/lib/clientStore.ts` ·
+`src/components/CardActionSheet.tsx` · `src/components/TopBarPhone.tsx` ·
+`src/app/admin/page.tsx` · `src/components/admin/{AdminScreen,AdminBoards,AdminAggregate,AdminDanger}.tsx`
+
+`clientStore.ts`는 `useSyncExternalStore` 기반 헬퍼다. 브라우저에만 있는 값(localStorage·location)을
+`useEffect + setState`로 읽으면 Next 16의 `react-hooks/set-state-in-effect` 규칙에 걸려서,
+"한 번 읽고 캐시한 스냅샷"을 렌더 중에 읽는 방식으로 바꿨다.
+
+## v1.1 검증
+
+`npm run lint` · `npm run typecheck` · `npm run build` 무오류.
+Playwright(로컬 모드, 빌드는 `NEXT_PUBLIC_OPERATOR_KEY=eb-ops NEXT_PUBLIC_TEAM_COUNT=30`,
+스크립트는 `/tmp/claude-0/pw/v11-*.mjs`):
+
+- **폰 390×844 (hasTouch·isMobile)**: 홈 → 7조 칩(44px) → 이름 제일런 → 입장 → `/b/t07` →
+  제목 "7조" · 보기 전용 배너 없음 → 풀 서랍(46장) → 카드 탭(칩 40px) → 이동 시트 → 🐘 탭 →
+  코끼리 칸에 카드 → 📊 패널 시트에서 코끼리 1 · 풀 45 → ⋯ 메뉴에 내보내기·타이머는 있고 발표 모드는 없음.
+  360px·390px 모두 가로 스크롤 없음. (`v11-phone-home/board/sheet/panel.png`)
+- **데스크톱 1920×1080**: 조 칩 30개 · "보드 만들기" 없음 → 12조 → 제목 "12조" · 참가 모달 없음 →
+  3단 레이아웃 유지 → 마우스 드래그로 🐟 배치 → 길게 누르기로 이동 시트 → 상세에 "다른 칸으로 이동".
+  (`v11-home.png`, `v11-desktop-board.png`)
+- **`/admin?key=eb-ops`**: 키 없이는 입력 화면 → 통과 → 30개 조 보드 생성(표 30행, 헤더 30/30) →
+  호스트 토큰 30개 저장 → 다른 페이지에서 t01·t02에 카드 배치 → 5초 폴링으로 빈도표가
+  "산 트래픽 · 코끼리 = 2", "파킹 쏠림 · 새싹 = 1"로 갱신(최다 칸 강조, 예상≠실제 100%) →
+  전체 투표 전환 후 두 보드와 표 모두 투표 → 전체 CSV 1380행(30조×46장)·JSON 30조·링크 CSV 30행,
+  파일명 패턴 확인 → 390px에서 가로 스크롤 없음. (`v11-admin.png`, `v11-admin-aggregate.png`)
+- **태블릿 1024×768 회귀**: 풀 컬럼 없음 · 서랍 핸들 46장 · 패널 아이콘 → CDP 터치 드래그로
+  🐦 파랑새 배치 성공 → 짧은 탭은 드래그가 아니라 카드 상세 → 패널 시트. (`v11-tablet.png`)
+
+## v1.1 폴리시 (리뷰 후속)
+
+- **폰 빈 칸 높이**: 세로 스택의 칸 최소 높이를 180 → **112px**로 줄이고(머리글 + 정의 한 줄),
+  칸 사이 간격은 12 → 8px, 내용 영역의 `min-h-[64px]`는 `stacked`일 때 떼어 냈다.
+  카드가 들어오면 그대로 자란다. 390×844에서 5칸 머리글이 y=68/188/308/428/548 — **한 화면**에 들어오고
+  풀 서랍 핸들이 가려지지 않는다.
+- **첫 사용 안내(`PhoneHint`)**: 이 기기에서 카드를 한 번도 놓지 않았으면(`localStorage['eb:placed']`)
+  서랍 핸들 바로 위에 "아래 '키워드 풀'을 열고 카드를 누르면 칸을 고를 수 있어요 ↓"가 뜬다.
+  서랍이 열려 있으면 45vh만큼 더 띄워 계속 핸들 위에 붙는다. X로 닫을 수 있고,
+  **첫 배치가 끝나면 저절로 사라진다**(`movePlacement` 성공 시 store의 `hasPlaced`를 켜고 플래그를 남긴다).
+- **첫 방문 서랍 자동 열기**: `eb:visited:<slug>`가 없으면 폰에서만 서랍을 열어 둔 상태로 시작한다.
+  `useState` 초기화에서 한 번만 판정하므로(effect + setState 금지 규칙) 계단식 렌더가 없고,
+  `window.innerWidth <= 768`로 폰에서만 방문 기록을 소비해 태블릿·데스크톱에는 영향이 없다.
+
+## v1.1에서 하지 않은 것
+
+- Supabase 실인스턴스 검증(샌드박스에 환경변수가 없어 로컬 모드로만 확인). 스키마는 건드리지 않았고
+  마이그레이션 파일도 필요 없었다.
+- `/admin`의 realtime 구독(폴링으로 대체) · 조별 온라인 인원 수(프레즌스는 보드별 채널이라 30개를
+  동시에 붙이지 않았다. 대신 배치 수·득표·마지막 활동으로 진행 상황을 본다).
+- 폰 발표 모드(의도적으로 제외).

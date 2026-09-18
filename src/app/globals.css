@@ -29,6 +29,13 @@ body {
   box-sizing: border-box;
 }
 
+/* 360px 폭에서도 가로 스크롤이 생기지 않게 한다 (v1.1 B) */
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
 /* 카드 */
 .eb-card {
   background: #fff;

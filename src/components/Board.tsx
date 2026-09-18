@@ -24,9 +24,11 @@ export function BoardGrid({
 
   if (stacked) {
     return (
-      <div id={CAPTURE_ID} className="flex flex-col gap-3" style={{ background: '#F7F7F5' }}>
+      // 빈 칸은 머리글 + 정의 한 줄 높이(112px)면 되고, 카드가 들어오면 늘어난다.
+      // 5칸 머리글이 390×844 한 화면에 모두 들어와야 서랍 핸들이 가려지지 않는다.
+      <div id={CAPTURE_ID} className="flex flex-col gap-2" style={{ background: '#F7F7F5' }}>
         {[...LEFT_COLUMN, ...RIGHT_COLUMN].map((z) => (
-          <Zone key={z} meta={ZONE_MAP[z]} className="min-h-[180px]" />
+          <Zone key={z} meta={ZONE_MAP[z]} stacked className="min-h-[112px]" />
         ))}
       </div>
     );

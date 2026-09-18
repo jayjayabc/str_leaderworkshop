@@ -106,6 +106,11 @@ class SupabasePresence implements PresenceAdapter {
   }
 }
 
+/** 보드에 저장된 호스트 토큰 (컬럼 우선, 없으면 settings) */
+function boardToken(board: Board): string {
+  return board.host_token ?? (board.settings?.host_token as string | undefined) ?? '';
+}
+
 class SupabaseAdapter implements BoardAdapter {
   readonly mode = 'supabase' as const;
   presence: PresenceAdapter = new SupabasePresence();
@@ -122,14 +127,28 @@ class SupabaseAdapter implements BoardAdapter {
   }
 
   async createBoard(input: CreateBoardInput): Promise<CreateBoardResult> {
-    const slug = makeSlug();
+    const slug = input.slug?.trim() || makeSlug();
     const hostToken = uid();
+
+    // 조 보드는 여러 명이 동시에 처음 들어올 수 있다. slug unique 위반이 나면
+    // 그 사이 다른 사람이 만든 것이므로 기존 보드를 그대로 읽어 돌려준다.
+    if (input.slug) {
+      const existing = await this.loadBoard(slug);
+      if (existing) {
+        return { board: existing.board, hostToken: boardToken(existing.board) };
+      }
+    }
+
     const { data, error } = await sb()
       .from('boards')
       .insert({ slug, title: input.title.trim() || '코끼리 보드', host_token: hostToken })
       .select()
       .single();
-    if (error || !data) throw new Error(error?.message ?? '보드 생성 실패');
+    if (error || !data) {
+      const existing = await this.loadBoard(slug);
+      if (existing) return { board: existing.board, hostToken: boardToken(existing.board) };
+      throw new Error(error?.message ?? '보드 생성 실패');
+    }
     const board = data as Board;
     const { keywords, placements } = seedRows(board.id);
     await sb().from('keywords').insert(

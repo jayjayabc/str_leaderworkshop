@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import clsx from 'clsx';
 
 import { AXIS_MAP, placeEmoji, placeLabel, ZONE_MAP } from '@/lib/design';
+import { useViewport } from '@/lib/viewport';
 import {
   useBoard,
   useCanWrite,
@@ -29,6 +30,7 @@ function fmt(iso: string): string {
 export function CardPopover() {
   const openCard = useBoard((s) => s.openCard);
   const setOpenCard = useBoard((s) => s.setOpenCard);
+  const setActionCard = useBoard((s) => s.setActionCard);
   const keywords = useBoard((s) => s.keywords);
   const placements = useBoard((s) => s.placements);
   const notes = useBoard((s) => s.notes);
@@ -43,6 +45,8 @@ export function CardPopover() {
   const voteCounts = useVoteCounts();
   const myVoted = useMyVotedIds();
   const [draft, setDraft] = useState('');
+  const viewport = useViewport();
+  const isPhone = viewport === 'phone';
 
   const keyword = keywords.find((k) => k.id === openCard) ?? null;
   const placement = placements.find((p) => p.keyword_id === openCard);
@@ -84,11 +88,20 @@ export function CardPopover() {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/15 px-6"
+      className={clsx(
+        'fixed inset-0 z-40 flex bg-black/15',
+        isPhone ? 'items-end' : 'items-center justify-center px-6',
+      )}
       onClick={() => setOpenCard(null)}
     >
       <div
-        className="eb-panel max-h-[80vh] w-full max-w-[420px] overflow-y-auto p-5 shadow-xl"
+        className={clsx(
+          'w-full overflow-y-auto bg-white shadow-xl',
+          isPhone
+            ? 'max-h-[85vh] rounded-t-2xl p-4'
+            : 'eb-panel max-h-[80vh] max-w-[420px] p-5',
+        )}
+        style={isPhone ? { paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' } : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={`카드 ${keyword.text}`}
@@ -116,6 +129,19 @@ export function CardPopover() {
             — {zoneMeta.definition}
           </div>
         ) : null}
+
+        {/* 이동 → — 드래그 없이 칸을 고르는 경로 (v1.1 B: 모든 화면에서) */}
+        <button
+          type="button"
+          onClick={() => {
+            setOpenCard(null);
+            setActionCard(keyword.id);
+          }}
+          className="mt-3 flex h-11 w-full items-center justify-between rounded-lg border border-eb-line px-3 text-[13px] font-medium hover:bg-[#fafaf8]"
+        >
+          <span>다른 칸으로 이동</span>
+          <span aria-hidden>→</span>
+        </button>
 
         {/* 점 스티커 — 투표 단계에서만 (§6.3) */}
         {phase === 'voting' ? (

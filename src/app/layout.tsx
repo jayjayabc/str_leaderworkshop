@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Toaster } from 'sonner';
 
 import './globals.css';
@@ -6,6 +6,13 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '코끼리 보드',
   description: '리더워크샵 실시간 키워드 매핑 보드',
+};
+
+// 폰에서 노치·홈 인디케이터 영역까지 쓰고(env(safe-area-inset-*)) 확대 축소는 허용한다
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({

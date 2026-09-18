@@ -21,6 +21,11 @@ export type DbMode = 'supabase' | 'local';
 
 export interface CreateBoardInput {
   title: string;
+  /**
+   * 원하는 slug(예: 조 보드의 't07'). 비우면 임의 slug가 생긴다.
+   * 이미 그 slug의 보드가 있으면 어댑터는 새로 만들지 않고 기존 보드를 돌려준다.
+   */
+  slug?: string;
 }
 
 export interface CreateBoardResult {

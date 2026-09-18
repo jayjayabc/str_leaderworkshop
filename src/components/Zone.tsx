@@ -13,9 +13,11 @@ interface Props {
   className?: string;
   /** 발표 모드 — 칸 제목 28px, 카드 22px (§8 프로젝터 기준) */
   present?: boolean;
+  /** 폰 — 세로로 쌓인 칸. 내용에 따라 높이가 자란다(빈 칸은 최소 높이만) */
+  stacked?: boolean;
 }
 
-export function Zone({ meta, className, present = false }: Props) {
+export function Zone({ meta, className, present = false, stacked = false }: Props) {
   const keywords = useZoneKeywords(meta.key);
   const hideVomit = useBoard((s) => s.board?.hide_vomit ?? false);
   const hidden = hideVomit && meta.key === 'vomit';
@@ -79,7 +81,7 @@ export function Zone({ meta, className, present = false }: Props) {
         <div
           className={clsx(
             'eb-scroll flex min-h-0 flex-1 flex-wrap content-start overflow-y-auto',
-            present ? 'gap-3' : 'min-h-[64px] gap-2',
+            present ? 'gap-3' : stacked ? 'gap-2' : 'min-h-[64px] gap-2',
           )}
         >
           {keywords.length === 0 ? (

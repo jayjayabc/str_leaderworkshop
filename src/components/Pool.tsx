@@ -7,6 +7,7 @@ import { Plus, Search } from 'lucide-react';
 import clsx from 'clsx';
 
 import { AXES } from '@/lib/design';
+import { useViewport } from '@/lib/viewport';
 import { useBoard, useCanWrite, useZoneKeywords } from '@/store/board';
 import { CardChip } from './CardChip';
 import type { AxisKey } from '@/lib/types';
@@ -17,6 +18,7 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
   const addKeyword = useBoard((s) => s.addKeyword);
   const duplicateOf = useBoard((s) => s.duplicateOf);
   const canWrite = useCanWrite();
+  const isPhone = useViewport() === 'phone';
 
   const [query, setQuery] = useState('');
   const [axisFilter, setAxisFilter] = useState<AxisKey | 'all'>('all');
@@ -55,8 +57,12 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
       )}
     >
       <div className="mb-2 flex shrink-0 items-center justify-between">
-        <h2 className="text-[13px] font-bold">키워드 풀</h2>
-        <span className="text-[12px] tabular-nums text-eb-muted">{all.length}장</span>
+        <h2 className={clsx('font-bold', isPhone ? 'text-[14px]' : 'text-[13px]')}>키워드 풀</h2>
+        <span
+          className={clsx('tabular-nums text-eb-muted', isPhone ? 'text-[14px]' : 'text-[12px]')}
+        >
+          {all.length}장
+        </span>
       </div>
 
       <div className="relative mb-2 shrink-0">
@@ -66,7 +72,10 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
           onChange={(e) => setQuery(e.target.value)}
           placeholder="검색"
           aria-label="키워드 검색"
-          className="w-full rounded-lg border border-eb-line py-1.5 pl-7 pr-2 text-[12px] outline-none focus:border-[#9aa4b8]"
+          className={clsx(
+            'w-full rounded-lg border border-eb-line pl-7 pr-2 outline-none focus:border-[#9aa4b8]',
+            isPhone ? 'h-10 text-[14px]' : 'py-1.5 text-[12px]',
+          )}
         />
       </div>
 
@@ -99,9 +108,13 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
           )}
         >
           {keywords.length === 0 ? (
-            <p className="text-[12px] text-eb-muted">해당하는 카드가 없습니다.</p>
+            <p className={clsx('text-eb-muted', isPhone ? 'text-[14px]' : 'text-[12px]')}>
+              해당하는 카드가 없습니다.
+            </p>
           ) : (
-            keywords.map((k) => <CardChip key={k.id} keyword={k} zone="pool" compact />)
+            keywords.map((k) => (
+              <CardChip key={k.id} keyword={k} zone="pool" compact={!isPhone} />
+            ))
           )}
         </div>
       </SortableContext>
@@ -122,7 +135,10 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
               }}
               placeholder="새 키워드 (12자 권장)"
               aria-label="새 키워드 문구"
-              className="w-full rounded-lg border border-eb-line px-2 py-1.5 text-[12px] outline-none focus:border-[#9aa4b8]"
+              className={clsx(
+                'w-full rounded-lg border border-eb-line px-2 outline-none focus:border-[#9aa4b8]',
+                isPhone ? 'h-11 text-[14px]' : 'py-1.5 text-[12px]',
+              )}
             />
             {dup ? (
               <p className="mt-1 text-[11px] text-[#9A5B1E]">
@@ -134,7 +150,10 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
                 type="button"
                 onClick={() => void submit()}
                 disabled={!draft.trim()}
-                className="flex-1 rounded-lg bg-[#3D4A7A] py-1.5 text-[12px] font-semibold text-white disabled:opacity-40"
+                className={clsx(
+                  'flex-1 rounded-lg bg-[#3D4A7A] font-semibold text-white disabled:opacity-40',
+                  isPhone ? 'h-11 text-[14px]' : 'py-1.5 text-[12px]',
+                )}
               >
                 추가
               </button>
@@ -144,7 +163,10 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
                   setDraft('');
                   setAdding(false);
                 }}
-                className="rounded-lg border border-eb-line px-3 py-1.5 text-[12px]"
+                className={clsx(
+                  'rounded-lg border border-eb-line px-3',
+                  isPhone ? 'h-11 text-[14px]' : 'py-1.5 text-[12px]',
+                )}
               >
                 취소
               </button>
@@ -156,7 +178,10 @@ export function Pool({ variant = 'column' }: { variant?: 'column' | 'drawer' }) 
             disabled={!canWrite}
             title={canWrite ? undefined : '지금은 보드가 잠겨 있습니다'}
             onClick={() => setAdding(true)}
-            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-eb-line py-2 text-[12px] font-medium text-eb-muted hover:bg-[#fafaf8] disabled:opacity-40 disabled:hover:bg-transparent"
+            className={clsx(
+              'flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-eb-line font-medium text-eb-muted hover:bg-[#fafaf8] disabled:opacity-40 disabled:hover:bg-transparent',
+              isPhone ? 'h-11 text-[14px]' : 'py-2 text-[12px]',
+            )}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden /> 빈 카드
           </button>

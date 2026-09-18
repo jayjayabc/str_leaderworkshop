@@ -20,6 +20,7 @@ import {
 } from '@/store/board';
 import { HostTokenDialog } from './HostTokenDialog';
 import { PresenceList } from './PresenceList';
+import { TopBarPhone } from './TopBarPhone';
 import { ResetDialog } from './ResetDialog';
 import { TimerWidget } from './TimerWidget';
 
@@ -38,7 +39,6 @@ export function TopBar() {
   const myVoted = useMyVotedIds();
   const viewport = useViewport();
   const compact = viewport !== 'desktop';
-  const isPhone = viewport === 'phone';
   const [menuOpen, setMenuOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [tokenOpen, setTokenOpen] = useState(false);
@@ -53,6 +53,8 @@ export function TopBar() {
     return () => document.removeEventListener('mousedown', onDown);
   }, [menuOpen]);
 
+  // 폰은 전용 상단바를 쓴다 (v1.1 B)
+  if (viewport === 'phone') return <TopBarPhone />;
   if (!board) return null;
   const badge = MODE_BADGE[mode];
   const undoTarget = undoTargetOf(events);
@@ -106,29 +108,16 @@ export function TopBar() {
       <h1
         className={clsx(
           'truncate text-[15px] font-bold',
-          isPhone ? 'min-w-0 flex-1' : compact ? 'max-w-[150px]' : 'max-w-[260px]',
+          compact ? 'max-w-[150px]' : 'max-w-[260px]',
         )}
         title={board.title}
       >
         {board.title}
       </h1>
 
-      {/* 폰은 보기 전용이라 현재 단계만 표시한다 */}
-      {isPhone ? (
-        <span
-          className="shrink-0 rounded-full bg-[#EEF0F7] px-2 py-0.5 text-[11px] font-semibold text-[#3D4A7A]"
-          aria-label={`단계 ${PHASE_LABEL[board.phase]}`}
-        >
-          {PHASE_LABEL[board.phase]}
-        </span>
-      ) : null}
-
       {/* 단계 — 호스트만 전환 가능 (§6.4) */}
       <div
-        className={clsx(
-          'shrink-0 items-center gap-0.5 rounded-lg border border-eb-line p-0.5',
-          isPhone ? 'hidden' : 'flex',
-        )}
+        className="flex shrink-0 items-center gap-0.5 rounded-lg border border-eb-line p-0.5"
         role="group"
         aria-label="단계"
       >
@@ -175,8 +164,7 @@ export function TopBar() {
         </span>
       ) : null}
 
-      {isPhone ? null : (
-        <span
+      <span
           title={badge.title}
           className={clsx(
             'shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px]',
@@ -184,16 +172,12 @@ export function TopBar() {
           )}
         >
           {compact ? badge.short : badge.label}
-        </span>
-      )}
+      </span>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <PresenceList />
         <TimerWidget />
 
-        {/* 폰은 보기 전용이라 아래 조작 버튼을 모두 숨긴다 */}
-        {isPhone ? null : (
-          <>
         {isHost ? (
           <>
             <button
@@ -355,8 +339,6 @@ export function TopBar() {
             </div>
           ) : null}
         </div>
-          </>
-        )}
       </div>
 
       <ResetDialog

@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 
 import { getDb, dbMode, type BoardAdapter, type DbMode } from '@/lib/db';
 import { normalizeText, uid } from '@/lib/snapshot';
-import { useViewport } from '@/lib/viewport';
 import {
   AXIS_MAP,
   directionParticle,
@@ -27,7 +26,6 @@ import {
   type PlaceKey,
   type Placement,
   type PresenceState,
-  type Role,
   type Vote,
   type ZoneKey,
   type BoardSettings,
@@ -40,6 +38,34 @@ export const UNDO_DEPTH = 20;
 
 const ME_KEY = (slug: string) => `eb:me:${slug}`;
 const HOST_KEY = (slug: string) => `eb:host:${slug}`;
+/** 이 기기에서 카드를 한 번이라도 놓았는지 (폰 첫 사용 안내를 끄는 기준) */
+const PLACED_KEY = 'eb:placed';
+/** 이 보드를 이 기기에서 연 적이 있는지 (폰 첫 방문에 풀 서랍을 열어 주는 기준) */
+const VISITED_KEY = (slug: string) => `eb:visited:${slug}`;
+
+export function readPlacedFlag(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(PLACED_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * 이 보드의 첫 방문이면 true를 돌려주고 방문 기록을 남긴다.
+ * (폰에서 풀 서랍을 자동으로 한 번 열어 주기 위해 쓴다)
+ */
+export function takeFirstVisit(slug: string): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.localStorage.getItem(VISITED_KEY(slug)) === '1') return false;
+    window.localStorage.setItem(VISITED_KEY(slug), '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function readMe(slug: string): Participant | null {
   if (typeof window === 'undefined') return null;
@@ -49,6 +75,24 @@ export function readMe(slug: string): Participant | null {
   } catch {
     return null;
   }
+}
+
+/** 조 보드 입장 시 홈에서 미리 신원을 저장한다 (참가 모달을 건너뛰기 위해) */
+export function saveIdentity(slug: string, nickname: string, boardId: string): Participant {
+  const id = uid();
+  const me: Participant = {
+    id,
+    board_id: boardId,
+    nickname: nickname.trim(),
+    color: pickColor(id + nickname),
+    last_seen: new Date().toISOString(),
+  };
+  try {
+    window.localStorage.setItem(ME_KEY(slug), JSON.stringify(me));
+  } catch {
+    /* noop */
+  }
+  return me;
 }
 
 export function readHostToken(slug: string): string | null {
@@ -87,6 +131,10 @@ interface BoardStore {
   presence: PresenceState[];
   draggingKeyword: string | null;
   openCard: string | null;
+  /** 탭-투-플레이스 액션 시트에 열려 있는 카드 (v1.1 — 폰 1순위 경로) */
+  actionCard: string | null;
+  /** 이 기기에서 카드를 놓아 본 적이 있는지 (폰 첫 사용 안내 표시 기준) */
+  hasPlaced: boolean;
 
   /** 보드에 저장되지 않는 로컬 뷰 상태 */
   highlight: string | null;
@@ -95,7 +143,7 @@ interface BoardStore {
 
   init: (slug: string) => Promise<void>;
   dispose: () => void;
-  join: (nickname: string, role: Role) => Promise<void>;
+  join: (nickname: string) => Promise<void>;
   refresh: () => Promise<void>;
 
   movePlacement: (keywordId: string, zone: PlaceKey, index: number) => Promise<void>;
@@ -109,6 +157,7 @@ interface BoardStore {
   patchSettings: (patch: Partial<BoardSettings>) => Promise<void>;
   setDragging: (keywordId: string | null) => void;
   setOpenCard: (keywordId: string | null) => void;
+  setActionCard: (keywordId: string | null) => void;
   duplicateOf: (text: string) => Keyword | null;
 
   // 7단계 — 단계·투표·잠금·되돌리기·초기화
@@ -160,6 +209,8 @@ export const useBoard = create<BoardStore>((set, get) => ({
   presence: [],
   draggingKeyword: null,
   openCard: null,
+  actionCard: null,
+  hasPlaced: true,
 
   highlight: null,
   present: false,
@@ -186,6 +237,7 @@ export const useBoard = create<BoardStore>((set, get) => ({
       loading: false,
       me,
       isHost: Boolean(readHostToken(slug)),
+      hasPlaced: readPlacedFlag(),
     });
 
     unsubSnapshot?.();
@@ -206,23 +258,10 @@ export const useBoard = create<BoardStore>((set, get) => ({
     void get().db.presence.leave();
   },
 
-  async join(nickname, role) {
+  async join(nickname) {
     const { slug, db, board } = get();
     if (!slug || !board) return;
-    const id = uid();
-    const me: Participant = {
-      id,
-      board_id: board.id,
-      nickname: nickname.trim(),
-      role,
-      color: pickColor(id + nickname),
-      last_seen: new Date().toISOString(),
-    };
-    try {
-      window.localStorage.setItem(ME_KEY(slug), JSON.stringify(me));
-    } catch {
-      /* noop */
-    }
+    const me = saveIdentity(slug, nickname, board.id);
     set({ me });
     await db.presence.join(slug, me);
     unsubPresence?.();
@@ -286,6 +325,17 @@ export const useBoard = create<BoardStore>((set, get) => ({
     if (!ok) {
       myPendingMoves.delete(keywordId);
       set({ placements: before });
+      return;
+    }
+
+    // 첫 배치를 마치면 폰 첫 사용 안내를 끈다
+    if (zone !== 'pool' && !get().hasPlaced) {
+      try {
+        window.localStorage.setItem(PLACED_KEY, '1');
+      } catch {
+        /* noop */
+      }
+      set({ hasPlaced: true });
     }
   },
 
@@ -377,6 +427,10 @@ export const useBoard = create<BoardStore>((set, get) => ({
 
   setOpenCard(keywordId) {
     set({ openCard: keywordId });
+  },
+
+  setActionCard(keywordId) {
+    set({ actionCard: keywordId });
   },
 
   duplicateOf(text) {
@@ -517,7 +571,7 @@ export const useBoard = create<BoardStore>((set, get) => ({
       payload: {},
     });
     await get().refresh();
-    set({ openCard: null, highlight: null });
+    set({ openCard: null, actionCard: null, highlight: null });
     toast.success('보드를 처음 상태로 되돌렸습니다');
   },
 
@@ -717,12 +771,13 @@ export function isWriteBlocked(board: Board | null, isHost: boolean): boolean {
   return board.phase === 'review' || board.locked;
 }
 
-/** 쓰기 가능 여부 — 단계·잠금에 더해 폰은 보기 전용(§5) */
+/**
+ * 쓰기 가능 여부 — 단계·잠금만 본다.
+ * v1.1에서 폰 보기 전용을 없앴다(폰도 완전히 쓸 수 있다).
+ */
 export function useCanWrite(): boolean {
   const board = useBoard((s) => s.board);
   const isHost = useBoard((s) => s.isHost);
-  const viewport = useViewport();
-  if (viewport === 'phone') return false;
   return !isWriteBlocked(board, isHost);
 }
 

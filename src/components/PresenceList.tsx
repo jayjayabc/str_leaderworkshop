@@ -1,6 +1,6 @@
 'use client';
 
-import { initials, ROLE_LABEL } from '@/lib/design';
+import { initials } from '@/lib/design';
 import { useBoard } from '@/store/board';
 
 export function PresenceList() {
@@ -13,9 +13,7 @@ export function PresenceList() {
         {presence.slice(0, 8).map((p) => (
           <span
             key={p.participant.id}
-            title={`${p.participant.nickname} · ${ROLE_LABEL[p.participant.role]}${
-              p.participant.id === me?.id ? ' (나)' : ''
-            }`}
+            title={`${p.participant.nickname}${p.participant.id === me?.id ? ' (나)' : ''}`}
             className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[10px] font-bold text-white"
             style={{ background: p.participant.color }}
           >

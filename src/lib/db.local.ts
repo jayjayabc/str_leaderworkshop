@@ -197,7 +197,15 @@ class LocalAdapter implements BoardAdapter {
   private local = new Map<string, Set<(s: BoardSnapshot) => void>>();
 
   async createBoard(input: CreateBoardInput): Promise<CreateBoardResult> {
-    const slug = makeSlug();
+    const slug = input.slug?.trim() || makeSlug();
+    // 같은 slug가 이미 있으면(조 보드 동시 입장 등) 새로 만들지 않고 기존 보드를 돌려준다
+    const existing = read(slug);
+    if (existing) {
+      return {
+        board: existing.board,
+        hostToken: existing.board.settings.host_token ?? existing.board.host_token ?? '',
+      };
+    }
     const snap = newSnapshot(input.title, slug);
     const hostToken = uid();
     snap.board.settings = { host_token: hostToken };

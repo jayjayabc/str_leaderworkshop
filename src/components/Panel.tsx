@@ -6,7 +6,6 @@ import clsx from 'clsx';
 
 import {
   AXES,
-  ROLE_LABEL,
   ZONES,
   ZONE_MAP,
   directionParticle,
@@ -282,9 +281,6 @@ export function Panel({ flush = false }: { flush?: boolean }) {
                   {initials(p.participant.nickname)}
                 </span>
                 <span className="truncate">{p.participant.nickname}</span>
-                <span className="ml-auto text-[11px] text-eb-muted">
-                  {ROLE_LABEL[p.participant.role]}
-                </span>
               </li>
             ))
           )}

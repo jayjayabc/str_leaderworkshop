@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/core';
 
 import { BoardGrid } from './Board';
+import { CardActionSheet } from './CardActionSheet';
 import { BoardSkeleton } from './BoardSkeleton';
 import { CardChipGhost } from './CardChip';
 import { CardPopover } from './CardPopover';
@@ -22,11 +23,12 @@ import { JoinModal } from './JoinModal';
 import { Panel } from './Panel';
 import { PanelSheet } from './PanelSheet';
 import { Pool } from './Pool';
+import { PhoneHint } from './PhoneHint';
 import { PoolDrawer } from './PoolDrawer';
 import { PresentBar } from './PresentBar';
 import { TopBar } from './TopBar';
-import { isWriteBlocked, useBoard } from '@/store/board';
-import { useViewport } from '@/lib/viewport';
+import { isWriteBlocked, takeFirstVisit, useBoard } from '@/store/board';
+import { PHONE_MAX, useViewport } from '@/lib/viewport';
 import type { PlaceKey } from '@/lib/types';
 
 const PLACE_KEYS: PlaceKey[] = ['pool', 'elephant', 'deadfish', 'vomit', 'bluebird', 'sprout'];
@@ -53,11 +55,16 @@ export function BoardScreen({ slug }: { slug: string }) {
 
   const viewport = useViewport();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // 폰에서 이 보드를 처음 열면 풀 서랍을 열어 둔 상태로 시작한다(무엇을 해야 하는지 보이도록).
+  // useState 초기화에서 한 번만 판정하므로 effect + setState(계단식 렌더)를 쓰지 않는다.
+  const [drawerOpen, setDrawerOpen] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= PHONE_MAX && takeFirstVisit(slug),
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const viewOnly = viewport === 'phone';
-  const blocked = viewOnly || isWriteBlocked(board, isHost);
+  const isPhone = viewport === 'phone';
+  // v1.1 — 폰도 완전히 쓸 수 있다(보기 전용 해제).
+  const blocked = isWriteBlocked(board, isHost);
 
   useEffect(() => {
     void init(slug);
@@ -86,7 +93,8 @@ export function BoardScreen({ slug }: { slug: string }) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } }),
+    // 탭(짧게 누르기)은 드래그를 시작하지 않고 이동 시트를 연다 (v1.1 B)
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
   );
 
   function onDragStart(e: DragStartEvent) {
@@ -184,15 +192,6 @@ export function BoardScreen({ slug }: { slug: string }) {
     <div className="flex h-screen flex-col overflow-hidden">
       {present ? <PresentBar /> : <TopBar />}
 
-      {viewOnly && !present ? (
-        <p
-          className="shrink-0 bg-[#F8F0E6] px-4 py-2 text-center text-[12px] font-medium text-[#9A5B1E]"
-          role="status"
-        >
-          휴대폰에서는 보기 전용입니다
-        </p>
-      ) : null}
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -208,9 +207,13 @@ export function BoardScreen({ slug }: { slug: string }) {
           <main className="min-h-0 flex-1 overflow-hidden p-5" aria-label="보드 (발표 모드)">
             <BoardGrid present />
           </main>
-        ) : viewOnly ? (
-          // 폰 — 5칸을 세로로 쌓고 세로 스크롤
-          <main className="eb-scroll min-h-0 flex-1 overflow-y-auto p-3" aria-label="보드">
+        ) : isPhone ? (
+          // 폰 — 5칸을 세로로 쌓고 세로 스크롤. 아래는 풀 서랍 핸들 자리를 비워 둔다.
+          <main
+            className="eb-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3"
+            style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+            aria-label="보드"
+          >
             <BoardGrid stacked />
           </main>
         ) : viewport === 'tablet' ? (
@@ -228,16 +231,18 @@ export function BoardScreen({ slug }: { slug: string }) {
           </main>
         )}
 
-        {viewport === 'tablet' && !present ? (
+        {viewport !== 'desktop' && !present ? (
           <PoolDrawer open={drawerOpen} onToggle={() => setDrawerOpen((v) => !v)} />
         ) : null}
+
+        {isPhone && !present ? <PhoneHint drawerOpen={drawerOpen} /> : null}
 
         <DragOverlay dropAnimation={{ duration: 150, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' }}>
           {activeKeyword ? <CardChipGhost keyword={activeKeyword} /> : null}
         </DragOverlay>
       </DndContext>
 
-      {viewport === 'tablet' && !present ? (
+      {viewport !== 'desktop' && !present ? (
         <PanelSheet
           open={sheetOpen}
           onOpen={() => setSheetOpen(true)}
@@ -249,6 +254,7 @@ export function BoardScreen({ slug }: { slug: string }) {
         <>
           <JoinModal />
           <CardPopover />
+          <CardActionSheet />
         </>
       )}
     </div>

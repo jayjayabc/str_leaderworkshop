@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { toast } from 'sonner';
 
 import { AXIS_MAP, clipText, placeLabel } from '@/lib/design';
+import { useViewport } from '@/lib/viewport';
 import {
   useBoard,
   useCanWrite,
@@ -28,6 +29,9 @@ const KEY_TO_PLACE: Record<string, PlaceKey | undefined> = {
   '0': 'pool',
 };
 
+/** 길게 누르기 → 액션 시트 (태블릿·데스크톱) */
+const LONG_PRESS_MS = 500;
+
 interface Props {
   keyword: Keyword;
   zone: PlaceKey;
@@ -38,6 +42,9 @@ interface Props {
 
 export function CardChip({ keyword, zone, compact = false, present = false }: Props) {
   const canWrite = useCanWrite();
+  const viewport = useViewport();
+  const isPhone = viewport === 'phone' && !present;
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: keyword.id,
     data: { zone },
@@ -50,6 +57,7 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
   const presence = useBoard((s) => s.presence);
   const me = useBoard((s) => s.me);
   const setOpenCard = useBoard((s) => s.setOpenCard);
+  const setActionCard = useBoard((s) => s.setActionCard);
   const toggleVote = useBoard((s) => s.toggleVote);
   const movePlacement = useBoard((s) => s.movePlacement);
   const highlight = useBoard((s) => s.highlight);
@@ -60,11 +68,17 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
   const topRanks = useTopRanks();
 
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClick = useRef(false);
   const isHighlighted = highlight === keyword.id;
 
   useEffect(() => {
     if (isHighlighted) boxRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [isHighlighted]);
+
+  useEffect(() => () => {
+    if (longPress.current) clearTimeout(longPress.current);
+  }, []);
 
   const placer = placement?.placed_by
     ? presence.find((p) => p.participant.id === placement.placed_by)
@@ -87,7 +101,8 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
   function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setOpenCard(keyword.id);
+      // 키보드 사용자에게도 이동 시트를 준다
+      setActionCard(keyword.id);
       return;
     }
     const target = KEY_TO_PLACE[e.key];
@@ -99,6 +114,35 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
     }
     if (target === zone) return;
     void movePlacement(keyword.id, target, Number.MAX_SAFE_INTEGER);
+  }
+
+  function cancelLongPress() {
+    if (longPress.current) {
+      clearTimeout(longPress.current);
+      longPress.current = null;
+    }
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    // dnd-kit 센서가 먼저 봐야 한다
+    (listeners?.onPointerDown as ((ev: React.PointerEvent<HTMLDivElement>) => void) | undefined)?.(e);
+    if (isPhone || present) return; // 폰은 탭 자체가 시트를 연다
+    suppressClick.current = false;
+    cancelLongPress();
+    longPress.current = setTimeout(() => {
+      suppressClick.current = true;
+      setActionCard(keyword.id);
+    }, LONG_PRESS_MS);
+  }
+
+  function onActivate() {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    // 폰에서는 탭이 이동 시트를 연다(1순위 경로). 그 외에는 상세 팝오버.
+    if (isPhone) setActionCard(keyword.id);
+    else setOpenCard(keyword.id);
   }
 
   const ring = isHighlighted
@@ -128,16 +172,24 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
         }}
         {...attributes}
         {...listeners}
+        onPointerDown={onPointerDown}
+        onPointerUp={cancelLongPress}
+        onPointerMove={cancelLongPress}
+        onPointerCancel={cancelLongPress}
+        onPointerLeave={cancelLongPress}
         title={keyword.text}
         tabIndex={0}
         aria-label={`카드 ${keyword.text}, ${placeLabel(zone)}`}
         onKeyDown={onKeyDown}
-        onClick={() => setOpenCard(keyword.id)}
+        onClick={onActivate}
         className={clsx(
           'eb-card flex touch-none items-center',
           canWrite ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
-          present ? 'gap-2.5 px-4 py-3' : 'gap-1.5',
-          present ? '' : compact ? 'px-2.5 py-1.5' : 'px-3 py-2',
+          present
+            ? 'gap-2.5 px-4 py-3'
+            : isPhone
+              ? 'min-h-[40px] gap-1.5 px-3 py-2'
+              : clsx('gap-1.5', compact ? 'px-2.5 py-1.5' : 'px-3 py-2'),
           remoteDragger && 'eb-wiggle',
         )}
       >
@@ -161,14 +213,25 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
         <span
           className={clsx(
             'truncate font-medium',
-            present ? 'text-[22px] leading-7' : compact ? 'text-[12px]' : 'text-[13px]',
+            present
+              ? 'text-[22px] leading-7'
+              : isPhone
+                ? 'text-[14px]'
+                : compact
+                  ? 'text-[12px]'
+                  : 'text-[13px]',
           )}
         >
           {present ? keyword.text : clipText(keyword.text)}
         </span>
 
         {!keyword.is_seed && keyword.created_by_name && !present ? (
-          <span className="shrink-0 rounded bg-[#f1f1ee] px-1 py-px text-[10px] text-eb-muted">
+          <span
+            className={clsx(
+              'shrink-0 rounded bg-[#f1f1ee] px-1 py-px text-eb-muted',
+              isPhone ? 'text-[11px]' : 'text-[10px]',
+            )}
+          >
             {keyword.created_by_name}
           </span>
         ) : null}
@@ -196,8 +259,9 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
               void toggleVote(keyword.id);
             }}
             className={clsx(
-              'ml-auto shrink-0 rounded-full border text-[11px] leading-none',
-              'flex h-4 w-4 items-center justify-center',
+              'ml-auto flex shrink-0 items-center justify-center rounded-full border leading-none',
+              // 폰에서는 손가락으로 누를 수 있도록 히트 영역을 36px로 (v1.1 B)
+              isPhone ? 'h-9 w-9 text-[15px]' : 'h-4 w-4 text-[11px]',
               voted ? 'border-[#3D4A7A] bg-[#3D4A7A] text-white' : 'border-[#c9cbd3] text-[#c9cbd3]',
             )}
           >

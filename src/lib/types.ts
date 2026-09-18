@@ -36,7 +36,11 @@ export interface Participant {
   id: string;
   board_id: string;
   nickname: string;
-  role: Role;
+  /**
+   * v1.0에 있던 역할. v1.1에서 UI가 사라졌지만 이전에 저장된 값과의 호환을 위해
+   * 선택 필드로 남긴다. 어떤 화면에서도 표시하지 않는다.
+   */
+  role?: Role;
   color: string;
   last_seen: string;
 }
