@@ -24,7 +24,7 @@ export function JoinModal() {
   const heading = teamNo ? teamTitle(teamNo) : title || '코끼리 보드';
 
   async function submit() {
-    if (!nickname.trim() || busy) return;
+    if (busy) return;
     setBusy(true);
     try {
       await join(nickname);
@@ -44,11 +44,11 @@ export function JoinModal() {
         <p className="text-[13px] font-semibold text-[#3D4A7A]">{heading}</p>
         <h2 className="mt-1 text-[19px] font-bold">이름을 입력해 주세요</h2>
         <p className="mt-1 text-[13px] leading-5 text-eb-muted">
-          로그인은 없습니다. 이름은 카드에 붙는 작은 배지에만 쓰입니다.
+          로그인은 없습니다. 이름은 카드에 붙는 작은 배지에만 쓰이고, 비워 두면 자동 별칭이 붙습니다.
         </p>
 
         <label className="mb-1.5 mt-5 block text-[12px] font-semibold" htmlFor="nickname">
-          이름
+          이름 <span className="font-normal text-eb-muted">(선택)</span>
         </label>
         <input
           id="nickname"
@@ -66,7 +66,7 @@ export function JoinModal() {
         <button
           type="button"
           onClick={() => void submit()}
-          disabled={!nickname.trim() || busy}
+          disabled={busy}
           className="mt-5 flex h-12 w-full items-center justify-center rounded-lg bg-[#3D4A7A] text-[16px] font-semibold text-white disabled:opacity-40"
         >
           입장하기

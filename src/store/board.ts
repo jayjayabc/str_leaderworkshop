@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 
 import { getDb, dbMode, type BoardAdapter, type DbMode } from '@/lib/db';
+import { resolveNickname } from '@/lib/anon';
 import { normalizeText, uid } from '@/lib/snapshot';
 import {
   AXIS_MAP,
@@ -77,14 +78,18 @@ export function readMe(slug: string): Participant | null {
   }
 }
 
-/** 조 보드 입장 시 홈에서 미리 신원을 저장한다 (참가 모달을 건너뛰기 위해) */
+/**
+ * 조 보드 입장 시 홈에서 미리 신원을 저장한다 (참가 모달을 건너뛰기 위해).
+ * 이름이 비어 있으면 자동 별칭(`익명-XXX`)이 붙는다 — 키보드 없이도 입장할 수 있도록 (v1.1.1).
+ */
 export function saveIdentity(slug: string, nickname: string, boardId: string): Participant {
   const id = uid();
+  const name = resolveNickname(nickname);
   const me: Participant = {
     id,
     board_id: boardId,
-    nickname: nickname.trim(),
-    color: pickColor(id + nickname),
+    nickname: name,
+    color: pickColor(id + name),
     last_seen: new Date().toISOString(),
   };
   try {
@@ -144,6 +149,8 @@ interface BoardStore {
   init: (slug: string) => Promise<void>;
   dispose: () => void;
   join: (nickname: string) => Promise<void>;
+  /** 참가 후 이름 바꾸기 (v1.1.1) — 이 slug의 신원과 프레즌스를 갱신한다 */
+  renameMe: (nickname: string) => Promise<void>;
   refresh: () => Promise<void>;
 
   movePlacement: (keywordId: string, zone: PlaceKey, index: number) => Promise<void>;
@@ -266,6 +273,29 @@ export const useBoard = create<BoardStore>((set, get) => ({
     await db.presence.join(slug, me);
     unsubPresence?.();
     unsubPresence = db.presence.onPresence((list) => set({ presence: list }));
+  },
+
+  async renameMe(nickname) {
+    const { slug, db, me } = get();
+    if (!slug || !me) return;
+    const next: Participant = {
+      ...me,
+      // 색은 그대로 둔다 — 이름이 바뀌어도 같은 사람으로 보이게
+      nickname: resolveNickname(nickname),
+      last_seen: new Date().toISOString(),
+    };
+    if (next.nickname === me.nickname) return;
+    try {
+      window.localStorage.setItem(ME_KEY(slug), JSON.stringify(next));
+    } catch {
+      /* noop */
+    }
+    set({ me: next });
+    // 프레즌스는 다시 join해서 목록의 이름을 갱신한다
+    await db.presence.join(slug, next);
+    unsubPresence?.();
+    unsubPresence = db.presence.onPresence((list) => set({ presence: list }));
+    toast.success(`이름을 '${next.nickname}'(으)로 바꿨습니다`);
   },
 
   async movePlacement(keywordId, zone, index) {

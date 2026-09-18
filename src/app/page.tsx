@@ -38,7 +38,8 @@ export default function HomePage() {
   const setTeam = setTeamPick;
   const setName = setNamePick;
 
-  const ready = team !== null && name.trim().length > 0;
+  // 이름은 선택 사항이다 — 조만 고르면 들어갈 수 있다 (v1.1.1, 키보드 없는 브라우저 대응)
+  const ready = team !== null;
 
   async function enter() {
     if (!ready || busy || team === null) return;
@@ -103,7 +104,7 @@ export default function HomePage() {
           </div>
 
           <label className="mb-1.5 mt-6 block text-[13px] font-semibold" htmlFor="entry-name">
-            이름
+            이름 <span className="font-normal text-eb-muted">(선택)</span>
           </label>
           <input
             id="entry-name"
@@ -116,6 +117,7 @@ export default function HomePage() {
             placeholder="예) 제일런"
             className="w-full rounded-lg border border-eb-line px-3 py-3 text-[15px] outline-none focus:border-[#9aa4b8]"
           />
+          <p className="mt-1.5 text-[12px] text-eb-muted">비워 두면 자동 별칭이 붙습니다.</p>
 
           <button
             type="button"

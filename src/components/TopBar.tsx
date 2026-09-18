@@ -20,6 +20,7 @@ import {
 } from '@/store/board';
 import { HostTokenDialog } from './HostTokenDialog';
 import { PresenceList } from './PresenceList';
+import { RenameDialog } from './RenameDialog';
 import { TopBarPhone } from './TopBarPhone';
 import { ResetDialog } from './ResetDialog';
 import { TimerWidget } from './TimerWidget';
@@ -42,6 +43,7 @@ export function TopBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [tokenOpen, setTokenOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -257,6 +259,16 @@ export function TopBar() {
               role="menu"
               className="eb-panel absolute right-0 top-[calc(100%+6px)] z-50 w-[220px] p-1.5 shadow-xl"
             >
+              <p className="px-2 pb-1 pt-1 text-[11px] font-semibold text-eb-muted">나</p>
+              <MenuItem
+                label="이름 바꾸기"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setRenameOpen(true);
+                }}
+              />
+
+              <div className="my-1 border-t border-eb-line" />
               <p className="px-2 pb-1 pt-1 text-[11px] font-semibold text-eb-muted">내보내기</p>
               <MenuItem
                 label="JSON (전체 상태)"
@@ -350,6 +362,11 @@ export function TopBar() {
         key={tokenOpen ? 'token-open' : 'token-closed'}
         open={tokenOpen}
         onClose={() => setTokenOpen(false)}
+      />
+      <RenameDialog
+        key={renameOpen ? 'rename-open' : 'rename-closed'}
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
       />
     </header>
   );
