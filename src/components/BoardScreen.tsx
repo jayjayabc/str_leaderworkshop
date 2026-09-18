@@ -189,7 +189,7 @@ export function BoardScreen({ slug }: { slug: string }) {
   const activeKeyword = activeId ? keywords.find((k) => k.id === activeId) ?? null : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="eb-noselect flex h-screen flex-col overflow-hidden">
       {present ? <PresentBar /> : <TopBar />}
 
       <DndContext

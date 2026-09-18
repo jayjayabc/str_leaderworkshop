@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
 import { toast } from 'sonner';
@@ -154,11 +153,7 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
         : undefined;
 
   return (
-    <motion.div
-      layout
-      layoutId={`card-${keyword.id}`}
-      transition={{ type: 'spring', duration: 0.15, bounce: 0.2 }}
-    >
+    <div>
       <div
         ref={(el) => {
           setNodeRef(el);
@@ -282,7 +277,7 @@ export function CardChip({ keyword, zone, compact = false, present = false }: Pr
           />
         ) : null}
       </div>
-    </motion.div>
+    </div>
   );
 }
 

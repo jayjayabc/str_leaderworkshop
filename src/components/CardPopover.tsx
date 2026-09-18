@@ -179,7 +179,7 @@ export function CardPopover() {
 
         <div className="mt-4 border-t border-eb-line pt-3">
           <p className="mb-2 text-[12px] font-semibold">근거 메모 ({cardNotes.length})</p>
-          <ul className="space-y-1.5">
+          <ul className="eb-selectable space-y-1.5">
             {cardNotes.length === 0 ? (
               <li className="text-[12px] text-eb-muted">아직 메모가 없습니다.</li>
             ) : (
@@ -224,7 +224,7 @@ export function CardPopover() {
 
         <div className="mt-4 border-t border-eb-line pt-3">
           <p className="mb-2 text-[12px] font-semibold">이동 이력 ({history.length})</p>
-          <ul className="space-y-1">
+          <ul className="eb-selectable space-y-1">
             {history.length === 0 ? (
               <li className="text-[12px] text-eb-muted">아직 이동 이력이 없습니다.</li>
             ) : (

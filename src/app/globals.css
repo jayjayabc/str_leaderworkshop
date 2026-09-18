@@ -36,6 +36,28 @@ body {
   overscroll-behavior-y: none;
 }
 
+
+/* 드래그 중 텍스트가 선택되는 것 방지 (원격 격리 브라우저 포함, v1.1.2)
+   입력 요소와 메모/이력 등 읽을 텍스트는 .eb-selectable 로 다시 허용한다. */
+.eb-noselect,
+.eb-noselect * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.eb-noselect input,
+.eb-noselect textarea,
+.eb-noselect [contenteditable],
+.eb-noselect .eb-selectable,
+.eb-noselect .eb-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.eb-card,
+[aria-label^="카드 "] {
+  -webkit-user-drag: none;
+}
+
 /* 카드 */
 .eb-card {
   background: #fff;
