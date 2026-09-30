@@ -262,7 +262,7 @@ const WALL_T = 5;
 const E_WALL = 0.35, E_PIN = 0.45, E_BALL = 0.35, FRICTION = 0.015;
 const MAX_MARBLES = 400;
 const TOP = -400;          // world top used for grids
-let WORLD_H = 8880, GOAL_Y = 8780;
+let WORLD_H = 9180, GOAL_Y = 9080;
 
 // DAY 2 (10/14) 저녁식사 참석자, 참석 안내 시트 기준 · 스탭 제외
 const DINNER = ["daniel.yun", "root.s", "ted.kwon", "claire.park", "jack.5", "jeff.c", "demian.cho", "jeremy.c", "dave.lee", "leila.kim", "aileen.yoo", "wakke.k", "woody.jo", "tiffany.u", "charlie.b", "vince.h", "ricky.park", "snow.sb", "andrew.lee", "thom.y", "ellie.jin", "alan.h", "matthew.wkim", "steve.k", "charlie.cha", "james.jy", "dianna.kang", "conrad.shin", "connor.cho", "kali.lee", "jk.tabris", "rin.n", "logan.yoon", "charlie.shin", "manning.k", "jayson.jeong", "eric.p", "boris.joo", "jeremy.y", "simon.lee", "brian.kim", "chad.lee", "lj.hyeok", "richard.r", "tim.s", "rina.kim", "kyle.lee", "bacchus.lee", "nixon.l", "alpa.gwon", "aiden.cho", "joseph.h", "ivy.kang", "lea.lee", "duane.choo", "jake.lee", "jason.min", "ron.j", "asher.lee", "kevin.kim", "hugo.choi", "kai.joo", "paolo.lee", "johnny.worker", "top.lee", "bobby.shin", "arnold.oh", "brandon.kim", "peter.park", "claire.h", "evelina.yo", "sheryl.s", "ben.b", "boss.oh", "jayden.yoo", "sun.y", "kk.seo", "david.oh", "eddy.na", "toby.k", "brown.h", "ali.jeon", "derrick.c", "sonia.park", "taylor.i", "azki.org", "nick.lee", "kevin.yj", "dennis.kang", "alex.leejw", "luke.k", "evan.k", "flo.j", "aven.j", "joshua.y", "ellia.choi", "noah.k", "danny.yoon", "zachary.kim", "kerry.kim", "irena.k", "meriel.c", "matilda.p", "winnie.b", "hailey.chu", "claire.cho", "jean.on", "raam.kim", "rohn.jhee", "julie.june", "finn.jung", "sean.k", "steve.kim81", "philip.h", "kai.pa", "charles.song", "moe.14", "hank.j", "andre.h", "jacob.lee", "bread.p", "lux.ok", "uno.s", "gunther.ha", "rowan.k", "leo.kim", "cole.j", "justin.kim", "don.h", "anton.ms", "mason.chi", "scott.lee", "walter.jeong", "meg.kim", "bernard.park", "tony.park", "derek.lee", "bason.ryu", "alex.260", "paul.wbc", "kenny.k", "finn.j", "emmett.on", "loki.l", "glenn.lee", "muzi.k", "steve.lim", "anderson.bell", "jerome.jung", "easton.k", "buddy.song", "gerard.won", "hana.h", "jun.mauller", "mia.jung", "kevin.ips", "harold.lee", "michelle.shin", "hugh.lee", "julien.hong", "emily.cho", "kyle.y", "hoon.jjh", "robert.kim", "ryan.r", "cavin.wow", "kj.hi", "plumm.t", "bk.ko", "sydney.j", "dewey.k", "ed.lee", "matheus.eom", "kelly.y", "humphrey.y", "erin.lee", "melissa.cho", "mack.joo", "chloe.hyo", "juan.ko", "henry.lee", "james.bong", "jace.kim", "wyatt.k", "simon.seo", "jayden.kim", "elly.lee", "mickey.yoon", "loki.kim", "zino.ya", "zoe.lee", "olaf.jeong", "mandy.kim", "mey.i", "gina.park", "bean.h", "chacha.1", "david.slee", "anthony.baek", "jacob.min", "conan.k", "john.ryu", "blake.ji"];
@@ -298,14 +298,15 @@ function bumpyRamp(ax, ay, bx, by) {
   if (ny > 0) { nx = -nx; ny = -ny; }
   for (const f of [0.2, 0.4, 0.6, 0.8]) pin(ax + dx * f + nx * 3, ay + dy * f + ny * 3, 6);
 }
-// full-width trapdoor: holds the field for a few seconds, then drops everyone at once
-function gate(y, hold, open) {
-  gates.push({ y, hold, openDur: open, open: false, armed: false, timer: 0, o: 0 });
+// full-width trapdoor: once the first marble lands it waits until `need` of the field behind it
+// has caught up (but at least minHold and at most maxHold seconds), then drops everyone at once
+function gate(y, minHold, maxHold, need, name) {
+  gates.push({ y, minHold, maxHold, need, name, openDur: 2.5, open: false, armed: false, timer: 0, o: 0, waiting: 0, upstream: 0, popped: false });
 }
 
 function buildMap() {
   segs.length = circs.length = rotors.length = gates.length = zones.length = 0;
-  WORLD_H = 8880; GOAL_Y = 8780;
+  WORLD_H = 9180; GOAL_Y = 9080;
   seg(0, TOP, 0, WORLD_H); seg(W, TOP, W, WORLD_H);
 
   zones.push({ y: 300, name: '핀 숲' });
@@ -326,17 +327,20 @@ function buildMap() {
   for (let x = 50; x <= 950; x += 100) pin(x, 2440, 6);
 
   zones.push({ y: 2490, name: '대기실 1' });
-  gate(2620, 7, 2.5);
+  gate(2620, 4, 12, 0.85, '대기실 1');
 
-  zones.push({ y: 2700, name: '울퉁불퉁' });
-  bumpyRamp(0, 2720, 760, 2920); bumpyRamp(W, 3020, 240, 3220);
-  bumpyRamp(0, 3320, 760, 3520); bumpyRamp(W, 3620, 240, 3820);
+  // mirrored chevrons: V gathers to the middle, Λ splits to both walls, so neither side is favoured
+  zones.push({ y: 2690, name: '울퉁불퉁' });
+  const chevV = y => { bumpyRamp(0, y, 440, y + 130); bumpyRamp(W, y, 560, y + 130); };
+  const chevA = y => { bumpyRamp(500, y, 130, y + 130); bumpyRamp(500, y, 870, y + 130); };
+  chevV(2700); chevA(2960); chevV(3180); chevA(3440); chevV(3660);
 
   zones.push({ y: 3880, name: '범퍼' });
   [3920, 4060, 4200, 4340, 4480].forEach((y, i) => {
-    const xs = i % 2 ? [350, 650] : [200, 500, 800];
+    // the last row sits over the lane dividers, so it splits marbles into all three lanes
+    const xs = i % 2 ? [200, 500, 800] : [350, 650];
     xs.forEach(x => bumper(x, y, 30));
-    if (i % 2) { pin(60, y, 6); pin(940, y, 6); }
+    if (i % 2 === 0) { pin(60, y, 6); pin(940, y, 6); }
   });
 
   zones.push({ y: 4560, name: '세 갈래 길' });
@@ -348,16 +352,16 @@ function buildMap() {
     xs.forEach(x => pin(x, y));
   }
   // middle lane: spinners that can fling marbles backwards
-  rotor(500, 4800, 120, 2, 2.6); rotor(500, 5200, 120, 2, -2.6); rotor(500, 5600, 120, 2, 2.6);
+  rotor(500, 4860, 120, 2, 2.6); rotor(500, 5200, 120, 2, -2.6); rotor(500, 5600, 120, 2, 2.6);
   for (const y of [5000, 5400, 5800]) for (const x of [420, 500, 580]) pin(x, y, 6);
-  // right lane: long switchback
-  for (let k = 0; k < 8; k++) {
-    const y = 4650 + k * 170;
-    if (k % 2) seg(995, y, 767, y + 60); else seg(672, y, 900, y + 60);
+  // right lane: steep switchback
+  for (let k = 0; k < 4; k++) {
+    const y = 4680 + k * 320;
+    if (k % 2) seg(995, y, 767, y + 130); else seg(672, y, 900, y + 130);
   }
 
   zones.push({ y: 6000, name: '대기실 2' });
-  gate(6120, 8, 2.5);
+  gate(6120, 5, 10, 0.6, '대기실 2');
 
   zones.push({ y: 6160, name: '핀 숲 2' });
   for (let row = 0; row < 8; row++) {
@@ -377,12 +381,19 @@ function buildMap() {
   });
 
   zones.push({ y: 7870, name: '최종 대기실' });
-  gate(7990, 6, 2.5);
+  gate(7990, 4, 15, 0.95, '최종 대기실');
 
-  zones.push({ y: 8250, name: '결승' });
-  seg(0, 8260, 430, 8680); seg(W, 8260, 570, 8680);
-  seg(430, 8680, 430, GOAL_Y + 60); seg(570, 8680, 570, GOAL_Y + 60);
-  rotor(500, 8480, 120, 1, 1.6);
+  // the regrouped pack lands straight into chaos, so the drop order does not decide the race
+  zones.push({ y: 8040, name: '혼돈' });
+  [200, 500, 800].forEach(x => bumper(x, 8110, 26));
+  for (let x = 100; x <= 900; x += 100) pin(x, 8220, 6);
+  rotor(250, 8360, 100, 2, 2.4); rotor(750, 8360, 100, 2, -2.4);
+  for (let x = 50; x <= 950; x += 100) pin(x, 8510, 6);
+
+  zones.push({ y: 8550, name: '결승' });
+  seg(0, 8560, 430, 8980); seg(W, 8560, 570, 8980);
+  seg(430, 8980, 430, GOAL_Y + 60); seg(570, 8980, 570, GOAL_Y + 60);
+  rotor(500, 8780, 120, 1, 1.6);
 
   buildStaticGrid();
 }
@@ -409,7 +420,7 @@ let marbles = [];
 let finishOrder = [];
 let state = 'setup';       // setup | countdown | running | done
 let simTime = 0, speedMul = 1, mode = 'first', winK = 1;
-let slowmo = false, winners = [];
+let slowmo = false, winners = [], dramaUntil = 0;
 let ranked = [];           // active marbles, furthest along first
 
 function hueColor(i) {
@@ -438,7 +449,7 @@ function spawn(names) {
       vx: 0, vy: 0, slow: 0, done: false, rank: 0, t: 0, live: 0,
     };
   });
-  finishOrder = []; winners = []; simTime = 0; slowmo = false;
+  finishOrder = []; winners = []; simTime = 0; slowmo = false; dramaUntil = 0;
   ranked = marbles.slice();
   prevRank = new Map(); lastTop = null;
 }
@@ -495,14 +506,17 @@ function collideCirc(m, c) {
   }
 }
 
-function updateGates() {
+function updateGates(act) {
   for (const g of gates) {
+    let up = 0, wait = 0;
+    for (const m of act) if (m.y < g.y) { up++; if (m.y > g.y - 220) wait++; }
+    g.upstream = up; g.waiting = wait;
     if (g.open) {
       g.timer += DT;
       if (g.timer >= g.openDur) { g.open = false; g.armed = false; g.timer = 0; }
     } else if (g.armed) {
       g.timer += DT;
-      if (g.timer >= g.hold) { g.open = true; g.timer = 0; }
+      if (g.timer >= g.maxHold || (g.timer >= g.minHold && wait >= g.need * up)) { g.open = true; g.timer = 0; g.popped = true; }
     }
     const target = g.open ? 1 : 0;
     g.o += Math.sign(target - g.o) * Math.min(Math.abs(target - g.o), DT * 5);
@@ -512,10 +526,10 @@ function updateGates() {
 function step() {
   simTime += DT;
   for (const r of rotors) r.angle += r.omega * DT;
-  updateGates();
 
   const act = [];
   for (const m of marbles) if (!m.done) act.push(m);
+  updateGates(act);
 
   // integrate
   for (const m of act) {
@@ -755,7 +769,9 @@ function draw(now) {
       ctx.fillText('열림!', W / 2, g.y + 60);
     } else if (g.armed) {
       ctx.fillStyle = C.goal; ctx.font = `56px ${FONT_DISPLAY}`;
-      ctx.fillText(String(Math.ceil(g.hold - g.timer)), W / 2, g.y + 70);
+      ctx.fillText(String(Math.max(1, Math.ceil(g.maxHold - g.timer))), W / 2, g.y + 70);
+      ctx.font = `600 22px ${FONT_BODY}`; ctx.fillStyle = C.fg;
+      ctx.fillText(`${g.waiting} / ${g.upstream}명 도착`, W / 2, g.y + 100);
     }
   }
 
@@ -1250,7 +1266,11 @@ function frame(now) {
     const decisive = mode === 'first'
       ? finishOrder.length === winK - 1
       : marbles.length - finishOrder.length === winK + 1;
-    slowmo = !!(near && decisive);
+    slowmo = !!(near && decisive) || simTime < dramaUntil;
+    for (const g of gates) if (g.popped) {
+      g.popped = false;
+      if (g.waiting > 1) { dramaUntil = simTime + 1.2; toast(`${g.name} 열림! ${g.waiting}명 출발`); }
+    }
     acc += dtR * speedMul * (slowmo ? 0.3 : 1);
     let n = 0;
     while (acc >= DT && n < 60 && state === 'running') { step(); acc -= DT; n++; }
@@ -1290,6 +1310,15 @@ ensureGrid();
 layout();
 refreshNames();
 requestAnimationFrame(frame);
+
+// test-only hook for headless course tuning; inert unless a harness sets the flag before load
+if (window.__ROULETTE_DEBUG) window.__roulette = {
+  step, rerank, buildMap, spawn: () => spawn(names),
+  run(m, k) { mode = m; winK = k; state = 'running'; },
+  get marbles() { return marbles; }, get finishOrder() { return finishOrder; },
+  get simTime() { return simTime; }, get state() { return state; }, get ranked() { return ranked; },
+  GOAL_Y: () => GOAL_Y,
+};
 })();
 </script>
 
