@@ -232,3 +232,20 @@ export function exportLinksCsv(rows: { team: number; url: string }[]): void {
     `elephant-board_links_${stamp()}.csv`,
   );
 }
+
+// ─── 스피드 퀴즈 (Quiz v1.0) ───────────────────────────────────
+
+/** 파일명용 시각 yyyyMMdd-HHmm */
+export function fileStamp(): string {
+  return stamp();
+}
+
+/** 행 배열을 BOM 붙은 CSV로 내려받는다 */
+export function downloadCsv(
+  rows: Record<string, string | number>[],
+  columns: string[],
+  filename: string,
+): void {
+  const csv = Papa.unparse(rows, { columns });
+  saveBlob(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }), filename);
+}

@@ -2,7 +2,9 @@
 // NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY 가 있을 때만 사용된다.
 // 스키마는 supabase/schema.sql 참조.
 
-import { createClient, type RealtimeChannel, type SupabaseClient } from '@supabase/supabase-js';
+import { type RealtimeChannel } from '@supabase/supabase-js';
+
+import { sb } from './supabaseClient';
 
 import { makeSlug, seedRows, uid } from './snapshot';
 import type {
@@ -29,17 +31,6 @@ import type {
   Vote,
 } from './types';
 
-let client: SupabaseClient | null = null;
-
-function sb(): SupabaseClient {
-  if (!client) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !key) throw new Error('Supabase 환경변수가 없습니다');
-    client = createClient(url, key, { realtime: { params: { eventsPerSecond: 20 } } });
-  }
-  return client;
-}
 
 class SupabasePresence implements PresenceAdapter {
   private channel: RealtimeChannel | null = null;

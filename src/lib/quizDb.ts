@@ -1,0 +1,53 @@
+// 스피드 퀴즈 어댑터 단일 진입점 (Quiz v1.0)
+//   Supabase 환경변수가 있으면 RPC + Realtime(quiz_state) + 3초 폴링,
+//   없으면 localStorage + BroadcastChannel(같은 브라우저 탭끼리) — 보드와 같은 패턴.
+
+import { hasSupabaseEnv } from './supabaseClient';
+import { createLocalQuizAdapter } from './quizDb.local';
+import { createSupabaseQuizAdapter } from './quizDb.supabase';
+import type {
+  QuizAdminSnapshot,
+  QuizControlAction,
+  QuizMySubmission,
+  QuizParticipant,
+  QuizState,
+} from './quizTypes';
+
+export interface QuizCounts {
+  participants: number;
+  submissions: number;
+}
+
+export interface QuizAdapter {
+  readonly mode: 'supabase' | 'local';
+
+  /** 서버 시각(ms) — 시계 맞추기용 */
+  serverNow(): Promise<number>;
+  getState(): Promise<QuizState>;
+  /**
+   * quiz_state 구독. Realtime(또는 BroadcastChannel)로 바로 받고, 막힌 환경에 대비해
+   * 3초마다 폴링도 한다. updated_at이 바뀐 경우에만 콜백. 반환값을 호출하면 해제.
+   */
+  subscribeState(cb: (state: QuizState) => void): () => void;
+
+  join(name: string, tableNo: number): Promise<QuizParticipant>;
+  me(id: string): Promise<QuizParticipant | null>;
+  /** 제출 — 서버 제출 시각(ISO)을 돌려준다. 실패하면 QuizError */
+  submit(participantId: string, index: number, answer: string): Promise<string>;
+  mySubmission(participantId: string, index: number): Promise<QuizMySubmission | null>;
+  counts(index: number): Promise<QuizCounts>;
+
+  // 운영자
+  control(key: string, action: QuizControlAction): Promise<QuizState>;
+  adminSnapshot(key: string, index: number | null): Promise<QuizAdminSnapshot>;
+}
+
+let cached: QuizAdapter | null = null;
+
+export function getQuizDb(): QuizAdapter {
+  if (cached) return cached;
+  cached = hasSupabaseEnv() ? createSupabaseQuizAdapter() : createLocalQuizAdapter();
+  return cached;
+}
+
+export { STATE_POLL_MS } from './quizTypes';
