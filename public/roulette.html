@@ -292,7 +292,8 @@ const ROOF = 14;           // half-height of a slider's pitched top          // 
 const MAX_MARBLES = 400;
 const TOP = -400;          // world top used for grids
 let WORLD_H = 9860, GOAL_Y = 9760;
-const WARP_TO = 8570;      // where a marble lands after falling into a side hole
+let WARP_TO = 8570;        // where a marble lands after falling into a side hole
+let FLOOR_Y = 9700;        // slot floor in front of the finish
 
 // DAY 2 (10/14) 저녁식사 참석자, 참석 안내 시트 기준 · 스탭 제외
 const DINNER = ["daniel.yun", "root.s", "ted.kwon", "claire.park", "jack.5", "jeff.c", "demian.cho", "jeremy.c", "dave.lee", "leila.kim", "aileen.yoo", "wakke.k", "woody.jo", "tiffany.u", "charlie.b", "vince.h", "ricky.park", "snow.sb", "andrew.lee", "thom.y", "ellie.jin", "alan.h", "matthew.wkim", "steve.k", "charlie.cha", "james.jy", "dianna.kang", "conrad.shin", "connor.cho", "kali.lee", "jk.tabris", "rin.n", "logan.yoon", "charlie.shin", "manning.k", "jayson.jeong", "eric.p", "boris.joo", "jeremy.y", "simon.lee", "brian.kim", "chad.lee", "lj.hyeok", "richard.r", "tim.s", "rina.kim", "kyle.lee", "bacchus.lee", "nixon.l", "alpa.gwon", "aiden.cho", "joseph.h", "ivy.kang", "lea.lee", "duane.choo", "jake.lee", "jason.min", "ron.j", "asher.lee", "kevin.kim", "hugo.choi", "kai.joo", "paolo.lee", "johnny.worker", "top.lee", "bobby.shin", "arnold.oh", "brandon.kim", "peter.park", "claire.h", "evelina.yo", "sheryl.s", "ben.b", "boss.oh", "jayden.yoo", "sun.y", "kk.seo", "david.oh", "eddy.na", "toby.k", "brown.h", "ali.jeon", "derrick.c", "sonia.park", "taylor.i", "azki.org", "nick.lee", "kevin.yj", "dennis.kang", "alex.leejw", "luke.k", "evan.k", "flo.j", "aven.j", "joshua.y", "ellia.choi", "noah.k", "danny.yoon", "zachary.kim", "kerry.kim", "irena.k", "meriel.c", "matilda.p", "winnie.b", "hailey.chu", "claire.cho", "jean.on", "raam.kim", "rohn.jhee", "julie.june", "finn.jung", "sean.k", "steve.kim81", "philip.h", "kai.pa", "charles.song", "moe.14", "hank.j", "andre.h", "jacob.lee", "bread.p", "lux.ok", "uno.s", "gunther.ha", "rowan.k", "leo.kim", "cole.j", "justin.kim", "don.h", "anton.ms", "mason.chi", "scott.lee", "walter.jeong", "meg.kim", "bernard.park", "tony.park", "derek.lee", "bason.ryu", "alex.260", "paul.wbc", "kenny.k", "finn.j", "emmett.on", "loki.l", "glenn.lee", "muzi.k", "steve.lim", "anderson.bell", "jerome.jung", "easton.k", "buddy.song", "gerard.won", "hana.h", "jun.mauller", "mia.jung", "kevin.ips", "harold.lee", "michelle.shin", "hugh.lee", "julien.hong", "emily.cho", "kyle.y", "hoon.jjh", "robert.kim", "ryan.r", "cavin.wow", "kj.hi", "plumm.t", "bk.ko", "sydney.j", "dewey.k", "ed.lee", "matheus.eom", "kelly.y", "humphrey.y", "erin.lee", "melissa.cho", "mack.joo", "chloe.hyo", "juan.ko", "henry.lee", "james.bong", "jace.kim", "wyatt.k", "simon.seo", "jayden.kim", "elly.lee", "mickey.yoon", "loki.kim", "zino.ya", "zoe.lee", "olaf.jeong", "mandy.kim", "mey.i", "gina.park", "bean.h", "chacha.1", "david.slee", "anthony.baek", "jacob.min", "conan.k", "john.ryu", "blake.ji"];
@@ -345,121 +346,222 @@ function gate(y, minHold, maxHold, need, name) {
   gates.push({ y, minHold, maxHold, need, name, openDur: 2, open: false, armed: false, timer: 0, o: 0, waiting: 0, upstream: 0, popped: false });
 }
 
+// open polyline of rails
+function rail(pts) { for (let i = 1; i < pts.length; i++) seg(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]); }
+// arc of rails, angles in degrees, y grows downward
+function arc(cx, cy, r, a0, a1, n = 18) {
+  const pts = [];
+  for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  rail(pts);
+}
+function pinRows(y0, rows, avoid = () => false) {
+  for (let row = 0; row < rows; row++) {
+    const y = y0 + row * 56, odd = row % 2;
+    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) if (!avoid(x, y)) pin(x, y);
+  }
+}
+
+/* the course is a chain of sections; each takes its top y and returns the y where the next one starts */
+const SECTIONS = {
+  pinForest(y) {
+    zones.push({ y, name: '핀 숲' });
+    // small bumpers scattered in the pin forest; pins too close to one are left out so nothing can wedge
+    const kick = [[250, y + 310], [750, y + 310], [500, y + 590], [250, y + 870], [750, y + 870]];
+    kick.forEach(([x, by]) => bumper(x, by, 18));
+    pinRows(y + 30, 17, (x, py) => kick.some(([bx, by]) => Math.hypot(bx - x, by - py) < 50));
+    return y + 990;
+  },
+  funnel(y) {
+    zones.push({ y, name: '깔때기' });
+    seg(0, y + 10, 400, y + 210); seg(W, y + 10, 600, y + 210);
+    seg(400, y + 210, 400, y + 250); seg(600, y + 210, 600, y + 250);
+    rotor(500, y + 390, 120, 1, 2.4);
+    return y + 540;
+  },
+  windmills(y) {
+    zones.push({ y, name: '풍차' });
+    rotor(180, y + 120, 95, 2, -2.0); rotor(500, y + 120, 95, 2, 2.0); rotor(820, y + 120, 95, 2, -2.0);
+    for (let x = 100; x <= 900; x += 100) pin(x, y + 280, 6);
+    rotor(340, y + 450, 110, 2, 1.7); rotor(660, y + 450, 110, 2, -1.7);
+    for (let x = 50; x <= 950; x += 100) pin(x, y + 610, 6);
+    return y + 660;
+  },
+  gate(y, name, minHold, maxHold, need) {
+    zones.push({ y, name });
+    gate(y + 130, minHold, maxHold, need, name);
+    return y + 200;
+  },
+  // mirrored chevrons: V gathers to the middle, Λ splits to both walls, so neither side is favoured
+  chevrons(y) {
+    zones.push({ y, name: '울퉁불퉁' });
+    const chevV = t => { bumpyRamp(0, t, 440, t + 130); bumpyRamp(W, t, 560, t + 130); };
+    const chevA = t => { bumpyRamp(500, t, 130, t + 130); bumpyRamp(500, t, 870, t + 130); };
+    chevV(y + 10); chevA(y + 270); chevV(y + 490); chevA(y + 750); chevV(y + 970);
+    return y + 1190;
+  },
+  // long switchback slopes across the full width
+  slide(y, firstRight) {
+    zones.push({ y, name: '대각선 활강' });
+    for (let k = 0; k < 4; k++) {
+      const t = y + 60 + k * 330, right = (k % 2 === 0) === firstRight;
+      const ax = right ? 0 : W, bx = right ? 880 : 120;
+      seg(ax, t, bx, t + 220);
+      const dx = bx - ax, dy = 220, L = Math.hypot(dx, dy);
+      let nx = dy / L, ny = -dx / L;
+      if (ny > 0) { nx = -nx; ny = -ny; }
+      // a paddle that flicks rolling marbles downhill, and floating bumpers that only catch the ones bouncing high
+      const len = 70, off = len + 6 + WALL_T + 12;
+      rotor(ax + dx * 0.7 + nx * off, t + dy * 0.7 + ny * off, len, 1, right ? -2.8 : 2.8);
+      for (const f of [0.2, 0.45]) bumper(ax + dx * f + nx * 42, t + dy * f + ny * 42, 16, 1.1);
+    }
+    return y + 60 + 3 * 330 + 300;
+  },
+  // round bowl with a spinner in the middle; marbles swirl before draining through the bottom
+  bowl(y) {
+    zones.push({ y: y + 40, name: '회오리' });
+    arc(500, y, 500, 180, 98); arc(500, y, 500, 0, 82);
+    const hy = y + 500 * Math.sin(98 * Math.PI / 180), hx = 500 + 500 * Math.cos(98 * Math.PI / 180);
+    seg(hx, hy, hx, hy + 45); seg(W - hx, hy, W - hx, hy + 45);
+    rotor(500, y + 230, 160, 2, 2.2);
+    return y + 600;
+  },
+  bumpers(y) {
+    zones.push({ y, name: '범퍼' });
+    [0, 140, 280, 420, 560].forEach((dy, i) => {
+      // the last row sits over the lane dividers, so it splits marbles into all three lanes
+      const xs = i % 2 ? [200, 500, 800] : [350, 650];
+      xs.forEach(x => bumper(x, y + 40 + dy, 30));
+      if (i % 2 === 0) { pin(60, y + 40 + dy, 6); pin(940, y + 40 + dy, 6); }
+    });
+    return y + 680;
+  },
+  lanes(y) {
+    zones.push({ y, name: '세 갈래 길' });
+    seg(333, y + 40, 333, y + 1420); seg(667, y + 40, 667, y + 1420);
+    for (let k = 0; k <= 19; k++) {
+      const py = y + 90 + k * 64;
+      const xs = k % 2 ? [70, 130, 190, 250] : [40, 100, 160, 220, 280];
+      xs.forEach(x => pin(x, py));
+    }
+    rotor(500, y + 300, 120, 2, 2.6); rotor(500, y + 640, 120, 2, -2.6); rotor(500, y + 1040, 120, 2, 2.6);
+    for (const dy of [440, 840, 1240]) for (const x of [420, 500, 580]) pin(x, y + dy, 6);
+    for (let k = 0; k < 4; k++) {
+      const t = y + 120 + k * 320;
+      if (k % 2) seg(995, t, 767, t + 130); else seg(672, t, 900, t + 130);
+    }
+    return y + 1440;
+  },
+  // a narrow canyon that snakes left and right
+  canyon(y) {
+    zones.push({ y, name: '지그재그 협곡' });
+    const c = [[500, y + 240], [260, y + 640], [740, y + 1040], [260, y + 1440], [500, y + 1760]];
+    const hw = 170;
+    seg(0, y + 40, c[0][0] - hw, c[0][1]); seg(W, y + 40, c[0][0] + hw, c[0][1]);
+    rail(c.map(([x, py]) => [x - hw, py])); rail(c.map(([x, py]) => [x + hw, py]));
+    for (let i = 1; i < c.length; i++) {
+      const mx = (c[i - 1][0] + c[i][0]) / 2, my = (c[i - 1][1] + c[i][1]) / 2;
+      bumper(mx, my, 20, 1.1);
+    }
+    return y + 1800;
+  },
+  pinForest2(y) {
+    zones.push({ y, name: '핀 숲 2' });
+    pinRows(y + 40, 8);
+    rotor(200, y + 560, 90, 2, 2.2); rotor(500, y + 560, 90, 2, -2.2); rotor(800, y + 560, 90, 2, 2.2);
+    pinRows(y + 730, 6);
+    slider(500, y + 1070, 240, 260, 1.4, 0);
+    return y + 1090;
+  },
+  // pins on slanted rows, crossed by two diagonal deflectors
+  slant(y) {
+    zones.push({ y, name: '사선 핀' });
+    const bars = [[100, y + 300, 420, y + 420], [900, y + 600, 580, y + 720]];
+    bars.forEach(b => seg(...b));
+    const near = (px, py) => bars.some(([ax, ay, bx, by]) => {
+      const dx = bx - ax, dy = by - ay; let u = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+      u = Math.max(0, Math.min(1, u));
+      return Math.hypot(px - ax - u * dx, py - ay - u * dy) < 34;
+    });
+    for (let r = 0; r < 15; r++) {
+      const py = y + 60 + r * 60;
+      for (let x = 40 + (r * 20) % 60; x <= 960; x += 60) if (!near(x, py)) pin(x, py, 6);
+    }
+    return y + 1010;
+  },
+  bumpers2(y) {
+    zones.push({ y, name: '범퍼 2' });
+    [0, 130, 260, 390, 520].forEach((dy, i) => {
+      const xs = i % 2 ? [250, 500, 750] : [125, 375, 625, 875];
+      xs.forEach(x => bumper(x, y + 50 + dy, 28));
+    });
+    return y + 620;
+  },
+  // the regrouped pack lands straight into chaos, so the drop order does not decide the race
+  chaos(y) {
+    zones.push({ y, name: '혼돈' });
+    [200, 500, 800].forEach(x => bumper(x, y + 70, 26));
+    for (let x = 100; x <= 900; x += 100) pin(x, y + 180, 6);
+    rotor(250, y + 320, 100, 2, 2.4); rotor(750, y + 320, 100, 2, -2.4);
+    for (let x = 50; x <= 950; x += 100) pin(x, y + 470, 6);
+    return y + 520;
+  },
+  // last gauntlet: sliding bars and hard bumpers right before the finish, so the lead can still change
+  gauntlet(y) {
+    zones.push({ y, name: '마지막 관문' });
+    WARP_TO = y + 10;
+    slider(500, y + 60, 200, 300, 1.6, 0);
+    slider(500, y + 200, 200, 300, 1.6, Math.PI);
+    [200, 500, 800].forEach(x => bumper(x, y + 340, 28, 1.25));
+    for (let x = 100; x <= 900; x += 100) pin(x, y + 450, 6);
+    return y + 500;
+  },
+  finish(y) {
+    zones.push({ y, name: '결승' });
+    seg(0, y + 20, 300, y + 320); seg(W, y + 20, 700, y + 320);
+    // kickers set into the funnel walls
+    for (const f of [0.4, 0.75]) { bumper(300 * f, y + 20 + 300 * f, 14, 1.3); bumper(W - 300 * f, y + 20 + 300 * f, 14, 1.3); }
+    // spinner over the slot floor decides which hole each marble drops into
+    rotor(500, y + 460, 100, 1, 1.6);
+    // slot floor: only the middle hole is the finish; the two side holes send a marble back up
+    const f = y + 640;
+    FLOOR_Y = f;
+    seg(0, f - 60, 130, f);
+    // ridges sit just outside the funnel mouth, so marbles sliding off the walls land on the goal side
+    seg(210, f, 265, f - 60); seg(265, f - 60, 420, f);
+    seg(580, f, 735, f - 60); seg(735, f - 60, 790, f);
+    seg(870, f, W, f - 60);
+    for (const x of [130, 210, 790, 870]) seg(x, f, x, f + 100);
+    GOAL_Y = f + 60;
+    seg(420, f, 420, GOAL_Y + 60); seg(580, f, 580, GOAL_Y + 60);
+    return GOAL_Y + 100;
+  },
+};
+
 function buildMap() {
   segs.length = circs.length = rotors.length = gates.length = zones.length = sliders.length = 0;
-  WORLD_H = 9860; GOAL_Y = 9760;
+  const S = SECTIONS;
+  let y = 300;
+  y = S.pinForest(y);
+  y = S.funnel(y);
+  y = S.windmills(y);
+  y = S.gate(y, '대기실 1', 2, 5, 0.6);
+  y = S.chevrons(y);
+  y = S.slide(y, true);
+  y = S.bowl(y);
+  y = S.bumpers(y);
+  y = S.lanes(y);
+  y = S.gate(y, '대기실 2', 1.5, 4, 0.5);
+  y = S.canyon(y);
+  y = S.pinForest2(y);
+  y = S.slant(y);
+  y = S.slide(y, false);
+  y = S.bowl(y);
+  y = S.bumpers2(y);
+  y = S.gate(y, '최종 대기실', 2, 6, 0.8);
+  y = S.chaos(y);
+  y = S.gauntlet(y);
+  WORLD_H = S.finish(y);
   seg(0, TOP, 0, WORLD_H); seg(W, TOP, W, WORLD_H);
-
-  zones.push({ y: 300, name: '핀 숲' });
-  // small bumpers scattered in the pin forest; pins too close to one are left out so nothing can wedge
-  const kick1 = [[250, 610], [750, 610], [500, 890], [250, 1170], [750, 1170]];
-  kick1.forEach(([x, y]) => bumper(x, y, 18));
-  for (let row = 0; row < 17; row++) {
-    const y = 330 + row * 56, odd = row % 2;
-    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) {
-      if (kick1.some(([bx, by]) => Math.hypot(bx - x, by - y) < 50)) continue;
-      pin(x, y);
-    }
-  }
-
-  zones.push({ y: 1290, name: '깔때기' });
-  seg(0, 1300, 400, 1500); seg(W, 1300, 600, 1500);
-  seg(400, 1500, 400, 1540); seg(600, 1500, 600, 1540);
-  rotor(500, 1680, 120, 1, 2.4);
-
-  zones.push({ y: 1830, name: '풍차' });
-  rotor(180, 1950, 95, 2, -2.0); rotor(500, 1950, 95, 2, 2.0); rotor(820, 1950, 95, 2, -2.0);
-  for (let x = 100; x <= 900; x += 100) pin(x, 2110, 6);
-  rotor(340, 2280, 110, 2, 1.7); rotor(660, 2280, 110, 2, -1.7);
-  for (let x = 50; x <= 950; x += 100) pin(x, 2440, 6);
-
-  zones.push({ y: 2490, name: '대기실 1' });
-  gate(2620, 2, 5, 0.6, '대기실 1');
-
-  // mirrored chevrons: V gathers to the middle, Λ splits to both walls, so neither side is favoured
-  zones.push({ y: 2690, name: '울퉁불퉁' });
-  const chevV = y => { bumpyRamp(0, y, 440, y + 130); bumpyRamp(W, y, 560, y + 130); };
-  const chevA = y => { bumpyRamp(500, y, 130, y + 130); bumpyRamp(500, y, 870, y + 130); };
-  chevV(2700); chevA(2960); chevV(3180); chevA(3440); chevV(3660);
-
-  zones.push({ y: 3880, name: '범퍼' });
-  [3920, 4060, 4200, 4340, 4480].forEach((y, i) => {
-    // the last row sits over the lane dividers, so it splits marbles into all three lanes
-    const xs = i % 2 ? [200, 500, 800] : [350, 650];
-    xs.forEach(x => bumper(x, y, 30));
-    if (i % 2 === 0) { pin(60, y, 6); pin(940, y, 6); }
-  });
-
-  zones.push({ y: 4560, name: '세 갈래 길' });
-  seg(333, 4600, 333, 5980); seg(667, 4600, 667, 5980);
-  // left lane: dense pins
-  for (let k = 0; k <= 19; k++) {
-    const y = 4650 + k * 64;
-    const xs = k % 2 ? [70, 130, 190, 250] : [40, 100, 160, 220, 280];
-    xs.forEach(x => pin(x, y));
-  }
-  // middle lane: spinners that can fling marbles backwards
-  rotor(500, 4860, 120, 2, 2.6); rotor(500, 5200, 120, 2, -2.6); rotor(500, 5600, 120, 2, 2.6);
-  for (const y of [5000, 5400, 5800]) for (const x of [420, 500, 580]) pin(x, y, 6);
-  // right lane: steep switchback
-  for (let k = 0; k < 4; k++) {
-    const y = 4680 + k * 320;
-    if (k % 2) seg(995, y, 767, y + 130); else seg(672, y, 900, y + 130);
-  }
-
-  zones.push({ y: 6000, name: '대기실 2' });
-  gate(6120, 1.5, 4, 0.5, '대기실 2');
-
-  zones.push({ y: 6160, name: '핀 숲 2' });
-  for (let row = 0; row < 8; row++) {
-    const y = 6200 + row * 56, odd = row % 2;
-    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) pin(x, y);
-  }
-  rotor(200, 6720, 90, 2, 2.2); rotor(500, 6720, 90, 2, -2.2); rotor(800, 6720, 90, 2, 2.2);
-  for (let row = 0; row < 6; row++) {
-    const y = 6890 + row * 56, odd = row % 2;
-    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) pin(x, y);
-  }
-  slider(500, 7230, 240, 260, 1.4, 0);
-
-  zones.push({ y: 7250, name: '범퍼 2' });
-  [7300, 7430, 7560, 7690, 7820].forEach((y, i) => {
-    const xs = i % 2 ? [250, 500, 750] : [125, 375, 625, 875];
-    xs.forEach(x => bumper(x, y, 28));
-  });
-
-  zones.push({ y: 7870, name: '최종 대기실' });
-  gate(7990, 2, 6, 0.8, '최종 대기실');
-
-  // the regrouped pack lands straight into chaos, so the drop order does not decide the race
-  zones.push({ y: 8040, name: '혼돈' });
-  [200, 500, 800].forEach(x => bumper(x, 8110, 26));
-  for (let x = 100; x <= 900; x += 100) pin(x, 8220, 6);
-  rotor(250, 8360, 100, 2, 2.4); rotor(750, 8360, 100, 2, -2.4);
-  for (let x = 50; x <= 950; x += 100) pin(x, 8510, 6);
-
-  // last gauntlet: sliding bars and hard bumpers right before the finish, so the lead can still change
-  zones.push({ y: 8560, name: '마지막 관문' });
-  slider(500, 8620, 200, 300, 1.6, 0);
-  slider(500, 8760, 200, 300, 1.6, Math.PI);
-  [200, 500, 800].forEach(x => bumper(x, 8900, 28, 1.25));
-  for (let x = 100; x <= 900; x += 100) pin(x, 9010, 6);
-
-  zones.push({ y: 9060, name: '결승' });
-  seg(0, 9080, 300, 9380); seg(W, 9080, 700, 9380);
-  // kickers set into the funnel walls
-  for (const f of [0.4, 0.75]) { bumper(300 * f, 9080 + 300 * f, 14, 1.3); bumper(W - 300 * f, 9080 + 300 * f, 14, 1.3); }
-  // spinner over the slot floor decides which hole each marble drops into
-  rotor(500, 9520, 100, 1, 1.6);
-  // slot floor: only the middle hole is the finish; the two side holes send a marble back up
-  seg(0, 9640, 130, 9700);
-  // ridges sit just outside the funnel mouth, so marbles sliding off the walls land on the goal side
-  seg(210, 9700, 265, 9640); seg(265, 9640, 420, 9700);
-  seg(580, 9700, 735, 9640); seg(735, 9640, 790, 9700);
-  seg(870, 9700, W, 9640);
-  for (const x of [130, 210, 790, 870]) seg(x, 9700, x, 9800);
-  seg(420, 9700, 420, GOAL_Y + 60); seg(580, 9700, 580, GOAL_Y + 60);
-
   buildStaticGrid();
 }
 
@@ -548,9 +650,11 @@ function collideSeg(m, ax, ay, bx, by, t, e, w, cx, cy, lvx = 0) {
   let rvx = m.vx - svx, rvy = m.vy - svy;
   const vn = rvx * nx + rvy * ny;
   if (vn < 0) {
+    // friction only on real impacts; applying it on every rolling contact would brake marbles on slopes
+    const fr = vn < -40 ? FRICTION : 0;
     rvx -= (1 + e) * vn * nx; rvy -= (1 + e) * vn * ny;
     const vt = -rvx * ny + rvy * nx;
-    rvx -= vt * -ny * FRICTION; rvy -= vt * nx * FRICTION;
+    rvx -= vt * -ny * fr; rvy -= vt * nx * fr;
     m.vx = rvx + svx; m.vy = rvy + svy;
   }
 }
@@ -687,7 +791,7 @@ function step() {
       if (m.slow > 1.2) { m.vx += (Math.random() - 0.5) * 420; m.vy -= 180 + Math.random() * 160; m.slow = 0; }
     } else m.slow = 0;
 
-    if (m.y > 9730 && (m.x < 300 || m.x > W - 300)) { warp(m); continue; }
+    if (m.y > FLOOR_Y + 30 && (m.x < 300 || m.x > W - 300)) { warp(m); continue; }
     if (m.y > GOAL_Y) finish(m);
     if (state !== 'running') return;
   }
@@ -829,11 +933,11 @@ function draw(now) {
   }
 
   // side holes that send marbles back
-  if (9700 > y0 && 9700 < y1 + 80) {
+  if (FLOOR_Y > y0 && FLOOR_Y < y1 + 80) {
     for (const x of [170, 830]) {
-      ctx.fillStyle = 'rgb(160 120 255 / .25)'; ctx.fillRect(x - 40, 9700, 80, 100);
+      ctx.fillStyle = 'rgb(160 120 255 / .25)'; ctx.fillRect(x - 40, FLOOR_Y, 80, 100);
       ctx.fillStyle = '#b89bff'; ctx.font = `24px ${FONT_DISPLAY}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-      ctx.fillText('↺ 되돌아가기', x, 9810);
+      ctx.fillText('↺ 되돌아가기', x, FLOOR_Y + 110);
     }
   }
 
@@ -1466,7 +1570,7 @@ if (window.__ROULETTE_DEBUG) window.__roulette = {
   step, rerank, buildMap, spawn: () => spawn(names),
   run(m, k, n = 1) { mode = m; winK = k; showN = n; state = 'running'; },
   get marbles() { return marbles; }, get finishOrder() { return finishOrder; },
-  get simTime() { return simTime; }, gates, get state() { return state; }, get ranked() { return ranked; },
+  get simTime() { return simTime; }, gates, zones, get state() { return state; }, get ranked() { return ranked; },
   GOAL_Y: () => GOAL_Y,
 };
 })();
