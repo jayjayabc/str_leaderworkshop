@@ -45,6 +45,25 @@ button { cursor: pointer; }
 .chip.lead { border-color: var(--brass); }
 .chip.slow { border-color: var(--goal); color: var(--goal); }
 
+.live { position: absolute; top: 54px; left: 12px; width: 230px; padding: 10px 10px 8px; border-radius: 12px; background: rgb(10 15 27 / .82); border: 1px solid var(--line); pointer-events: none; }
+.live h3 { margin: 0 0 6px; padding: 0 4px; font-size: 11px; letter-spacing: .12em; color: var(--muted); font-weight: 500; }
+.live ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.live li { display: grid; grid-template-columns: 30px 10px minmax(0, 1fr) 34px; align-items: center; gap: 7px; padding: 3px 4px; border-radius: 6px; font-size: 13px; transition: background .3s; }
+.live li.top { background: rgb(230 185 92 / .16); }
+.live li.done { opacity: .6; }
+.live .rk { font-family: var(--f-mono); font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.live li.top .rk { color: var(--brass); font-weight: 700; }
+.live .dot { width: 10px; height: 10px; border-radius: 50%; }
+.live .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.live .mv { font-family: var(--f-mono); font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+.live .up { color: #7fdca8; }
+.live .down { color: var(--goal); }
+.toast { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); padding: 10px 22px; border-radius: 999px; background: var(--brass); color: var(--brass-ink); font-family: var(--f-display); font-size: clamp(20px, 3vw, 30px); letter-spacing: .03em; white-space: nowrap; pointer-events: none; box-shadow: 0 10px 40px rgb(0 0 0 / .45); animation: toast 1.6s ease-out both; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.9); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.04); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+.zoom { position: absolute; bottom: 12px; display: flex; gap: 4px; align-items: center; padding: 4px; border-radius: 999px; background: rgb(10 15 27 / .82); border: 1px solid var(--line); }
+.zoom button { width: 30px; height: 30px; border-radius: 50%; border: 0; background: transparent; font-size: 18px; line-height: 1; }
+.zoom button:hover { background: var(--bed); }
+.zoom span { font-family: var(--f-mono); font-size: 12px; color: var(--muted); min-width: 40px; text-align: center; font-variant-numeric: tabular-nums; }
 .follow { position: absolute; left: 12px; bottom: 12px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--brass); background: rgb(10 15 27 / .85); color: var(--brass); font-weight: 700; }
 
 .countdown { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-family: var(--f-display); font-size: min(34vw, 260px); color: var(--brass); text-shadow: 0 6px 40px rgb(0 0 0 / .6); }
@@ -118,9 +137,11 @@ textarea:disabled { opacity: .5; }
   .panel { border-left: 0; border-top: 1px solid var(--line); }
   .scroll { overflow: visible; }
   .hud { max-width: calc(100% - 24px); }
+  .live { width: 190px; }
+  .live li:nth-child(n+6) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .countdown span, .result-card { animation: none; }
+  .countdown span, .result-card, .toast { animation: none; }
 }
 </style>
 
@@ -132,8 +153,14 @@ textarea:disabled { opacity: .5; }
     <div class="hud" id="hud">
       <span class="chip">시간 <b id="hudTime">0.0s</b></span>
       <span class="chip">남은 구슬 <b id="hudLeft">0</b></span>
-      <span class="chip lead" id="hudLead" hidden><i class="dot" id="hudLeadDot"></i><span id="hudLeadName"></span></span>
       <span class="chip slow" id="hudSlow" hidden>슬로 모션</span>
+    </div>
+    <div class="live" id="live" hidden><h3 id="liveTitle">실시간 순위</h3><ol id="liveList"></ol></div>
+    <div id="toastHost"></div>
+    <div class="zoom" id="zoomBox">
+      <button type="button" id="zoomOut" aria-label="축소">−</button>
+      <span id="zoomLabel">100%</span>
+      <button type="button" id="zoomIn" aria-label="확대">+</button>
     </div>
     <button class="follow" id="followBtn" type="button" hidden>선두 따라가기</button>
     <div class="countdown" id="countdown" hidden></div>
@@ -167,10 +194,9 @@ textarea:disabled { opacity: .5; }
         <div class="field">
           <div class="label"><label for="names">참가자 명단</label></div>
           <textarea id="names" spellcheck="false" placeholder="홍길동&#10;김철수&#10;이영희"></textarea>
-          <p class="hint">한 줄에 한 명씩 넣습니다. 엑셀에서 열을 복사해 그대로 붙여넣어도 되고, 쉼표로 구분해도 됩니다. <code>이름*3</code>이라고 쓰면 구슬이 3개 들어갑니다. 처음 보이는 명단은 30조 × 8명 예시입니다.</p>
+          <p class="hint">처음 들어 있는 명단은 참석 안내 시트의 <b>DAY 2 (10/14) 저녁식사 참석</b> 203명입니다(스탭 제외). 동명이인 두 쌍은 그룹명을 붙였습니다. 한 줄에 한 명씩이며, 엑셀에서 열을 복사해 붙여넣어도 됩니다. <code>이름*3</code>은 구슬 3개.</p>
           <div class="row">
-            <button class="btn" id="sampleBtn" type="button">예시 명단 (30조 × 8명)</button>
-            <button class="btn" id="numberBtn" type="button">번호 1~240</button>
+            <button class="btn" id="sampleBtn" type="button">저녁식사 명단 다시 넣기</button>
             <button class="btn" id="clearBtn" type="button">지우기</button>
           </div>
         </div>
@@ -232,22 +258,25 @@ const WALL_T = 5;
 const E_WALL = 0.35, E_PIN = 0.45, E_BALL = 0.35, FRICTION = 0.015;
 const MAX_MARBLES = 400;
 const TOP = -400;          // world top used for grids
-let WORLD_H = 5000, GOAL_Y = 4900;
+let WORLD_H = 8880, GOAL_Y = 8780;
+
+// DAY 2 (10/14) 저녁식사 참석자, 참석 안내 시트 기준 · 스탭 제외
+const DINNER = ["윤호영", "김근수", "권태훈", "박정윤", "오재경", "최상훈", "조용환", "최진범", "이상환", "김정아", "유이슬", "권용관", "조용진", "유지은", "백승철", "조성훈(경영전략)", "박형근", "설샛별", "이종무", "윤윤재", "최진영", "최훈", "김우주", "김동현", "차경민", "이종연", "강지윤", "신재홍", "조동기", "이유정", "김종성", "임재희", "윤중민", "신철원", "김라은", "정진석(기술)", "박현희", "주성준", "신영재", "이승복", "김민기", "이중구", "이혁주", "노승진", "성세웅", "김목련", "이준석", "이영진", "이명섭", "권광호", "조성훈(기술)", "함진헌", "강민영", "이보라", "김치우", "이재항", "민경표", "조용형", "이승욱", "김규식", "최병남", "박주현", "이형주", "안현철", "이병수", "신영원", "오현익", "김기창", "박대수", "이혜숙", "신선영", "권희진", "배정호", "오보현", "유재흥", "변선영", "서경국", "오세영", "나동찬", "김남기", "황현천", "전상현", "최재만", "박소언", "이종태", "김성준", "이기대", "김용준", "강훈기", "이재욱", "김동용", "김영욱", "조영준", "오주영", "유지영", "최영미", "강영욱", "윤대훈", "김용태", "김문주", "김새로", "진성희", "박옥주", "백정란", "추연주", "조임섭", "정진영", "김혜람", "지창현", "이주영", "정은옥", "김석", "김성수", "황우열", "김문성", "송철호", "강호웅", "박재현", "권상훈", "이지수", "박찬영", "옥지혜", "최원권", "하경태", "강미나", "김호중", "이응진", "김기윤", "허돈", "조명식", "지명훈", "이정언", "정원철", "김영림", "박이랑", "박종인", "이동준", "유완상", "이윤영", "우병찬", "고동균", "남규진", "김도영", "이현록", "이태웅", "강정훈", "임세형", "서동아", "정진석(뱅킹)", "김성동", "송호근", "원종석", "황하나", "이준희", "정자영", "전현철", "이관헌", "신여진", "이민휴", "홍민우", "조고을", "염대선", "정재훈", "김태훈", "최성락", "조규태", "김재훈", "탁대원", "고병권", "주선영", "김두형", "이현석", "엄준식", "윤민정", "윤성환", "이영주", "조영주", "주원중", "이효연", "고정석", "이현수", "봉하정", "김재성", "김성균", "서승언", "김영석", "이지운", "윤희섭", "김홍순", "김진호", "이주희", "정진성", "김경화", "문은영", "박진현", "허두영", "차은아", "이수영", "백종윤", "민재호", "김성윤", "유호범", "지상민"];
 
 const css = getComputedStyle(document.documentElement);
 const T = n => css.getPropertyValue(n).trim();
 const C = {
   stage: T('--stage'), bed: T('--bed'), line: T('--line'), fg: T('--fg'), muted: T('--muted'),
-  brass: T('--brass'), goal: T('--goal'), rail: T('--rail'),
+  brass: T('--brass'), brassInk: T('--brass-ink'), goal: T('--goal'), rail: T('--rail'),
 };
-const FONT_BODY = T('--f-body'), FONT_DISPLAY = T('--f-display');
+const FONT_BODY = T('--f-body'), FONT_DISPLAY = T('--f-display'), FONT_MONO = T('--f-mono');
 
 const $ = s => document.querySelector(s);
 const cv = $('#stage'), ctx = cv.getContext('2d');
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- map ---------- */
-const segs = [], circs = [], rotors = [], zones = [];
+const segs = [], circs = [], rotors = [], gates = [], zones = [];
 function seg(ax, ay, bx, by, t = WALL_T, e = E_WALL) { segs.push({ k: 0, ax, ay, bx, by, t, e }); }
 function pin(x, y, r = 5) { circs.push({ k: 1, x, y, r, e: E_PIN, bump: false, flash: 0 }); }
 function bumper(x, y, r) { circs.push({ k: 1, x, y, r, e: 0.8, bump: true, flash: 0 }); }
@@ -255,10 +284,22 @@ function rotor(cx, cy, len, arms, omega) {
   const w = omega * (0.85 + Math.random() * 0.3);
   rotors.push({ cx, cy, len, arms, omega: w, angle: Math.random() * Math.PI, t: 6 });
 }
+// a ramp with small humps on it, so rolling marbles hop and lose or gain ground
+function bumpyRamp(ax, ay, bx, by) {
+  seg(ax, ay, bx, by);
+  const dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy);
+  let nx = dy / L, ny = -dx / L;
+  if (ny > 0) { nx = -nx; ny = -ny; }
+  for (const f of [0.2, 0.4, 0.6, 0.8]) pin(ax + dx * f + nx * 3, ay + dy * f + ny * 3, 6);
+}
+// full-width trapdoor: holds the field for a few seconds, then drops everyone at once
+function gate(y, hold, open) {
+  gates.push({ y, hold, openDur: open, open: false, armed: false, timer: 0, o: 0 });
+}
 
 function buildMap() {
-  segs.length = circs.length = rotors.length = zones.length = 0;
-  WORLD_H = 5000; GOAL_Y = 4900;
+  segs.length = circs.length = rotors.length = gates.length = zones.length = 0;
+  WORLD_H = 8880; GOAL_Y = 8780;
   seg(0, TOP, 0, WORLD_H); seg(W, TOP, W, WORLD_H);
 
   zones.push({ y: 300, name: '핀 숲' });
@@ -278,21 +319,64 @@ function buildMap() {
   rotor(340, 2280, 110, 2, 1.7); rotor(660, 2280, 110, 2, -1.7);
   for (let x = 50; x <= 950; x += 100) pin(x, 2440, 6);
 
-  zones.push({ y: 2500, name: '지그재그' });
-  seg(0, 2520, 760, 2680); seg(W, 2800, 240, 2960);
-  seg(0, 3080, 760, 3240); seg(W, 3360, 240, 3520);
+  zones.push({ y: 2490, name: '대기실 1' });
+  gate(2620, 7, 2.5);
 
-  zones.push({ y: 3600, name: '범퍼' });
-  [3680, 3820, 3960, 4100, 4240].forEach((y, i) => {
+  zones.push({ y: 2700, name: '울퉁불퉁' });
+  bumpyRamp(0, 2720, 760, 2920); bumpyRamp(W, 3020, 240, 3220);
+  bumpyRamp(0, 3320, 760, 3520); bumpyRamp(W, 3620, 240, 3820);
+
+  zones.push({ y: 3880, name: '범퍼' });
+  [3920, 4060, 4200, 4340, 4480].forEach((y, i) => {
     const xs = i % 2 ? [350, 650] : [200, 500, 800];
     xs.forEach(x => bumper(x, y, 30));
     if (i % 2) { pin(60, y, 6); pin(940, y, 6); }
   });
 
-  zones.push({ y: 4370, name: '결승' });
-  seg(0, 4380, 430, 4800); seg(W, 4380, 570, 4800);
-  seg(430, 4800, 430, GOAL_Y + 60); seg(570, 4800, 570, GOAL_Y + 60);
-  rotor(500, 4600, 120, 1, 1.6);
+  zones.push({ y: 4560, name: '세 갈래 길' });
+  seg(333, 4600, 333, 5980); seg(667, 4600, 667, 5980);
+  // left lane: dense pins
+  for (let k = 0; k <= 26; k++) {
+    const y = 4650 + k * 48;
+    const xs = k % 2 ? [70, 130, 190, 250] : [40, 100, 160, 220, 280];
+    xs.forEach(x => pin(x, y));
+  }
+  // middle lane: spinners that can fling marbles backwards
+  rotor(500, 4800, 120, 2, 2.6); rotor(500, 5200, 120, 2, -2.6); rotor(500, 5600, 120, 2, 2.6);
+  for (const y of [5000, 5400, 5800]) for (const x of [420, 500, 580]) pin(x, y, 6);
+  // right lane: long switchback
+  for (let k = 0; k < 8; k++) {
+    const y = 4650 + k * 170;
+    if (k % 2) seg(995, y, 767, y + 60); else seg(672, y, 900, y + 60);
+  }
+
+  zones.push({ y: 6000, name: '대기실 2' });
+  gate(6120, 8, 2.5);
+
+  zones.push({ y: 6160, name: '핀 숲 2' });
+  for (let row = 0; row < 8; row++) {
+    const y = 6200 + row * 56, odd = row % 2;
+    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) pin(x, y);
+  }
+  rotor(200, 6720, 90, 2, 2.2); rotor(500, 6720, 90, 2, -2.2); rotor(800, 6720, 90, 2, 2.2);
+  for (let row = 0; row < 6; row++) {
+    const y = 6890 + row * 56, odd = row % 2;
+    for (let x = odd ? 75 : 50; x <= (odd ? 925 : 950); x += 50) pin(x, y);
+  }
+
+  zones.push({ y: 7250, name: '범퍼 2' });
+  [7300, 7430, 7560, 7690, 7820].forEach((y, i) => {
+    const xs = i % 2 ? [250, 500, 750] : [125, 375, 625, 875];
+    xs.forEach(x => bumper(x, y, 28));
+  });
+
+  zones.push({ y: 7870, name: '최종 대기실' });
+  gate(7990, 6, 2.5);
+
+  zones.push({ y: 8250, name: '결승' });
+  seg(0, 8260, 430, 8680); seg(W, 8260, 570, 8680);
+  seg(430, 8680, 430, GOAL_Y + 60); seg(570, 8680, 570, GOAL_Y + 60);
+  rotor(500, 8480, 120, 1, 1.6);
 
   buildStaticGrid();
 }
@@ -320,8 +404,9 @@ let finishOrder = [];
 let state = 'setup';       // setup | countdown | running | done
 let simTime = 0, speedMul = 1, mode = 'first', winK = 1;
 let slowmo = false, winners = [];
+let ranked = [];           // active marbles, furthest along first
 
-function hueColor(i, n) {
+function hueColor(i) {
   const h = (i * 137.508) % 360;
   const l = 56 + ((i * 7) % 3) * 6;
   return `hsl(${h.toFixed(1)} 72% ${l}%)`;
@@ -341,13 +426,15 @@ function spawn(names) {
   marbles = order.map((src, k) => {
     const c = k % cols, r = Math.floor(k / cols);
     return {
-      id: src, name: list[src], color: hueColor(src, list.length),
+      id: src, name: list[src], color: hueColor(src),
       x: x0 + c * gap + (Math.random() - 0.5) * 3,
       y: 250 - r * gap + (Math.random() - 0.5) * 3,
-      vx: 0, vy: 0, slow: 0, done: false, rank: 0, t: 0,
+      vx: 0, vy: 0, slow: 0, done: false, rank: 0, t: 0, live: 0,
     };
   });
   finishOrder = []; winners = []; simTime = 0; slowmo = false;
+  ranked = marbles.slice();
+  prevRank = new Map(); lastTop = null;
 }
 
 /* marble-marble broadphase */
@@ -364,6 +451,7 @@ function ensureGrid() {
 function collideSeg(m, ax, ay, bx, by, t, e, w, cx, cy) {
   const dx = bx - ax, dy = by - ay;
   const L2 = dx * dx + dy * dy;
+  if (L2 < 1e-6) return;
   let u = ((m.x - ax) * dx + (m.y - ay) * dy) / L2;
   u = u < 0 ? 0 : u > 1 ? 1 : u;
   const px = ax + u * dx, py = ay + u * dy;
@@ -401,9 +489,24 @@ function collideCirc(m, c) {
   }
 }
 
+function updateGates() {
+  for (const g of gates) {
+    if (g.open) {
+      g.timer += DT;
+      if (g.timer >= g.openDur) { g.open = false; g.armed = false; g.timer = 0; }
+    } else if (g.armed) {
+      g.timer += DT;
+      if (g.timer >= g.hold) { g.open = true; g.timer = 0; }
+    }
+    const target = g.open ? 1 : 0;
+    g.o += Math.sign(target - g.o) * Math.min(Math.abs(target - g.o), DT * 5);
+  }
+}
+
 function step() {
   simTime += DT;
   for (const r of rotors) r.angle += r.omega * DT;
+  updateGates();
 
   const act = [];
   for (const m of marbles) if (!m.done) act.push(m);
@@ -472,11 +575,22 @@ function step() {
         collideSeg(m, r.cx - ex, r.cy - ey, r.cx + ex, r.cy + ey, r.t, 0.4, r.omega, r.cx, r.cy);
       }
     }
+    let onGate = false;
+    for (const g of gates) {
+      if (!g.open && m.y < g.y && m.y > g.y - 140) onGate = true;
+      if (Math.abs(m.y - g.y) > R + 12) continue;
+      const shut = 1 - g.o;
+      if (shut < 0.02) continue;
+      const half = (W / 2) * shut;
+      collideSeg(m, 0, g.y, half, g.y, 6, 0.25, 0, 0, 0);
+      collideSeg(m, W - half, g.y, W, g.y, 6, 0.25, 0, 0, 0);
+      if (!g.open && m.y < g.y) g.armed = true;
+    }
     if (m.x < R + WALL_T) { m.x = R + WALL_T; if (m.vx < 0) m.vx = -m.vx * 0.3; }
     if (m.x > W - R - WALL_T) { m.x = W - R - WALL_T; if (m.vx > 0) m.vx = -m.vx * 0.3; }
 
-    // unstick marbles that have been parked for a while
-    if (m.vx * m.vx + m.vy * m.vy < 900) {
+    // unstick marbles that have been parked for a while (not the ones queued on a closed trapdoor)
+    if (!onGate && m.vx * m.vx + m.vy * m.vy < 900) {
       m.slow += DT;
       if (m.slow > 1.2) { m.vx += (Math.random() - 0.5) * 420; m.vy -= 180 + Math.random() * 160; m.slow = 0; }
     } else m.slow = 0;
@@ -498,9 +612,18 @@ function finish(m) {
   }
 }
 
+function rerank() {
+  ranked = marbles.filter(m => !m.done).sort((a, b) => b.y - a.y);
+  const base = finishOrder.length;
+  for (let i = 0; i < ranked.length; i++) ranked[i].live = base + i + 1;
+}
+
 /* ---------- camera ---------- */
-let camY = -60, manual = false;
-let CW = 0, CH = 0, DPR = 1, scale = 1, offX = 0, viewW = 0, mm = { x: 0, y: 0, w: 0, h: 0, s: 0, on: false };
+const ZOOMS = [1, 1.25, 1.5, 2, 2.5];
+let camY = -60, camX = -20, manual = false, zoomIdx = -1;
+let CW = 0, CH = 0, DPR = 1, baseScale = 1, scale = 1, viewW = 0;
+const mm = { x: 0, y: 0, w: 0, h: 0, s: 0, on: false };
+const zoomBox = $('#zoomBox'), zoomLabel = $('#zoomLabel');
 
 function layout() {
   const r = cv.parentElement.getBoundingClientRect();
@@ -514,32 +637,53 @@ function layout() {
     mm.s = s; mm.w = W * s; mm.h = (WORLD_H + 100) * s; mm.x = CW - mm.w - 12; mm.y = 12;
   }
   viewW = mm.on ? mm.x - 12 : CW;
-  scale = viewW / (W + 40);
-  offX = 20 * scale;
+  baseScale = viewW / (W + 40);
+  if (zoomIdx < 0) {
+    // start zoomed in far enough that marbles and names are readable
+    const want = 1.05 / baseScale;
+    zoomIdx = 0;
+    for (let i = 0; i < ZOOMS.length; i++) if (ZOOMS[i] <= want + 0.01) zoomIdx = i;
+  }
+  applyZoom();
+  zoomBox.style.right = `${CW - viewW + 12}px`;
+}
+function applyZoom() {
+  scale = baseScale * ZOOMS[zoomIdx];
+  zoomLabel.textContent = `${Math.round(ZOOMS[zoomIdx] * 100)}%`;
 }
 new ResizeObserver(layout).observe(cv.parentElement);
 
-function leader() {
-  let best = null;
-  for (const m of marbles) if (!m.done && (!best || m.y > best.y)) best = m;
-  return best;
+function focusMarble() {
+  if (state === 'done' && mode === 'last' && winners.length) return winners[0];
+  if (!ranked.length) return null;
+  if (mode === 'last' && ranked.length > winK + 1) return ranked[ranked.length - 1];
+  return ranked[0];
 }
 
-function camBounds(v) {
+function camBoundsY(v) {
   const viewH = CH / scale;
   return Math.max(-60, Math.min(WORLD_H + 80 - viewH, v));
 }
+function camBoundsX(v) {
+  const vw = viewW / scale;
+  if (vw >= W + 40) return -20 - (vw - (W + 40)) / 2;
+  return Math.max(-20, Math.min(W + 20 - vw, v));
+}
 
 function updateCamera(dt) {
-  if (manual) { camY = camBounds(camY); return; }
-  const viewH = CH / scale;
-  let target = -60;
+  if (manual) { camY = camBoundsY(camY); camX = camBoundsX(camX); return; }
+  const viewH = CH / scale, vw = viewW / scale;
+  let ty = -60, tx = W / 2 - vw / 2;
   if (state === 'running' || state === 'done') {
-    const L = state === 'done' && mode === 'last' && winners.length ? winners[0] : leader();
-    target = L ? L.y - viewH * 0.45 : GOAL_Y - viewH * 0.6;
+    const F = focusMarble();
+    const lastMode = mode === 'last' && ranked.length > winK + 1;
+    if (F) { ty = F.y - viewH * (lastMode ? 0.35 : 0.5); tx = F.x - vw / 2; }
+    else ty = GOAL_Y - viewH * 0.6;
   }
-  target = camBounds(target);
-  camY += (target - camY) * Math.min(1, dt * 3.5);
+  const k = Math.min(1, dt * 3.5);
+  camY += (camBoundsY(ty) - camY) * k;
+  camX += (camBoundsX(tx) - camX) * k;
+  camX = camBoundsX(camX);
 }
 
 /* ---------- drawing ---------- */
@@ -550,7 +694,7 @@ function draw(now) {
   const viewH = CH / scale, y0 = camY - 60, y1 = camY + viewH + 60;
   ctx.save();
   ctx.beginPath(); ctx.rect(0, 0, viewW, CH); ctx.clip();
-  ctx.setTransform(DPR * scale, 0, 0, DPR * scale, DPR * offX, -DPR * camY * scale);
+  ctx.setTransform(DPR * scale, 0, 0, DPR * scale, -DPR * camX * scale, -DPR * camY * scale);
 
   ctx.fillStyle = C.bed; ctx.fillRect(0, TOP, W, WORLD_H - TOP + 200);
 
@@ -587,6 +731,28 @@ function draw(now) {
     ctx.beginPath(); ctx.moveTo(s.ax, s.ay); ctx.lineTo(s.bx, s.by); ctx.stroke();
   }
 
+  // trapdoors
+  for (const g of gates) {
+    if (g.y < y0 || g.y > y1) continue;
+    const half = (W / 2) * (1 - g.o);
+    ctx.strokeStyle = C.goal; ctx.lineWidth = 12; ctx.lineCap = 'butt';
+    if (half > 1) {
+      ctx.beginPath(); ctx.moveTo(0, g.y); ctx.lineTo(half, g.y); ctx.moveTo(W - half, g.y); ctx.lineTo(W, g.y); ctx.stroke();
+      ctx.strokeStyle = C.stage; ctx.lineWidth = 12; ctx.setLineDash([12, 18]);
+      ctx.beginPath(); ctx.moveTo(0, g.y); ctx.lineTo(half, g.y); ctx.moveTo(W - half, g.y); ctx.lineTo(W, g.y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.lineCap = 'round';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (g.open) {
+      ctx.fillStyle = C.brass; ctx.font = `40px ${FONT_DISPLAY}`;
+      ctx.fillText('열림!', W / 2, g.y + 60);
+    } else if (g.armed) {
+      ctx.fillStyle = C.goal; ctx.font = `56px ${FONT_DISPLAY}`;
+      ctx.fillText(String(Math.ceil(g.hold - g.timer)), W / 2, g.y + 70);
+    }
+  }
+
   // pins and bumpers
   for (const c of circs) {
     if (c.y < y0 || c.y > y1) continue;
@@ -616,8 +782,6 @@ function draw(now) {
   }
 
   // marbles
-  const L = state === 'running' ? leader() : null;
-  const winSet = state === 'done' ? new Set(winners) : null;
   const vis = [];
   for (const m of marbles) if (!m.done && m.y > y0 && m.y < y1) vis.push(m);
   for (const m of vis) {
@@ -626,33 +790,78 @@ function draw(now) {
     ctx.fillStyle = 'rgb(255 255 255 / .35)';
     ctx.beginPath(); ctx.arc(m.x - 3, m.y - 3, 3, 0, Math.PI * 2); ctx.fill();
   }
-  const hl = L ? [L] : winSet ? [...winSet].filter(m => !m.done) : [];
+  const F = state === 'running' || state === 'done' ? focusMarble() : null;
+  const hl = state === 'done' && mode === 'last' ? winners.filter(m => !m.done) : F && state === 'running' ? [F] : [];
   for (const m of hl) {
     const pulse = 1 + 0.15 * Math.sin(now / 140);
     ctx.lineWidth = 3; ctx.strokeStyle = C.brass;
     ctx.beginPath(); ctx.arc(m.x, m.y, (R + 6) * pulse, 0, Math.PI * 2); ctx.stroke();
   }
-
-  // names: always for the highlighted marbles, for everyone when the track is big enough to read
-  const fs = 11 / scale;
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.lineJoin = 'round';
-  const showAll = scale >= 0.6;
-  ctx.font = `500 ${fs}px ${FONT_BODY}`;
-  ctx.lineWidth = 3 / scale; ctx.strokeStyle = C.stage; ctx.fillStyle = 'rgb(233 237 245 / .9)';
-  if (showAll) for (const m of vis) {
-    if (hl.includes(m)) continue;
-    ctx.strokeText(m.name, m.x + R + 3, m.y); ctx.fillText(m.name, m.x + R + 3, m.y);
-  }
-  ctx.font = `700 ${fs * 1.5}px ${FONT_BODY}`;
-  ctx.lineWidth = 4 / scale; ctx.fillStyle = C.brass;
-  for (const m of hl) {
-    ctx.strokeText(m.name, m.x + R + 10, m.y); ctx.fillText(m.name, m.x + R + 10, m.y);
-  }
   ctx.restore();
 
+  drawLabels(vis, hl);
   if (mm.on) drawMinimap();
   drawConfetti();
+}
+
+/* names: placed in screen space, most interesting marbles first, skipping any that would overlap */
+function drawLabels(vis, hl) {
+  if (!vis.length) return;
+  const racing = state === 'running' || state === 'done';
+  const hot = new Set(hl);
+  const pri = vis.slice();
+  if (racing) {
+    const lastMode = mode === 'last' && ranked.length > winK + 1;
+    pri.sort((a, b) => (hot.has(b) - hot.has(a)) || (lastMode ? b.live - a.live : a.live - b.live));
+  }
+  const placed = [];
+  // keep labels out from under the overlays drawn on top of the track
+  const cr = cv.getBoundingClientRect();
+  for (const el of [liveEl, hudEl]) {
+    if (el.hidden) continue;
+    const b = el.getBoundingClientRect();
+    placed.push({ x: b.left - cr.left - 4, y: b.top - cr.top - 4, w: b.width + 8, h: b.height + 8 });
+  }
+  const hit = (x, y, w, h) => {
+    if (x < 2 || x + w > viewW - 2 || y < 2 || y + h > CH - 2) return true;
+    for (const p of placed) if (x < p.x + p.w && x + w > p.x && y < p.y + p.h && y + h > p.y) return true;
+    return false;
+  };
+  const sr = R * scale;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, viewW, CH); ctx.clip();
+  ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const total = marbles.length;
+  let count = 0;
+  for (const m of pri) {
+    const sx = (m.x - camX) * scale, sy = (m.y - camY) * scale;
+    const top = racing && hot.has(m);
+    const podium = racing && (mode === 'last' ? m.live > total - 10 : m.live <= 10);
+    const fs = top ? 16 : podium ? 14 : 12;
+    const weight = top || podium ? 700 : 500;
+    ctx.font = `${weight} ${fs}px ${FONT_BODY}`;
+    const text = racing && (podium || top) ? `${m.live}위 ${m.name}` : m.name;
+    const w = ctx.measureText(text).width + 8, h = fs + 6;
+    const gap = sr + 4;
+    const spots = [[sx + gap, sy - h / 2], [sx - gap - w, sy - h / 2], [sx - w / 2, sy - sr - h - 2], [sx - w / 2, sy + sr + 2]];
+    let spot = null;
+    for (const [x, y] of spots) if (!hit(x, y, w, h)) { spot = [x, y]; break; }
+    if (!spot) continue;
+    placed.push({ x: spot[0], y: spot[1], w, h });
+    const tx = spot[0] + 4, ty = spot[1] + h / 2;
+    if (top || podium) {
+      ctx.fillStyle = top ? C.brass : 'rgb(10 15 27 / .82)';
+      ctx.beginPath(); ctx.roundRect(spot[0], spot[1], w, h, 5); ctx.fill();
+      ctx.fillStyle = top ? C.brassInk : C.fg;
+      ctx.textAlign = 'left'; ctx.fillText(text, tx, ty);
+    } else {
+      ctx.lineWidth = 3; ctx.strokeStyle = C.stage; ctx.fillStyle = 'rgb(233 237 245 / .92)';
+      ctx.textAlign = 'left'; ctx.strokeText(text, tx, ty); ctx.fillText(text, tx, ty);
+    }
+    if (++count > 160) break;
+  }
+  ctx.restore();
 }
 
 function drawMinimap() {
@@ -669,6 +878,10 @@ function drawMinimap() {
   ctx.stroke();
   ctx.fillStyle = 'rgb(255 111 97 / .6)';
   for (const c of circs) if (c.bump) { ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fill(); }
+  ctx.strokeStyle = C.goal; ctx.lineWidth = 2.5 / s;
+  ctx.beginPath();
+  for (const g of gates) { const half = (W / 2) * (1 - g.o); ctx.moveTo(0, g.y); ctx.lineTo(half, g.y); ctx.moveTo(W - half, g.y); ctx.lineTo(W, g.y); }
+  ctx.stroke();
   ctx.strokeStyle = C.brass; ctx.lineWidth = 1.5 / s;
   ctx.beginPath();
   for (const r of rotors) { ctx.moveTo(r.cx - r.len, r.cy); ctx.lineTo(r.cx + r.len, r.cy); }
@@ -683,8 +896,9 @@ function drawMinimap() {
   ctx.restore();
   // viewport
   const vy = y + (camY + 100) * s, vh = (CH / scale) * s;
+  const vx = x + Math.max(0, camX) * s, vw = Math.min(W, viewW / scale) * s;
   ctx.strokeStyle = C.fg; ctx.lineWidth = 1.5;
-  ctx.strokeRect(x + 0.5, Math.max(y, vy), w - 1, Math.min(vh, h));
+  ctx.strokeRect(vx + 0.5, Math.max(y, vy), Math.min(vw, w) - 1, Math.min(vh, h));
 }
 
 /* ---------- confetti ---------- */
@@ -715,26 +929,81 @@ function drawConfetti() {
   }
 }
 
+/* ---------- live board + overtaking toast ---------- */
+const hudEl = $('#hud'), liveEl = $('#live'), liveList = $('#liveList'), liveTitle = $('#liveTitle'), toastHost = $('#toastHost');
+let prevRank = new Map(), prevAt = 0, lastTop = null, lastToast = 0, cand = null, candAt = 0;
+
+function toast(text) {
+  if (simTime - lastToast < 1) return;
+  lastToast = simTime;
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = text;
+  toastHost.replaceChildren(el);
+  setTimeout(() => el.remove(), 1700);
+}
+
+function updateLive() {
+  const racing = state === 'running' || state === 'done';
+  liveEl.hidden = !racing;
+  if (!racing) return;
+  const lastMode = mode === 'last';
+  let rows;
+  if (lastMode) {
+    rows = ranked.slice(-10).reverse();
+    liveTitle.textContent = `꼴찌 후보 · 남은 ${ranked.length}명`;
+  } else {
+    rows = finishOrder.slice(0, 10).concat(ranked.slice(0, Math.max(0, 10 - finishOrder.length)));
+    liveTitle.textContent = '실시간 순위 TOP 10';
+  }
+  const frag = document.createDocumentFragment();
+  for (const m of rows) {
+    const r = m.done ? m.rank : m.live;
+    const li = document.createElement('li');
+    const isTop = lastMode ? m === ranked[ranked.length - 1] : r === 1;
+    li.className = (isTop ? 'top ' : '') + (m.done ? 'done' : '');
+    const p = prevRank.get(m);
+    let mv = '', cls = '';
+    if (!m.done && p && p !== r) { const d = p - r; mv = d > 0 ? `▲${d}` : `▼${-d}`; cls = d > 0 ? 'up' : 'down'; }
+    if (m.done) mv = '도착';
+    li.innerHTML = `<span class="rk">${r}</span><i class="dot"></i><span class="nm"></span><span class="mv ${cls}">${mv}</span>`;
+    li.querySelector('.dot').style.background = m.color;
+    li.querySelector('.nm').textContent = m.name;
+    frag.appendChild(li);
+  }
+  liveList.replaceChildren(frag);
+
+  if (state === 'running') {
+    if (simTime - prevAt > 1.5) {
+      prevAt = simTime;
+      prevRank = new Map(ranked.map(m => [m, m.live]));
+    }
+    const top = lastMode ? ranked[ranked.length - 1] : ranked[0];
+    // announce a new leader only once it has held the spot for a moment
+    if (top && top !== lastTop) {
+      if (cand !== top) { cand = top; candAt = simTime; }
+      else if (simTime - candAt > 0.6) {
+        if (lastTop && simTime > 3) toast(lastMode ? `꼴찌 교체! ${top.name}` : `역전! ${top.name} 1위`);
+        lastTop = top;
+      }
+    } else cand = null;
+  }
+}
+
 /* ---------- UI ---------- */
 const namesEl = $('#names'), countEl = $('#count'), winEl = $('#winCount');
 const ranksEl = $('#ranks'), ranksEmpty = $('#ranksEmpty'), arrivedEl = $('#arrived');
 const startBtn = $('#startBtn'), resetBtn = $('#resetBtn');
-const hudTime = $('#hudTime'), hudLeft = $('#hudLeft'), hudLead = $('#hudLead'), hudLeadDot = $('#hudLeadDot'), hudLeadName = $('#hudLeadName'), hudSlow = $('#hudSlow');
+const hudTime = $('#hudTime'), hudLeft = $('#hudLeft'), hudSlow = $('#hudSlow');
 const followBtn = $('#followBtn'), countdownEl = $('#countdown'), resultEl = $('#result');
 const setupView = $('#setupView');
 
-const STORE_KEY = 'lw-marble-roulette-v1';
+const STORE_KEY = 'lw-marble-roulette-v2';
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify({ names: namesEl.value, mode, winK, speedMul })); } catch (e) {}
 }
 function load() {
   try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { return null; }
-}
-
-function sampleNames() {
-  const out = [];
-  for (let t = 1; t <= 30; t++) for (let p = 1; p <= 8; p++) out.push(`${t}조-${p}`);
-  return out.join('\n');
 }
 
 function parseNames(text) {
@@ -773,7 +1042,9 @@ function resetBoard() {
   arrivedEl.textContent = `0 / ${marbles.length}`;
   hudTime.textContent = '0.0s';
   hudLeft.textContent = marbles.length;
-  hudLead.hidden = true; hudSlow.hidden = true;
+  hudSlow.hidden = true;
+  liveEl.hidden = true;
+  toastHost.replaceChildren();
 }
 
 function fmt(t) { return t < 60 ? `${t.toFixed(1)}s` : `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`; }
@@ -799,9 +1070,8 @@ function setEditing(on) {
   });
 }
 
-let wakeLock = null;
 async function keepAwake() {
-  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (e) {}
+  try { await navigator.wakeLock?.request('screen'); } catch (e) {}
 }
 
 let countdownTimer = null;
@@ -835,6 +1105,7 @@ function end(list) {
   state = 'done';
   winners = list;
   slowmo = false; hudSlow.hidden = true;
+  rerank();
   startBtn.disabled = false; startBtn.textContent = '다시 시작';
   setTimeout(showResult, 700);
 }
@@ -877,8 +1148,7 @@ function toSetup() {
 /* events */
 let debounce = null;
 namesEl.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(refreshNames, 250); });
-$('#sampleBtn').addEventListener('click', () => { namesEl.value = sampleNames(); refreshNames(); });
-$('#numberBtn').addEventListener('click', () => { namesEl.value = Array.from({ length: 240 }, (_, i) => String(i + 1)).join('\n'); refreshNames(); });
+$('#sampleBtn').addEventListener('click', () => { namesEl.value = DINNER.join('\n'); refreshNames(); });
 $('#clearBtn').addEventListener('click', () => { namesEl.value = ''; refreshNames(); namesEl.focus(); });
 document.querySelectorAll('input[name="mode"]').forEach(el => el.addEventListener('change', () => { mode = el.value; clampK(); save(); }));
 document.querySelectorAll('input[name="speed"]').forEach(el => el.addEventListener('change', () => { speedMul = parseFloat(el.value); save(); }));
@@ -909,34 +1179,56 @@ $('#excludeBtn').addEventListener('click', () => {
   refreshNames();
 });
 followBtn.addEventListener('click', () => { manual = false; followBtn.hidden = true; });
+function setZoom(d) {
+  const i = Math.max(0, Math.min(ZOOMS.length - 1, zoomIdx + d));
+  if (i === zoomIdx) return;
+  const cy = camY + CH / scale / 2, cx = camX + viewW / scale / 2;
+  zoomIdx = i; applyZoom();
+  camY = camBoundsY(cy - CH / scale / 2); camX = camBoundsX(cx - viewW / scale / 2);
+}
+$('#zoomIn').addEventListener('click', () => setZoom(1));
+$('#zoomOut').addEventListener('click', () => setZoom(-1));
 
 function goManual() { if (!manual) { manual = true; followBtn.hidden = false; } }
-cv.addEventListener('wheel', e => { e.preventDefault(); goManual(); camY = camBounds(camY + e.deltaY / scale); }, { passive: false });
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey) { setZoom(e.deltaY < 0 ? 1 : -1); return; }
+  goManual();
+  camY = camBoundsY(camY + e.deltaY / scale); camX = camBoundsX(camX + e.deltaX / scale);
+}, { passive: false });
 let drag = null;
+function miniJump(px, py) {
+  camY = camBoundsY((py - mm.y) / mm.s - 100 - (CH / scale) / 2);
+  camX = camBoundsX((px - mm.x) / mm.s - (viewW / scale) / 2);
+}
 cv.addEventListener('pointerdown', e => {
   const r = cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
   if (mm.on && px >= mm.x && px <= mm.x + mm.w && py >= mm.y && py <= mm.y + mm.h) {
-    goManual();
-    camY = camBounds((py - mm.y) / mm.s - 100 - (CH / scale) / 2);
+    goManual(); miniJump(px, py);
     drag = { mini: true };
-  } else drag = { y: e.clientY, cam: camY };
+  } else drag = { x: e.clientX, y: e.clientY, camX, camY };
   cv.setPointerCapture(e.pointerId);
 });
 cv.addEventListener('pointermove', e => {
   if (!drag) return;
   const r = cv.getBoundingClientRect();
-  if (drag.mini) { camY = camBounds((e.clientY - r.top - mm.y) / mm.s - 100 - (CH / scale) / 2); return; }
-  if (Math.abs(e.clientY - drag.y) > 3) goManual();
-  if (manual) camY = camBounds(drag.cam - (e.clientY - drag.y) / scale);
+  if (drag.mini) { miniJump(e.clientX - r.left, e.clientY - r.top); return; }
+  if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) goManual();
+  if (manual) {
+    camY = camBoundsY(drag.camY - (e.clientY - drag.y) / scale);
+    camX = camBoundsX(drag.camX - (e.clientX - drag.x) / scale);
+  }
 });
 cv.addEventListener('pointerup', () => { drag = null; });
 cv.addEventListener('pointercancel', () => { drag = null; });
 document.addEventListener('keydown', e => {
   if (e.target === namesEl || e.target.tagName === 'INPUT') return;
   if (e.code === 'Space' || e.code === 'Enter') {
-    if (state === 'setup' || (state === 'done')) { e.preventDefault(); start(); }
+    if (state === 'setup' || state === 'done') { e.preventDefault(); start(); }
   }
   if (e.key === 'f' || e.key === 'F') { manual = false; followBtn.hidden = true; }
+  if (e.key === '+' || e.key === '=') setZoom(1);
+  if (e.key === '-') setZoom(-1);
 });
 
 /* ---------- loop ---------- */
@@ -945,7 +1237,7 @@ function frame(now) {
   const dtR = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (state === 'running') {
-    const L = leader();
+    const L = ranked[0];
     const near = L && L.y > GOAL_Y - 260;
     const decisive = mode === 'first'
       ? finishOrder.length === winK - 1
@@ -955,6 +1247,7 @@ function frame(now) {
     let n = 0;
     while (acc >= DT && n < 60 && state === 'running') { step(); acc -= DT; n++; }
     if (n >= 60) acc = 0;
+    if (state === 'running') rerank();
   } else {
     acc = 0;
     for (const r of rotors) r.angle += r.omega * dtR * (state === 'done' ? 0.3 : 1);
@@ -964,21 +1257,19 @@ function frame(now) {
   draw(now);
 
   hudT += dtR;
-  if (hudT > 0.1) {
+  if (hudT > 0.25) {
     hudT = 0;
     hudTime.textContent = fmt(simTime);
     hudLeft.textContent = marbles.length - finishOrder.length;
-    const L = state === 'running' ? leader() : null;
-    hudLead.hidden = !L;
-    if (L) { hudLeadDot.style.background = L.color; hudLeadName.textContent = `선두 ${L.name}`; }
     hudSlow.hidden = !(state === 'running' && slowmo);
+    updateLive();
   }
   requestAnimationFrame(frame);
 }
 
 /* ---------- boot ---------- */
 const saved = load();
-namesEl.value = saved && typeof saved.names === 'string' ? saved.names : sampleNames();
+namesEl.value = saved && typeof saved.names === 'string' ? saved.names : DINNER.join('\n');
 if (saved) {
   mode = saved.mode === 'last' ? 'last' : 'first';
   speedMul = [1, 1.5, 2, 3].includes(saved.speedMul) ? saved.speedMul : 1;
