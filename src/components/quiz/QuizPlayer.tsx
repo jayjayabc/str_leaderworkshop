@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { anonNickname } from '@/lib/anon';
 import { cachedSnapshot, useClientValue } from '@/lib/clientStore';
 import { getQuizDb } from '@/lib/quizDb';
+import { correctRank } from '@/lib/quizJudge';
 import {
   fmtClock,
   keywordFor,
@@ -469,15 +470,40 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
   const reveal = state.reveal!;
   const iWon = reveal.winner?.participant_id === me.id;
   const verdict = mine?.verdict ?? null;
+  const totalCorrect = reveal.correct_times?.length ?? 0;
+  const rank = verdict === 'correct' ? correctRank(reveal.correct_times, mine?.created_at) : null;
   return (
     <div className="mt-4 flex flex-col gap-3">
       {iWon ? (
-        <div className="rounded-2xl bg-[#1E1E1E] p-5 text-center text-white" role="status">
+        <div className="rounded-2xl bg-[#1E1E1E] p-5 text-center text-white" role="status" data-testid="result-winner">
           <p className="text-[34px]" aria-hidden>
             🎉
           </p>
           <p className="mt-1 text-[22px] font-extrabold text-[#FFE300]">첫 정답자입니다!</p>
           <p className="mt-1 text-[14px]">진행자에게 이 화면을 보여 주세요</p>
+        </div>
+      ) : mine && verdict === 'correct' ? (
+        <div className="rounded-2xl bg-[#1F8A3B] p-5 text-center text-white" role="status" data-testid="result-correct">
+          <p className="text-[30px]" aria-hidden>
+            👏
+          </p>
+          <p className="mt-1 text-[22px] font-extrabold">
+            {rank ? `정답! ${rank}번째로 맞혔어요` : '정답입니다!'}
+          </p>
+          {totalCorrect > 0 ? (
+            <p className="mt-1 text-[14px]">정답자 {totalCorrect}명 중{rank ? ` ${rank}등` : ''}</p>
+          ) : null}
+          {rank === 1 && reveal.winner ? (
+            <p className="mt-1 text-[13px] opacity-90">이미 다른 문제에서 상품을 받으셔서 다음 정답자에게 넘어갔어요</p>
+          ) : null}
+        </div>
+      ) : mine && verdict === 'wrong' ? (
+        <div className="rounded-2xl bg-[#C23A1E] p-5 text-center text-white" role="status" data-testid="result-wrong">
+          <p className="text-[30px]" aria-hidden>
+            😢
+          </p>
+          <p className="mt-1 text-[22px] font-extrabold">아쉽게도 틀렸어요</p>
+          <p className="mt-1 text-[14px]">다음 문제에서 다시 도전해 보세요</p>
         </div>
       ) : null}
 

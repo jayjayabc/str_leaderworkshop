@@ -10,6 +10,11 @@ export interface QuizReveal {
   answer: string;
   explanation: string;
   winner: { participant_id: string; name: string; table_no: number } | null;
+  /**
+   * 최종 정답 제출들의 서버 시각(오름차순). 참가자 화면이 내 제출 시각과 비교해 'N번째 정답'을 계산한다.
+   * 참가자 id는 담지 않는다(id가 곧 제출 권한이므로).
+   */
+  correct_times?: string[];
 }
 
 export interface QuizLeaderRow {

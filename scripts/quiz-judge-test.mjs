@@ -24,7 +24,7 @@ for (const name of ['quizQuestions', 'quizJudge', 'quizSeed']) {
   writeFileSync(join(out, `${name}.mjs`), js);
 }
 
-const { judge, parseKoreanNumber, normalizeText } = await import(pathToFileURL(join(out, 'quizJudge.mjs')).href);
+const { judge, parseKoreanNumber, normalizeText, correctRank } = await import(pathToFileURL(join(out, 'quizJudge.mjs')).href);
 const { QUIZ_SEED } = await import(pathToFileURL(join(out, 'quizSeed.mjs')).href);
 rmSync(out, { recursive: true, force: true });
 
@@ -51,7 +51,7 @@ const CASES = {
     correct: ['1', '1번', '1.', '카카오뱅크 K패스 체크카드', 'k패스', '①'],
     wrong: ['2', '3번', '기후동행카드', '애플페이 티머니'],
   },
-  6: { correct: ['마스턴캐피탈', '마스턴 캐피탈', '마스턴캐피털', 'Mastern Capital'], wrong: ['롯데캐피탈', '현대캐피탈', '캐피탈'] },
+  6: { correct: ['마스턴캐피탈', '마스턴 캐피탈', '마스턴캐피털', 'Mastern Capital', '마스턴캐피탈'.normalize('NFD'), ' 마스턴캐피탈 '.normalize('NFD'), '마스턴캐피탈㈜'], wrong: ['롯데캐피탈', '현대캐피탈', '캐피탈'] },
   7: {
     correct: ['SFNB', 'sfnb', 'Security First Network Bank', 'security first network bank (SFNB)', '시큐리티 퍼스트 네트워크 뱅크'],
     wrong: ['ING Direct', 'Net.B@nk', '퍼스트뱅크'],
@@ -108,11 +108,34 @@ for (const q of QUIZ_SEED) {
   }
   c.correct.forEach((a) => check(q.no, a, 'correct'));
   c.wrong.forEach((a) => check(q.no, a, 'wrong'));
+  // 아이폰·맥 입력처럼 한글이 자모 분해형(NFD)으로 와도 같은 판정이어야 한다
+  c.correct.forEach((a) => check(q.no, a.normalize('NFD'), 'correct'));
+  c.wrong.forEach((a) => check(q.no, a.normalize('NFD'), 'wrong'));
   // 빈 답은 항상 오답
   check(q.no, '   ', 'wrong');
   const j = q.judge;
   const range = j.type === 'numeric' ? `${j.min}~${j.max}${j.unit ?? ''}` : j.type === 'text' ? `${j.accept.length} variants` : `${j.all.length} parts`;
   rows.push([q.no, j.type, range, c.correct.length, c.wrong.length]);
+}
+
+// N번째 정답 계산
+{
+  const t = ['2026-10-14T01:00:00.100+00:00', '2026-10-14T01:00:01.200+00:00', '2026-10-14T01:00:02.300+00:00'];
+  const cases = [
+    [correctRank(t, t[0]), 1],
+    [correctRank(t, t[2]), 3],
+    [correctRank(t, '2026-10-14T01:00:01.2Z'), 2],
+    [correctRank(t, null), null],
+    [correctRank([], t[0]), null],
+    [correctRank(undefined, t[0]), null],
+  ];
+  cases.forEach(([got, want], i) => {
+    if (got === want) pass += 1;
+    else {
+      fail += 1;
+      console.log(`  ✗ correctRank #${i}: ${got} ≠ ${want}`);
+    }
+  });
 }
 
 // 파서 자체

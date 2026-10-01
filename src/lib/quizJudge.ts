@@ -64,9 +64,13 @@ export type JudgeSpec = NumericJudge | TextJudge | KeywordsJudge | ManualJudge;
 
 // ─── 정규화 ─────────────────────────────────────────────────
 
-/** 전각 숫자·기호를 반각으로 */
+/**
+ * 유니코드 정규화(NFKC) + 전각 숫자·기호를 반각으로.
+ * NFKC가 중요하다: 아이폰·맥 일부 입력/붙여넣기는 한글을 자모 분해형(NFD)으로 보내므로,
+ * 그대로 두면 '마스턴캐피탈'이 정답 목록의 '마스턴'과 다른 문자열이 되어 오답 처리된다.
+ */
 function toHalfWidth(s: string): string {
-  return s.replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
+  return s.normalize('NFKC').replace(/[！-～]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0));
 }
 
 /**
@@ -203,4 +207,18 @@ export function describeJudge(spec: JudgeSpec): string {
     default:
       return '';
   }
+}
+
+/**
+ * 참가자 화면용 — 공개된 정답 시각 목록에서 내 제출이 몇 번째 정답인지(1부터).
+ * 같은 문자열이 있으면 그 위치, 없으면(표기 차이) 시각 비교로 센다. 목록에 없으면 null.
+ */
+export function correctRank(times: readonly string[] | undefined, mine: string | undefined | null): number | null {
+  if (!times?.length || !mine) return null;
+  const exact = times.indexOf(mine);
+  if (exact >= 0) return exact + 1;
+  const t = new Date(mine).getTime();
+  if (!Number.isFinite(t)) return null;
+  const n = times.filter((x) => new Date(x).getTime() <= t).length;
+  return n > 0 ? n : null;
 }

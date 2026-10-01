@@ -226,6 +226,10 @@ function Console({ opKey }: { opKey: string }) {
           index,
           answer: q.answerDisplay,
           explanation: q.explanation,
+          correct_times: rows
+            .filter((r) => r.final === 'correct')
+            .map((r) => r.sub.created_at)
+            .sort((a, b) => new Date(a).getTime() - new Date(b).getTime() || a.localeCompare(b)),
           winner:
             winnerRow && winnerRow.participant
               ? {
