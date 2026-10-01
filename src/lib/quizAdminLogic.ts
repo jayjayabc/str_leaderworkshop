@@ -1,7 +1,8 @@
 // 스피드 퀴즈 운영 로직 (Quiz v1.0) — 순수 함수. 운영자 화면만 쓴다(정답 시드 포함).
 
 import { judge, type AutoVerdict } from './quizJudge';
-import { QUIZ_SEED } from './quizSeed';
+import { pidHash } from './quizHash';
+import { getSeed } from './quizSeedStore';
 import type {
   QuizLeaderRow,
   QuizParticipant,
@@ -25,7 +26,7 @@ export interface SubmissionRow {
 }
 
 export function autoVerdictFor(index: number, answer: string): AutoVerdict {
-  const q = QUIZ_SEED[index];
+  const q = getSeed()[index];
   return q ? judge(q.judge, answer) : 'review';
 }
 
@@ -58,7 +59,7 @@ export function buildRows(
   );
   return submissions
     .filter((s) => s.question_index === index)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime() || a.created_at.localeCompare(b.created_at))
     .map((sub) => {
       const auto = autoVerdictFor(index, sub.answer);
       return {
@@ -79,20 +80,20 @@ export function firstEligible(rows: SubmissionRow[]): SubmissionRow | null {
 
 /**
  * 최종 순위 — 본 문제(연습 제외) 정답 수 내림차순, 동점이면 맞힌 문제의 응답 시간 합이 작은 순.
- * 판정은 저장된 최종 판정 > 자동 판정(검토는 오답으로 센다).
+ * 판정은 공개 때 저장된 판정만 센다(공개하지 않고 건너뛴 문제는 빠진다).
+ * 방송되는 데이터이므로 참가자 id 대신 pid_hash를 싣는다.
  */
-export function leaderboard(
+export async function leaderboard(
   state: QuizState | null,
   submissions: QuizSubmission[],
   participants: QuizParticipant[],
   top = 3,
-): QuizLeaderRow[] {
+): Promise<QuizLeaderRow[]> {
   const agg = new Map<string, { correct: number; latency: number }>();
   submissions.forEach((s) => {
-    const q = QUIZ_SEED[s.question_index];
+    const q = getSeed()[s.question_index];
     if (!q || q.practice) return;
-    const v = finalVerdict(s, autoVerdictFor(s.question_index, s.answer));
-    if (v !== 'correct') return;
+    if (s.verdict !== 'correct') return;
     const opened = openedAt(state, s.question_index);
     const lat = opened === null ? 0 : Math.max(0, new Date(s.created_at).getTime() - opened);
     const cur = agg.get(s.participant_id) ?? { correct: 0, latency: 0 };
@@ -101,18 +102,20 @@ export function leaderboard(
     agg.set(s.participant_id, cur);
   });
   const byId = new Map(participants.map((p) => [p.id, p]));
-  return [...agg.entries()]
+  const top3 = [...agg.entries()]
     .filter(([id]) => byId.has(id))
     .sort((a, b) => b[1].correct - a[1].correct || a[1].latency - b[1].latency)
-    .slice(0, top)
-    .map(([id, v], i) => ({
+    .slice(0, top);
+  return Promise.all(
+    top3.map(async ([id, v], i) => ({
       rank: i + 1,
-      participant_id: id,
+      pid_hash: await pidHash(id),
       name: byId.get(id)!.name,
       table_no: byId.get(id)!.table_no,
       correct: v.correct,
       latency_ms: v.latency,
-    }));
+    })),
+  );
 }
 
 /**
@@ -126,11 +129,11 @@ export function teamBoard(submissions: QuizSubmission[], participants: QuizParti
   participants.forEach((p) => members.set(p.table_no, (members.get(p.table_no) ?? 0) + 1));
   const correct = new Map<number, number>();
   submissions.forEach((s) => {
-    const q = QUIZ_SEED[s.question_index];
+    const q = getSeed()[s.question_index];
     if (!q || q.practice) return;
     const t = tableOf.get(s.participant_id);
     if (t === undefined) return;
-    if (finalVerdict(s, autoVerdictFor(s.question_index, s.answer)) !== 'correct') return;
+    if (s.verdict !== 'correct') return; // 공개 때 저장된 판정만
     correct.set(t, (correct.get(t) ?? 0) + 1);
   });
   return [...members.entries()]
@@ -162,7 +165,7 @@ export function rejudgeTargets(rows: SubmissionRow[]): { row: SubmissionRow; to:
   return rows
     .filter((r) => r.auto !== 'review')
     .filter((r) => r.sub.verdict !== null && r.sub.verdict !== r.auto)
-    .filter((r) => r.sub.auto_verdict === null || r.sub.auto_verdict === r.sub.verdict)
+    .filter((r) => r.sub.auto_verdict !== null && r.sub.auto_verdict === r.sub.verdict)
     .map((r) => ({ row: r, to: r.auto as QuizVerdict }));
 }
 
@@ -188,7 +191,7 @@ export function submissionsCsvRows(
       const opened = openedAt(state, s.question_index);
       const p = byId.get(s.participant_id);
       return {
-        no: QUIZ_SEED[s.question_index]?.no ?? s.question_index,
+        no: getSeed()[s.question_index]?.no ?? s.question_index,
         이름: p?.name ?? '',
         테이블: p?.table_no ?? '',
         답: s.answer,
@@ -221,7 +224,7 @@ export function winnersCsvRows(
       const p = byId.get(w.participant_id);
       const opened = openedAt(state, w.question_index);
       return {
-        no: QUIZ_SEED[w.question_index]?.no ?? w.question_index,
+        no: getSeed()[w.question_index]?.no ?? w.question_index,
         이름: p?.name ?? '',
         테이블: p?.table_no ?? '',
         답: s?.answer ?? '',

@@ -1,7 +1,8 @@
 // 스피드 퀴즈 — 전체 시드 (정답·판정·해설·작성자 포함) · Quiz v1.0
 //
-// ⚠ 운영자 화면(/quiz/admin)과 테스트 스크립트만 import한다. 참가자·스크린 번들에 들어가면 안 된다
-//   (공개 문항은 quizQuestions.ts). 공개 시점의 정답·해설은 운영자가 quiz_state.reveal로 내려보낸다.
+// ⚠ 서버(/api/quiz/keys)와 테스트 스크립트만 import한다. 어떤 클라이언트 번들에도 들어가면 안 된다
+//   (운영자 화면도 포함 — 운영자 키를 확인한 뒤 /api/quiz/keys로 받아 quizSeedStore에 넣는다).
+//   공개 문항은 quizQuestions.ts, 공개 시점의 정답·해설은 운영자가 quiz_state.reveal로 내려보낸다.
 //
 // 원본: data/quiz_source_rows.json (Google Sheet '출제본 정리'). 행 0 = 열 문자, 행 1 = 메모
 // "26년 6월 기준으로 맞추기", 행 2 = 헤더 [#, 카테고리, 질문, 난이도(5점만점), 답, 설명/전략적 의미, 해설, 작성자],
@@ -31,7 +32,7 @@ export interface QuizAnswerKey {
 
 export type QuizQuestion = QuizQuestionPublic & QuizAnswerKey;
 
-const KEYS: QuizAnswerKey[] = [
+export const QUIZ_KEYS: QuizAnswerKey[] = [
   {
     no: 0,
     answerDisplay: '2개',
@@ -65,7 +66,7 @@ const KEYS: QuizAnswerKey[] = [
       min: 2600,
       max: 2900,
       unit: '만',
-      accept: ['고객수', '고객수만큼', '고객 수만큼', '모든 고객', '고객님 손안에'],
+      accept: ['고객수', '고객수만큼', '고객 수만큼', '모든 고객', '고객님 손안에', '고객 손안에', '손안에'],
       why: '넌센스라 "고객 수"를 말하면 정답. 25년 말 2,670만 ~ 26년 2,793만을 모두 인정(2,600만~2,900만)',
     },
   },
@@ -188,7 +189,7 @@ const KEYS: QuizAnswerKey[] = [
     explanation: '연평균 15.3% 성장이 이어지면 2026년 1,663만 → 2027년 1,917만 → 2028년 2,210만 명으로, 2028년에 처음 2,000만을 넘습니다.',
     notes: '답 2028년. 해설: 연평균 성장률 15.3%, 이 속도면 2026년 1,663만 → 2027년 1,917만 → 2028년 2,210만 명으로 2028년에 처음 2,000만을 넘는다.',
     author: '제일런',
-    judge: { type: 'text', accept: ['2028', '2028년', '28년', '28'], why: '연도 — 정확히 2028(28년 약식 허용)' },
+    judge: { type: 'numeric', target: 2028, min: 2028, max: 2028, unit: '년', accept: ['28', '28년'], why: '연도 — 정확히 2028(28년 약식 허용, "2028년도"·"2028년에"도 정답)' },
   },
   {
     no: 13,
@@ -296,9 +297,10 @@ const KEYS: QuizAnswerKey[] = [
       type: 'keywords',
       all: [
         ['내렸', '내려', '내림', '하락', '감소', '떨어', '낮아', '줄었', 'down', 're:-\\s*2\\.10?(?!\\d)'],
-        're:(?<![\\d.])2\\.10?(?!\\d)',
+        're:(?<![\\d.])2\\.(10?|05)(?!\\d)',
       ],
-      none: [['올랐', '올라', '오름', '상승', '증가', '늘었', 're:\\+\\s*2\\.1']],
+      // '증가'·'늘었'은 "토스뱅크 증가로 비중은 내렸다"처럼 정답 문장에도 나오므로 금지어에서 뺐다
+      none: [['올랐', '올라', '오름', '상승', 're:\\+\\s*2\\.1']],
       why: '방향(내렸다 계열 또는 -2.1)과 숫자 2.1이 모두 있어야 정답. "올랐다"가 들어가면 오답',
     },
   },
@@ -315,7 +317,7 @@ const KEYS: QuizAnswerKey[] = [
 
 /** 공개 문항 + 정답 키를 합친 전체 목록 (index = quiz_state.current_index) */
 export const QUIZ_SEED: QuizQuestion[] = QUIZ_QUESTIONS.map((q) => {
-  const key = KEYS.find((k) => k.no === q.no);
+  const key = QUIZ_KEYS.find((k) => k.no === q.no);
   if (!key) throw new Error(`quizSeed: no ${q.no} 정답 키 없음`);
   return { ...q, ...key };
 });

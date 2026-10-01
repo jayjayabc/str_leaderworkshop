@@ -17,8 +17,8 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { describeJudge } from '@/lib/quizJudge';
-import { QUIZ_SEED } from '@/lib/quizSeed';
-import { questionLabel, stars } from '@/lib/quizQuestions';
+import { getSeed, loadQuizKeys } from '@/lib/quizSeedStore';
+import { QUIZ_QUESTIONS, questionLabel, stars } from '@/lib/quizQuestions';
 import {
   SUBMISSION_CSV_COLUMNS,
   TEAM_CSV_COLUMNS,
@@ -45,6 +45,7 @@ import {
   type QuizVerdict,
 } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
+import { pidHash } from '@/lib/quizHash';
 
 const SNAPSHOT_MS = 1500;
 
@@ -67,6 +68,7 @@ export function QuizAdmin() {
     const candidate = keyFromUrl() ?? readStoredKey();
     getQuizDb()
       .adminSnapshot(candidate, 0)
+      .then(() => loadQuizKeys(candidate))
       .then(() => {
         writeStoredKey(candidate);
         setKey(candidate);
@@ -79,10 +81,12 @@ export function QuizAdmin() {
     const k = input.trim();
     try {
       await getQuizDb().adminSnapshot(k, 0);
+      await loadQuizKeys(k);
       writeStoredKey(k);
       setKey(k);
     } catch (err) {
-      const code = err instanceof QuizError ? err.code : 'QUIZ_NETWORK';
+      const code =
+        err instanceof QuizError ? err.code : err instanceof Error && err.message === 'QUIZ_FORBIDDEN' ? 'QUIZ_FORBIDDEN' : 'QUIZ_NETWORK';
       toast.error(QUIZ_ERROR_TEXT[code]);
     }
   }
@@ -131,7 +135,7 @@ function Console({ opKey }: { opKey: string }) {
   const [snap, setSnap] = useState<QuizAdminSnapshot | null>(null);
   const [busy, setBusy] = useState(false);
   const index = state?.current_index ?? 0;
-  const q = QUIZ_SEED[index];
+  const q = getSeed()[index];
 
   // 현재 문제 스냅샷 — 1.5초마다 (제출 테이블은 방송하지 않으므로 운영자는 폴링)
   const pull = useCallback(async () => {
@@ -206,6 +210,12 @@ function Console({ opKey }: { opKey: string }) {
 
   const open = useCallback(() => {
     if (!state) return;
+    if (
+      state.settings.opened?.[String(index)] &&
+      !window.confirm('이미 진행한 문제입니다. 다시 열면 경과 시간이 바뀌고 정답이 공개된 뒤 새로 낼 수 있게 됩니다. 그래도 열까요? (보통은 \'이 문제 초기화\' 후 다시 엽니다)')
+    ) {
+      return;
+    }
     void run({ action: 'open', index, duration_sec: durationFor(state, index) });
   }, [run, state, index]);
 
@@ -238,33 +248,43 @@ function Console({ opKey }: { opKey: string }) {
     }
     if (reviewLeft > 0 && !window.confirm(`검토하지 않은 답 ${reviewLeft}건은 오답으로 처리하고 공개할까요?`)) return;
 
-    const winnerRow = confirmed ? rows.find((r) => r.sub.id === confirmed.submission_id) : null;
-    // 조별 누적 정답 — 공개 직전 전체 제출로 계산(이번 문제는 지금 화면의 최종 판정 기준)
-    let teamsNow: QuizRevealTeam[] | undefined;
+    // 공개 직전에 최신 제출을 다시 읽어 모든 계산을 그것으로 한다 (1.5초 폴링 사이에 들어온 늦은 제출 포함)
+    let all: QuizAdminSnapshot;
     try {
-      const all = await db.adminSnapshot(opKey, null);
-      const finalById = new Map(rows.map((r) => [r.sub.id, r.final ?? 'wrong']));
-      const subs = all.submissions.map((x) =>
-        finalById.has(x.id) ? { ...x, verdict: finalById.get(x.id) as QuizVerdict } : x,
-      );
-      const gained = new Map<number, number>();
-      rows.forEach((r) => {
-        if (r.final === 'correct' && r.participant) gained.set(r.participant.table_no, (gained.get(r.participant.table_no) ?? 0) + 1);
-      });
-      teamsNow = q.practice
-        ? undefined
-        : teamBoard(subs, all.participants).map((t) => ({
-            rank: t.rank,
-            table_no: t.table_no,
-            correct: t.correct,
-            gained: gained.get(t.table_no) ?? 0,
-          }));
+      all = await db.adminSnapshot(opKey, null);
     } catch {
-      teamsNow = undefined; // 집계 실패해도 공개는 진행
+      toast.error(QUIZ_ERROR_TEXT.QUIZ_NETWORK);
+      return;
+    }
+    const fresh = buildRows(index, state, all.submissions, all.participants, all.winners);
+    // 마지막 폴링 뒤 늦게 들어온 '검토' 답이 있으면 한 번 더 묻는다
+    const lateReview = fresh.filter((r) => r.final === null).length - reviewLeft;
+    if (lateReview > 0 && !window.confirm(`방금 들어온 검토 대상 답 ${lateReview}건이 있습니다. 오답으로 처리하고 공개할까요?`)) return;
+    const winnerSub = all.winners.find((w) => w.question_index === index)?.submission_id ?? null;
+    const winnerRow = winnerSub ? fresh.find((r) => r.sub.id === winnerSub) ?? null : null;
+    const finalOf = (r: SubmissionRow): QuizVerdict => r.final ?? 'wrong';
+
+    // 조별 누적 정답 — 이번 문제는 지금 정하는 최종 판정으로 덮어쓴다
+    let teamsNow: QuizRevealTeam[] | undefined;
+    if (!q.practice) {
+      const finalById = new Map(fresh.map((r) => [r.sub.id, finalOf(r)]));
+      const subs = all.submissions.map((x) => (finalById.has(x.id) ? { ...x, verdict: finalById.get(x.id)! } : x));
+      const gained = new Map<number, number>();
+      fresh.forEach((r) => {
+        if (finalOf(r) === 'correct' && r.participant) {
+          gained.set(r.participant.table_no, (gained.get(r.participant.table_no) ?? 0) + 1);
+        }
+      });
+      teamsNow = teamBoard(subs, all.participants).map((t) => ({
+        rank: t.rank,
+        table_no: t.table_no,
+        correct: t.correct,
+        gained: gained.get(t.table_no) ?? 0,
+      }));
     }
     const verdicts: Record<string, { auto: string | null; verdict: QuizVerdict }> = {};
-    rows.forEach((r) => {
-      verdicts[r.sub.id] = { auto: r.auto, verdict: r.final ?? 'wrong' };
+    fresh.forEach((r) => {
+      verdicts[r.sub.id] = { auto: r.auto, verdict: finalOf(r) };
     });
     await run(
       {
@@ -275,14 +295,14 @@ function Console({ opKey }: { opKey: string }) {
           answer: q.answerDisplay,
           explanation: q.explanation,
           teams: teamsNow,
-          correct_times: rows
-            .filter((r) => r.final === 'correct')
+          correct_times: fresh
+            .filter((r) => finalOf(r) === 'correct')
             .map((r) => r.sub.created_at)
             .sort((a, b) => new Date(a).getTime() - new Date(b).getTime() || a.localeCompare(b)),
           winner:
             winnerRow && winnerRow.participant
               ? {
-                  participant_id: winnerRow.participant.id,
+                  pid_hash: await pidHash(winnerRow.participant.id),
                   name: winnerRow.participant.name,
                   table_no: winnerRow.participant.table_no,
                 }
@@ -291,12 +311,13 @@ function Console({ opKey }: { opKey: string }) {
       },
       '정답을 공개했습니다',
     );
-  }, [state, q, snap, confirmed, candidate, reviewLeft, correctCount, rows, index, run, db, opKey]);
+  }, [state, q, snap, confirmed, candidate, reviewLeft, correctCount, index, run, db, opKey]);
 
   const next = useCallback(() => {
     if (!state) return;
     if (state.status === 'open' && !window.confirm('진행 중인 문제가 있습니다. 넘어갈까요?')) return;
-    const to = Math.min(QUIZ_SEED.length - 1, index + 1);
+    if (state.status === 'closed' && !window.confirm('아직 정답을 공개하지 않았습니다. 공개하지 않고 넘어갈까요?')) return;
+    const to = Math.min(QUIZ_QUESTIONS.length - 1, index + 1);
     if (to === index && state.status !== 'revealed') return;
     void run({ action: 'next', index: to });
   }, [state, index, run]);
@@ -320,9 +341,9 @@ function Console({ opKey }: { opKey: string }) {
 
   // ─── 단축키: Space = 열기/마감 · R = 공개 · N = 다음 ───
 
-  const keysRef = useRef({ open, close, reveal, next, state });
+  const keysRef = useRef({ open, close, reveal, next, state, busy });
   useEffect(() => {
-    keysRef.current = { open, close, reveal, next, state };
+    keysRef.current = { open, close, reveal, next, state, busy };
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -330,6 +351,7 @@ function Console({ opKey }: { opKey: string }) {
       if (t && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = keysRef.current;
+      if (k.busy) return; // 직전 조작이 끝나기 전에 단축키가 겹치지 않게
       if (e.code === 'Space') {
         e.preventDefault();
         if (k.state?.status === 'open') k.close();
@@ -379,7 +401,7 @@ function Console({ opKey }: { opKey: string }) {
   async function showFinal(mode: 'people' | 'teams' | 'both' | 'none') {
     const all = await fullSnapshot();
     if (!all) return;
-    const people = mode === 'people' || mode === 'both' ? leaderboard(state, all.submissions, all.participants, 3) : null;
+    const people = mode === 'people' || mode === 'both' ? await leaderboard(state, all.submissions, all.participants, 3) : null;
     const teams = mode === 'teams' || mode === 'both' ? teamBoard(all.submissions, all.participants) : null;
     const label = { people: '개인 상위 3명', teams: '조별 순위', both: '개인 상위 3명 + 조별 순위', none: '' }[mode];
     if (!window.confirm(mode === 'none' ? '순위 없이 종료 화면으로 바꿀까요?' : `${label}를 공개할까요?`)) return;
@@ -466,7 +488,7 @@ function Console({ opKey }: { opKey: string }) {
         {/* 문항 목록 */}
         <aside className="rounded-2xl bg-white p-3 xl:max-h-[calc(100vh-88px)] xl:overflow-y-auto" aria-label="문항 목록">
           <ol className="space-y-1">
-            {QUIZ_SEED.map((item, i) => {
+            {QUIZ_QUESTIONS.map((item, i) => {
               const won = snap?.winners.some((w) => w.question_index === i);
               const done = Boolean(state.settings.opened?.[String(i)]);
               return (
@@ -766,7 +788,7 @@ function Controls({
         <Btn tone="dark" onClick={onReveal} disabled={busy || (s !== 'closed' && s !== 'revealed')} testId="btn-reveal">
           공개
         </Btn>
-        <Btn onClick={onNext} disabled={busy || index >= QUIZ_SEED.length - 1} testId="btn-next">
+        <Btn onClick={onNext} disabled={busy || index >= QUIZ_QUESTIONS.length - 1} testId="btn-next">
           다음 →
         </Btn>
       </div>

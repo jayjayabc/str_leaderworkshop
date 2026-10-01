@@ -428,7 +428,7 @@ function FinalScreen({ state }: { state: QuizState }) {
               <ol className="space-y-5">
                 {people.map((r) => (
                   <li
-                    key={r.participant_id}
+                    key={`${r.rank}-${r.pid_hash}`}
                     className={clsx('flex items-center gap-8 rounded-[36px] px-10 py-6', r.rank === 1 ? 'bg-[#FFE300]' : 'bg-white')}
                   >
                     <span className="text-[72px] leading-none">{medals[r.rank - 1] ?? `${r.rank}`}</span>

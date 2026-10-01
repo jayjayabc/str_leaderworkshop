@@ -8,6 +8,7 @@ import { anonNickname } from '@/lib/anon';
 import { cachedSnapshot, useClientValue } from '@/lib/clientStore';
 import { getQuizDb } from '@/lib/quizDb';
 import { correctRank } from '@/lib/quizJudge';
+import { pidHash } from '@/lib/quizHash';
 import {
   fmtClock,
   keywordFor,
@@ -61,21 +62,45 @@ function readMe(): Me | null {
 
 const storedMe = cachedSnapshot(readMe);
 
-function readCachedSub(pid: string, index: number): QuizMySubmission | null {
+/**
+ * 기기에 저장한 내 답. 문제를 연 시각(opened)을 함께 저장해, 리허설 뒤 초기화처럼 같은 문항이
+ * 새로 열렸으면 예전 캐시를 무시한다.
+ */
+function readCachedSub(pid: string, index: number, opened: string | undefined): QuizMySubmission | null {
   try {
     const raw = window.localStorage.getItem(SUB_KEY(pid, index));
-    return raw ? (JSON.parse(raw) as QuizMySubmission) : null;
+    if (!raw) return null;
+    const c = JSON.parse(raw) as QuizMySubmission & { _opened?: string };
+    if (c._opened !== (opened ?? '')) return null;
+    return c;
   } catch {
     return null;
   }
 }
 
-function writeCachedSub(pid: string, index: number, sub: QuizMySubmission): void {
+function writeCachedSub(pid: string, index: number, sub: QuizMySubmission, opened: string | undefined): void {
   try {
-    window.localStorage.setItem(SUB_KEY(pid, index), JSON.stringify(sub));
+    window.localStorage.setItem(SUB_KEY(pid, index), JSON.stringify({ ...sub, _opened: opened ?? '' }));
   } catch {
     /* noop */
   }
+}
+
+/** 내 참가자 id의 해시 — 공개·종료 데이터의 pid_hash와 비교한다 (id 자체는 방송하지 않는다) */
+function useMyHash(id: string): string | null {
+  const [h, setH] = useState<{ id: string; hash: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void pidHash(id)
+      .then((hash) => {
+        if (!cancelled) setH({ id, hash });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+  return h && h.id === id ? h.hash : null;
 }
 
 /** 참가자 화면 — 휴대폰 우선 (Quiz v1.0) */
@@ -220,9 +245,21 @@ function PlayerStage({ me }: { me: Me }) {
 
   // 새 버전이 배포됐으면 문제를 푸는 중이 아닐 때 조용히 새로고침 (참가 정보·내 답은 기기에 남아 있다)
   const stale = useNewVersion();
+  // 모든 폰이 한꺼번에 새로고침하지 않게 0~20초 흩고, 같은 빌드로 두 번 이상 새로고침하지 않게 막는다
+  const willReload = Boolean(stale && state && state.status !== 'open');
   useEffect(() => {
-    if (stale && state && state.status !== 'open') window.location.reload();
-  }, [stale, state]);
+    if (!willReload) return;
+    try {
+      // 이 빌드에서 이미 한 번 새로고침했는데도 여전히 예전 빌드면(캐시) 반복하지 않는다
+      const from = process.env.NEXT_PUBLIC_BUILD_ID ?? '';
+      if (window.sessionStorage.getItem('eb:quiz:reloaded-from') === from) return;
+      window.sessionStorage.setItem('eb:quiz:reloaded-from', from);
+    } catch {
+      /* 저장소가 막혀 있으면 한 번만 시도 */
+    }
+    const t = setTimeout(() => window.location.reload(), Math.random() * 20_000);
+    return () => clearTimeout(t);
+  }, [willReload]);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-4 pb-8">
@@ -252,7 +289,8 @@ function PlayerStage({ me }: { me: Me }) {
 function StageBody({ me, state, now, offset }: { me: Me; state: QuizState; now: number; offset: number }) {
   const index = state.current_index;
   const q = QUIZ_QUESTIONS[index];
-  const [mine, setMine] = useState<QuizMySubmission | null>(() => readCachedSub(me.id, index));
+  const openedAt = state.settings.opened?.[String(index)];
+  const [mine, setMine] = useState<QuizMySubmission | null>(() => readCachedSub(me.id, index, openedAt));
 
   // 내 답 — 새로고침·공개 때 서버에서 다시 읽는다(판정은 공개 때 채워진다)
   const refreshMine = useCallback(() => {
@@ -261,7 +299,7 @@ function StageBody({ me, state, now, offset }: { me: Me; state: QuizState; now: 
       .then((s) => {
         if (s) {
           setMine(s);
-          writeCachedSub(me.id, index, s);
+          writeCachedSub(me.id, index, s, openedAt);
         } else {
           // 서버에 없으면(운영자가 문제를 초기화한 경우) 캐시도 지운다
           setMine(null);
@@ -273,11 +311,13 @@ function StageBody({ me, state, now, offset }: { me: Me; state: QuizState; now: 
         }
       })
       .catch(() => undefined);
-  }, [me.id, index]);
+  }, [me.id, index, openedAt]);
 
+  // 상태가 바뀔 때마다, 그리고 공개 상태에서 '다시 공개'(재채점)될 때도 다시 읽는다
+  const revealStamp = state.status === 'revealed' ? state.updated_at : null;
   useEffect(() => {
     refreshMine();
-  }, [refreshMine, state.status]);
+  }, [refreshMine, state.status, revealStamp]);
 
   if (state.status === 'final') return <FinalView state={state} me={me} />;
   if (!q) return null;
@@ -324,7 +364,7 @@ function StageBody({ me, state, now, offset }: { me: Me; state: QuizState; now: 
               editing={Boolean(mine)}
               onSubmitted={(s) => {
                 setMine(s);
-                writeCachedSub(me.id, index, s);
+                writeCachedSub(me.id, index, s, openedAt);
               }}
               onDuplicate={refreshMine}
             />
@@ -478,7 +518,8 @@ function ClosedBox() {
 
 function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizMySubmission | null }) {
   const reveal = state.reveal!;
-  const iWon = reveal.winner?.participant_id === me.id;
+  const myHash = useMyHash(me.id);
+  const iWon = Boolean(myHash && reveal.winner?.pid_hash === myHash);
   const verdict = mine?.verdict ?? null;
   const totalCorrect = reveal.correct_times?.length ?? 0;
   const rank = verdict === 'correct' ? correctRank(reveal.correct_times, mine?.created_at) : null;
@@ -506,7 +547,7 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
           ) : null}
           {rank === 1 ? (
             <p className="mt-1 text-[13px] opacity-90">
-              가장 먼저 맞혔지만 1인 1회 수상 규칙으로 이번 상품은 {reveal.winner ? '다음 정답자에게 넘어갔어요' : '없어요'}
+              가장 먼저 맞혔지만 이번 상품은 {reveal.winner ? '다른 분께 돌아갔어요(1인 1회 수상 등)' : '없어요'}
             </p>
           ) : null}
         </div>
@@ -568,6 +609,7 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
 }
 
 function FinalView({ state, me }: { state: QuizState; me: Me }) {
+  const myHash = useMyHash(me.id);
   const { people, teams } = readBoard(state.leaderboard);
   const myTeam = teams?.find((t) => t.table_no === me.table_no) ?? null;
   return (
@@ -583,10 +625,10 @@ function FinalView({ state, me }: { state: QuizState; me: Me }) {
             <ol className="mt-1.5 space-y-2 text-left">
               {people.map((r) => (
                 <li
-                  key={r.participant_id}
+                  key={`${r.rank}-${r.pid_hash}`}
                   className={clsx(
                     'flex items-center gap-3 rounded-xl px-4 py-3',
-                    r.participant_id === me.id ? 'bg-[#1E1E1E] text-white' : 'bg-white',
+                    myHash && r.pid_hash === myHash ? 'bg-[#1E1E1E] text-white' : 'bg-white',
                   )}
                 >
                   <span className="text-[22px] font-extrabold">{r.rank}위</span>
@@ -653,18 +695,24 @@ function MyHistory({ me, state }: { me: Me; state: QuizState }) {
     .map(({ i }) => i);
   const key = doneIdx.join(',');
 
-  // 기기에 저장된 판정(공개 때 저장됨)이 없는 문항만 서버에서 읽는다
+  // 기기에 저장된 판정도, 이번에 이미 읽은 결과도 없는 문항만 서버에서 한 번 읽는다
+  const marksRef = useRef(marks);
+  const openedRef = useRef(opened);
+  useEffect(() => {
+    marksRef.current = marks;
+    openedRef.current = opened;
+  });
   useEffect(() => {
     let cancelled = false;
     const idx = key ? key.split(',').map(Number) : [];
     idx
-      .filter((i) => !readCachedSub(me.id, i)?.verdict)
+      .filter((i) => !readCachedSub(me.id, i, openedRef.current[String(i)])?.verdict && !marksRef.current[i])
       .forEach((i) => {
         void getQuizDb()
           .mySubmission(me.id, i)
           .then((sub) => {
             if (cancelled) return;
-            if (sub?.verdict) writeCachedSub(me.id, i, sub);
+            if (sub?.verdict) writeCachedSub(me.id, i, sub, openedRef.current[String(i)]);
             setMarks((m) => ({
               ...m,
               [i]: sub ? { mark: sub.verdict ?? 'pending', answer: sub.answer } : { mark: 'none', answer: '' },
@@ -675,10 +723,10 @@ function MyHistory({ me, state }: { me: Me; state: QuizState }) {
     return () => {
       cancelled = true;
     };
-  }, [key, me.id, state.status]);
+  }, [key, me.id]);
 
   const markOf = (i: number): { mark: HistMark; answer: string } | undefined => {
-    const c = readCachedSub(me.id, i);
+    const c = readCachedSub(me.id, i, opened[String(i)]);
     if (c?.verdict) return { mark: c.verdict, answer: c.answer };
     return marks[i];
   };

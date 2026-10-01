@@ -139,6 +139,22 @@ function matchPattern(pattern: KeywordPattern, text: string, light: string): boo
   });
 }
 
+/**
+ * 숫자형 답에서 볼 부분을 고른다 — "풀이를 같이 쓴" 답을 위해.
+ *   % 문항: "683억, 14.2%" → "14.2%" (퍼센트가 붙은 숫자)
+ *   그 밖: "1126-968=158", "40만/216만 → 18.5" → 마지막 = 또는 → 뒤
+ */
+export function numericFocus(raw: string, unit?: string): string {
+  const s = toHalfWidth(raw);
+  if (unit === '%') {
+    const m = s.match(/(-?\d+(?:\.\d+)?)\s*(%|퍼센트|프로)(?!p)/);
+    if (m) return m[1];
+  }
+  const cut = Math.max(s.lastIndexOf('='), s.lastIndexOf('→'), s.lastIndexOf('->') >= 0 ? s.lastIndexOf('->') + 1 : -1);
+  if (cut >= 0 && /\d/.test(s.slice(cut + 1))) return s.slice(cut + 1);
+  return raw;
+}
+
 // ─── 판정 ───────────────────────────────────────────────────
 
 export function judge(spec: JudgeSpec, answer: string): AutoVerdict {
@@ -168,7 +184,7 @@ export function judge(spec: JudgeSpec, answer: string): AutoVerdict {
 
     case 'numeric': {
       if (spec.accept?.some((a) => normalizeText(a) === normalizeText(raw))) return 'correct';
-      const parsed = parseKoreanNumber(raw);
+      const parsed = parseKoreanNumber(numericFocus(raw, spec.unit));
       if (!parsed) return 'wrong';
       const unitMul = spec.unit && MULTIPLIER[spec.unit] ? MULTIPLIER[spec.unit] : 1;
       let v = parsed.value;

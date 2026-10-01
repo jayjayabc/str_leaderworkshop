@@ -201,7 +201,7 @@ MC가 읽는다 → **열기**(타이머 시작, 기본 90초·문항별 설정)
 ### Supabase 설정 (퀴즈)
 
 1. SQL Editor에서 [`supabase/quiz_schema.sql`](supabase/quiz_schema.sql)을 실행합니다(여러 번 실행해도 안전, 기존 보드 테이블은 건드리지 않음).
-2. 운영자 키를 넣습니다 — **`NEXT_PUBLIC_OPERATOR_KEY`와 같은 값**:
+2. 운영자 키를 넣습니다 — **`NEXT_PUBLIC_OPERATOR_KEY`와 다른, 24자 이상 무작위 값** (NEXT_PUBLIC_* 값은 공개 JS에 실리므로):
    ```sql
    insert into quiz_config (id, operator_key) values (1, '여기에-운영자-키')
    on conflict (id) do update set operator_key = excluded.operator_key;

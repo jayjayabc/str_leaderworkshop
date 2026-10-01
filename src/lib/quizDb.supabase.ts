@@ -43,6 +43,9 @@ function normalizeState(row: Partial<QuizState> | null | undefined): QuizState {
   };
 }
 
+/** Realtime이 살아 있을 때의 안전망 폴링 주기 */
+const STATE_POLL_LIVE_MS = 15_000;
+
 class SupabaseQuizAdapter implements QuizAdapter {
   readonly mode = 'supabase' as const;
 
@@ -68,7 +71,10 @@ class SupabaseQuizAdapter implements QuizAdapter {
       last = sig;
       cb(s);
     };
+    let live = false; // Realtime 연결이 살아 있으면 폴링을 15초로 늦춘다(250대 × 3초 폴링 부하 줄이기)
+    let lastPull = 0;
     const pull = () => {
+      lastPull = Date.now();
       void this.getState()
         .then(emit)
         .catch(() => undefined);
@@ -81,11 +87,14 @@ class SupabaseQuizAdapter implements QuizAdapter {
         emit(normalizeState(payload.new as Partial<QuizState>));
       })
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') pull();
+        live = status === 'SUBSCRIBED';
+        if (live) pull();
       });
 
     // 폴링 — 웹소켓이 막혀도 3초 안에 따라온다. 탭이 다시 보이거나 온라인이 되면 즉시 한 번 더.
-    const poll = setInterval(pull, STATE_POLL_MS);
+    const poll = setInterval(() => {
+      if (!live || Date.now() - lastPull >= STATE_POLL_LIVE_MS) pull();
+    }, STATE_POLL_MS);
     const onWake = () => {
       if (document.visibilityState !== 'hidden') pull();
     };

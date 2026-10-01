@@ -9,7 +9,8 @@ export interface QuizReveal {
   index: number;
   answer: string;
   explanation: string;
-  winner: { participant_id: string; name: string; table_no: number } | null;
+  /** 첫 정답자 — 참가자 id 대신 pid_hash(quizHash.ts)만 싣는다 */
+  winner: { pid_hash: string; name: string; table_no: number } | null;
   /**
    * 최종 정답 제출들의 서버 시각(오름차순). 참가자 화면이 내 제출 시각과 비교해 'N번째 정답'을 계산한다.
    * 참가자 id는 담지 않는다(id가 곧 제출 권한이므로).
@@ -27,9 +28,10 @@ export interface QuizRevealTeam {
   gained: number;
 }
 
+/** 종료 화면 개인 순위 한 줄 — 방송되므로 참가자 id 대신 pid_hash */
 export interface QuizLeaderRow {
   rank: number;
-  participant_id: string;
+  pid_hash: string;
   name: string;
   table_no: number;
   correct: number;
