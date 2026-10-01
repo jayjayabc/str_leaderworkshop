@@ -482,6 +482,7 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
   const verdict = mine?.verdict ?? null;
   const totalCorrect = reveal.correct_times?.length ?? 0;
   const rank = verdict === 'correct' ? correctRank(reveal.correct_times, mine?.created_at) : null;
+  const myTeam = reveal.teams?.find((t) => t.table_no === me.table_no) ?? null;
   return (
     <div className="mt-4 flex flex-col gap-3">
       {iWon ? (
@@ -516,6 +517,19 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
           </p>
           <p className="mt-1 text-[22px] font-extrabold">아쉽게도 틀렸어요</p>
           <p className="mt-1 text-[14px]">다음 문제에서 다시 도전해 보세요</p>
+        </div>
+      ) : null}
+
+      {myTeam ? (
+        <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3" data-testid="my-team-now">
+          <span className="text-[13px] text-[#5B5B5B]">우리 조({me.table_no}번)</span>
+          <span className="text-[18px] font-extrabold">
+            {myTeam.rank}위 <span className="text-[14px] font-bold text-[#8A8A8A]">/ {reveal.teams!.length}조</span>
+          </span>
+          <span className="ml-auto text-[15px] font-bold">
+            누적 {myTeam.correct}개
+            {myTeam.gained ? <span className="ml-1 text-[#1F8A3B]">+{myTeam.gained}</span> : null}
+          </span>
         </div>
       ) : null}
 

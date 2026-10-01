@@ -179,13 +179,41 @@ language sql stable security definer set search_path = public as $$
    where participant_id = p_participant and question_index = p_index
 $$;
 
--- 스크린용 숫자 — 입장 인원, 현재 문제 제출 수
+-- 스크린용 숫자 — 입장 인원, 현재 문제 제출 수, 운영자가 올린 정답/오답 집계(v1.2)
+
+create table if not exists quiz_live (
+  id             int primary key default 1 check (id = 1),
+  question_index int,
+  correct        int not null default 0,
+  wrong          int not null default 0,
+  review         int not null default 0,
+  updated_at     timestamptz not null default now()
+);
+insert into quiz_live (id) values (1) on conflict (id) do nothing;
+alter table quiz_live enable row level security; -- 정책 없음 = 직접 읽기/쓰기 불가, 함수로만
+
+create or replace function quiz_live_update(p_key text, p_index int, p_correct int, p_wrong int, p_review int)
+returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform quiz_check_key(p_key);
+  update quiz_live
+     set question_index = p_index,
+         correct = greatest(0, coalesce(p_correct, 0)),
+         wrong   = greatest(0, coalesce(p_wrong, 0)),
+         review  = greatest(0, coalesce(p_review, 0)),
+         updated_at = now()
+   where id = 1;
+end $$;
+
 create or replace function quiz_counts(p_index int)
 returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object(
     'participants', (select count(*) from quiz_participants),
-    'submissions',  (select count(*) from quiz_submissions where question_index = p_index)
+    'submissions',  (select count(*) from quiz_submissions where question_index = p_index),
+    'live', (select json_build_object('correct', correct, 'wrong', wrong, 'review', review)
+               from quiz_live where id = 1 and question_index = p_index)
   )
 $$;
 
@@ -355,6 +383,7 @@ grant execute on function
   submit_answer(uuid, int, text),
   quiz_my_submission(uuid, int),
   quiz_counts(int),
+  quiz_live_update(text, int, int, int, int),
   quiz_admin_snapshot(text, int),
   quiz_control(text, text, jsonb)
 to anon, authenticated;

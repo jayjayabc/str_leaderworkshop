@@ -13,9 +13,18 @@ import type {
   QuizState,
 } from './quizTypes';
 
+/** 진행 중 문제의 판정 집계 — 운영자 화면이 계산해 올리고 송출 화면이 읽는다 */
+export interface QuizLiveCounts {
+  correct: number;
+  wrong: number;
+  review: number;
+}
+
 export interface QuizCounts {
   participants: number;
   submissions: number;
+  /** 운영자 화면이 올린 현재 문제의 정답/오답 집계 (없으면 null) */
+  live?: QuizLiveCounts | null;
 }
 
 export interface QuizAdapter {
@@ -40,6 +49,8 @@ export interface QuizAdapter {
   // 운영자
   control(key: string, action: QuizControlAction): Promise<QuizState>;
   adminSnapshot(key: string, index: number | null): Promise<QuizAdminSnapshot>;
+  /** 현재 문제 정답/오답 집계를 송출 화면용으로 올린다(실시간 방송 없음 — 송출 화면이 2초마다 읽음) */
+  pushLive(key: string, index: number, live: QuizLiveCounts): Promise<void>;
 }
 
 let cached: QuizAdapter | null = null;

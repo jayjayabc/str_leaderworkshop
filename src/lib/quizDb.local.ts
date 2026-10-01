@@ -6,7 +6,7 @@
 // 규칙은 supabase/quiz_schema.sql의 함수와 똑같이 맞췄다(제출 마감 +2초, 1인 1회 수상, 중복 제출 거부 …).
 
 import { OPERATOR_KEY } from './admin';
-import type { QuizAdapter, QuizCounts } from './quizDb';
+import type { QuizAdapter, QuizCounts, QuizLiveCounts } from './quizDb';
 import {
   EMPTY_QUIZ_STATE,
   STATE_POLL_MS,
@@ -29,6 +29,7 @@ interface LocalDb {
   participants: QuizParticipant[];
   submissions: QuizSubmission[];
   winners: QuizWinner[];
+  live?: { index: number; counts: QuizLiveCounts };
 }
 
 function uid(): string {
@@ -192,10 +193,19 @@ class LocalQuizAdapter implements QuizAdapter {
 
   async counts(index: number): Promise<QuizCounts> {
     const db = read();
+    const live = db.live && db.live.index === index ? db.live.counts : null;
     return {
       participants: db.participants.length,
       submissions: db.submissions.filter((x) => x.question_index === index).length,
+      live,
     };
+  }
+
+  async pushLive(key: string, index: number, live: QuizLiveCounts): Promise<void> {
+    this.checkKey(key);
+    const db = read();
+    db.live = { index, counts: live };
+    write(db);
   }
 
   private checkKey(key: string): void {
@@ -318,6 +328,7 @@ class LocalQuizAdapter implements QuizAdapter {
       case 'reset_all': {
         db.winners = [];
         db.submissions = [];
+        db.live = undefined;
         if (act.participants) db.participants = [];
         const rest = { ...s.settings };
         delete rest.opened;

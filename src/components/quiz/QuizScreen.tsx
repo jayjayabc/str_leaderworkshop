@@ -16,7 +16,7 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { QUIZ_QUESTIONS, questionLabel, stars } from '@/lib/quizQuestions';
-import { readBoard, type QuizState } from '@/lib/quizTypes';
+import { readBoard, type QuizRevealTeam, type QuizState } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
 import { playSfx, unlockSound } from '@/lib/quizSound';
 
@@ -140,7 +140,7 @@ function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       type="button"
       onClick={onToggle}
       className={clsx(
-        'absolute bottom-3 right-3 z-50 rounded-full px-3 py-1.5 text-[13px] font-bold transition-opacity',
+        'absolute left-2 top-2 z-50 rounded-full px-2.5 py-1 text-[12px] font-bold transition-opacity',
         on ? 'bg-white/10 text-white/40 opacity-40 hover:opacity-100' : 'bg-[#FFE300] text-[#1E1E1E]',
       )}
       data-testid="sound-toggle"
@@ -286,6 +286,21 @@ function QuestionScreen({
           제출 <span className="text-[72px] font-black">{counts?.submissions ?? 0}</span>명
           <span className="ml-4 text-[30px] font-semibold text-[#8A8A8A]">/ {counts?.participants ?? 0}명</span>
         </p>
+        {counts?.live && (counts.live.correct || counts.live.wrong || counts.live.review) ? (
+          <p className="flex items-end gap-6 text-[36px] font-bold tabular-nums" data-testid="live-counts">
+            <span className="text-[#1F8A3B]">
+              정답 <span className="text-[60px] font-black">{counts.live.correct}</span>
+            </span>
+            <span className="text-[#C23A1E]">
+              오답 <span className="text-[60px] font-black">{counts.live.wrong}</span>
+            </span>
+            {counts.live.review ? (
+              <span className="text-[#8A6A00]">
+                채점 중 <span className="text-[60px] font-black">{counts.live.review}</span>
+              </span>
+            ) : null}
+          </p>
+        ) : null}
         <div className="ml-auto flex items-center gap-4 text-[24px] text-[#6B6B6B]">
           <span>{url.replace(/^https?:\/\//, '')}</span>
           <div
@@ -302,51 +317,95 @@ function QuestionScreen({
 function RevealScreen({ state }: { state: QuizState }) {
   const reveal = state.reveal!;
   const q = QUIZ_QUESTIONS[reveal.index];
+  const teams = reveal.teams?.length ? reveal.teams : null;
+  const nCorrect = reveal.correct_times?.length ?? 0;
   return (
-    <div className="qz-fade flex h-full flex-col px-[100px] pb-[70px] pt-[56px]">
+    <div className={clsx('qz-fade flex h-full flex-col px-[90px]', teams ? 'pb-[36px] pt-[40px]' : 'pb-[70px] pt-[56px]')}>
       <header className="flex items-center gap-6">
         <span className="rounded-2xl bg-[#1E1E1E] px-7 py-3 text-[44px] font-black text-white">
           {questionLabel(reveal.index)}
         </span>
         {q ? <span className="rounded-2xl bg-white px-6 py-3 text-[36px] font-bold">{q.category}</span> : null}
+        {reveal.correct_times ? (
+          <span className="rounded-2xl bg-[#E3F6E8] px-6 py-3 text-[36px] font-black text-[#1F8A3B]">정답자 {nCorrect}명</span>
+        ) : null}
         <span className="ml-auto rounded-2xl bg-[#FFE300] px-7 py-3 text-[44px] font-black">정답 공개</span>
       </header>
 
-      <div className="mt-12 grid flex-1 grid-cols-[1fr_620px] gap-12">
-        <div className="flex flex-col">
-          <p className="text-[34px] font-bold text-[#6B6B6B]">정답</p>
-          <p className="mt-3 whitespace-pre-line text-[88px] font-black leading-[1.1] tracking-tight">
+      <div className={clsx('grid min-h-0 flex-1 gap-10', teams ? 'mt-7 grid-cols-[1fr_520px]' : 'mt-12 grid-cols-[1fr_620px]')}>
+        <div className="flex min-h-0 flex-col overflow-hidden">
+          <p className="text-[30px] font-bold text-[#6B6B6B]">정답</p>
+          <p
+            className={clsx(
+              'mt-2 whitespace-pre-line font-black leading-[1.1] tracking-tight',
+              teams ? 'text-[68px]' : 'text-[88px]',
+            )}
+          >
             {reveal.answer}
           </p>
-          <p className="mt-10 text-[40px] leading-[1.5] text-[#2A2A2A]">{reveal.explanation}</p>
+          <p className={clsx('leading-[1.45] text-[#2A2A2A]', teams ? 'mt-6 text-[32px]' : 'mt-10 text-[40px]')}>
+            {reveal.explanation}
+          </p>
         </div>
 
         <div className="qz-pop flex flex-col items-center justify-center rounded-[48px] bg-[#1E1E1E] px-10 text-center text-white">
           {reveal.winner ? (
             <>
-              <p className="text-[110px] leading-none" aria-hidden>
+              <p className={clsx('leading-none', teams ? 'text-[80px]' : 'text-[110px]')} aria-hidden>
                 🎉
               </p>
-              <p className="mt-6 text-[36px] font-bold text-[#FFE300]">{q?.practice ? '연습 문제 첫 정답' : '첫 정답자'}</p>
-              <p className="mt-4 break-all text-[80px] font-black leading-tight">{reveal.winner.name}</p>
-              <p className="mt-4 text-[44px] font-bold">{reveal.winner.table_no}번 테이블</p>
+              <p className="mt-5 text-[34px] font-bold text-[#FFE300]">{q?.practice ? '연습 문제 첫 정답' : '첫 정답자'}</p>
+              <p className={clsx('mt-3 break-all font-black leading-tight', teams ? 'text-[68px]' : 'text-[80px]')}>
+                {reveal.winner.name}
+              </p>
+              <p className="mt-3 text-[40px] font-bold">{reveal.winner.table_no}번 테이블</p>
             </>
           ) : (
             <>
-              <p className="text-[90px] leading-none" aria-hidden>
+              <p className="text-[80px] leading-none" aria-hidden>
                 🤔
               </p>
-              <p className="mt-6 text-[48px] font-black">
-                {reveal.correct_times?.length ? `정답자 ${reveal.correct_times.length}명` : '정답자가 없습니다'}
-              </p>
-              {reveal.correct_times?.length ? (
-                <p className="mt-4 text-[32px] font-bold text-[#BDBDBD]">모두 이미 상품을 받아 이번 상품은 없습니다</p>
+              <p className="mt-6 text-[46px] font-black">{nCorrect ? `정답자 ${nCorrect}명` : '정답자가 없습니다'}</p>
+              {nCorrect ? (
+                <p className="mt-4 text-[30px] font-bold text-[#BDBDBD]">모두 이미 상품을 받아 이번 상품은 없습니다</p>
               ) : null}
             </>
           )}
         </div>
       </div>
+
+      {teams ? <TeamStrip teams={teams} /> : null}
     </div>
+  );
+}
+
+/** 정답 공개 화면 하단 — 조별 누적 정답 현황(순위순) + 이번 문제에서 얻은 정답 */
+function TeamStrip({ teams }: { teams: QuizRevealTeam[] }) {
+  const cols = teams.length <= 10 ? teams.length : teams.length <= 30 ? 10 : Math.ceil(teams.length / 3);
+  return (
+    <section className="mt-7" data-testid="team-strip">
+      <p className="mb-2 text-[28px] font-black">
+        조별 정답 현황 <span className="text-[22px] font-bold text-[#8A8A8A]">누적 · 초록 숫자는 이번 문제</span>
+      </p>
+      <ol className="grid gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        {teams.map((t) => (
+          <li
+            key={t.table_no}
+            className={clsx(
+              'flex items-center gap-2 rounded-2xl px-3 py-2',
+              t.rank === 1 ? 'bg-[#FFE300]' : t.rank <= 3 ? 'bg-[#FFF3B0]' : 'bg-white',
+            )}
+          >
+            <span className="w-[44px] shrink-0 text-[22px] font-bold text-[#6B6B6B]">{t.rank}위</span>
+            <span className="text-[30px] font-black">{t.table_no}번</span>
+            <span className="ml-auto text-right leading-none">
+              <span className="block text-[30px] font-black tabular-nums">{t.correct}</span>
+              {t.gained ? <span className="block text-[18px] font-bold text-[#1F8A3B]">+{t.gained}</span> : null}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }
 

@@ -39,6 +39,7 @@ import {
   QuizError,
   type QuizAdminSnapshot,
   type QuizControlAction,
+  type QuizRevealTeam,
   type QuizState,
   type QuizTeamRow,
   type QuizVerdict,
@@ -185,6 +186,20 @@ function Console({ opKey }: { opKey: string }) {
   const confirmed = snap?.winners.find((w) => w.question_index === index) ?? null;
   const reviewLeft = rows.filter((r) => r.final === null).length;
   const correctCount = rows.filter((r) => r.final === 'correct').length;
+  const wrongCount = rows.filter((r) => r.final === 'wrong').length;
+
+  // 송출 화면용 정답/오답 집계 — 바뀔 때만 올린다
+  const lastLive = useRef('');
+  useEffect(() => {
+    if (!snap || !state) return;
+    const live = { correct: correctCount, wrong: wrongCount, review: reviewLeft };
+    const sig = `${index}:${live.correct}:${live.wrong}:${live.review}`;
+    if (sig === lastLive.current) return;
+    lastLive.current = sig;
+    db.pushLive(opKey, index, live).catch(() => {
+      lastLive.current = ''; // 실패하면 다음 주기에 다시
+    });
+  }, [db, opKey, index, snap, state, correctCount, wrongCount, reviewLeft]);
   const left = remainingMs(state, now, offset);
 
   // ─── 조작 ───
@@ -224,6 +239,29 @@ function Console({ opKey }: { opKey: string }) {
     if (reviewLeft > 0 && !window.confirm(`검토하지 않은 답 ${reviewLeft}건은 오답으로 처리하고 공개할까요?`)) return;
 
     const winnerRow = confirmed ? rows.find((r) => r.sub.id === confirmed.submission_id) : null;
+    // 조별 누적 정답 — 공개 직전 전체 제출로 계산(이번 문제는 지금 화면의 최종 판정 기준)
+    let teamsNow: QuizRevealTeam[] | undefined;
+    try {
+      const all = await db.adminSnapshot(opKey, null);
+      const finalById = new Map(rows.map((r) => [r.sub.id, r.final ?? 'wrong']));
+      const subs = all.submissions.map((x) =>
+        finalById.has(x.id) ? { ...x, verdict: finalById.get(x.id) as QuizVerdict } : x,
+      );
+      const gained = new Map<number, number>();
+      rows.forEach((r) => {
+        if (r.final === 'correct' && r.participant) gained.set(r.participant.table_no, (gained.get(r.participant.table_no) ?? 0) + 1);
+      });
+      teamsNow = q.practice
+        ? undefined
+        : teamBoard(subs, all.participants).map((t) => ({
+            rank: t.rank,
+            table_no: t.table_no,
+            correct: t.correct,
+            gained: gained.get(t.table_no) ?? 0,
+          }));
+    } catch {
+      teamsNow = undefined; // 집계 실패해도 공개는 진행
+    }
     const verdicts: Record<string, { auto: string | null; verdict: QuizVerdict }> = {};
     rows.forEach((r) => {
       verdicts[r.sub.id] = { auto: r.auto, verdict: r.final ?? 'wrong' };
@@ -236,6 +274,7 @@ function Console({ opKey }: { opKey: string }) {
           index,
           answer: q.answerDisplay,
           explanation: q.explanation,
+          teams: teamsNow,
           correct_times: rows
             .filter((r) => r.final === 'correct')
             .map((r) => r.sub.created_at)
@@ -252,7 +291,7 @@ function Console({ opKey }: { opKey: string }) {
       },
       '정답을 공개했습니다',
     );
-  }, [state, q, snap, confirmed, candidate, reviewLeft, correctCount, rows, index, run]);
+  }, [state, q, snap, confirmed, candidate, reviewLeft, correctCount, rows, index, run, db, opKey]);
 
   const next = useCallback(() => {
     if (!state) return;
@@ -543,7 +582,16 @@ function Console({ opKey }: { opKey: string }) {
           <div className="rounded-2xl bg-white p-4">
             <div className="flex items-center gap-2">
               <h2 className="text-[14px] font-extrabold">제출 ({rows.length})</h2>
-              <span className="text-[12px] text-[#8A8A8A]">서버 시각 순 · 검토 {reviewLeft}건</span>
+              <span className="text-[12px] text-[#8A8A8A]">서버 시각 순</span>
+              <span className="rounded-full bg-[#E3F6E8] px-2 py-0.5 text-[12px] font-bold text-[#1F8A3B]" data-testid="count-correct">
+                정답 {correctCount}
+              </span>
+              <span className="rounded-full bg-[#FCE8E4] px-2 py-0.5 text-[12px] font-bold text-[#C23A1E]" data-testid="count-wrong">
+                오답 {wrongCount}
+              </span>
+              {reviewLeft ? (
+                <span className="rounded-full bg-[#FFF3C4] px-2 py-0.5 text-[12px] font-bold text-[#8A6A00]">검토 {reviewLeft}</span>
+              ) : null}
               {confirmed ? (
                 <span className="ml-auto rounded-full bg-[#1E1E1E] px-2.5 py-0.5 text-[12px] font-bold text-[#FFE300]">
                   🏅 확정: {snap?.participants.find((p) => p.id === confirmed.participant_id)?.name}

@@ -6,7 +6,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { sb } from './supabaseClient';
-import type { QuizAdapter, QuizCounts } from './quizDb';
+import type { QuizAdapter, QuizCounts, QuizLiveCounts } from './quizDb';
 import {
   EMPTY_QUIZ_STATE,
   QuizError,
@@ -151,6 +151,17 @@ class SupabaseQuizAdapter implements QuizAdapter {
     });
     if (error || !data) throw toQuizError(error);
     return normalizeState(data as Partial<QuizState>);
+  }
+
+  async pushLive(key: string, index: number, live: QuizLiveCounts): Promise<void> {
+    const { error } = await sb().rpc('quiz_live_update', {
+      p_key: key,
+      p_index: index,
+      p_correct: live.correct,
+      p_wrong: live.wrong,
+      p_review: live.review,
+    });
+    if (error) throw toQuizError(error);
   }
 
   async adminSnapshot(key: string, index: number | null): Promise<QuizAdminSnapshot> {

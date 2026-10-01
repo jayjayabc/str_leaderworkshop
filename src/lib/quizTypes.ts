@@ -15,6 +15,16 @@ export interface QuizReveal {
    * 참가자 id는 담지 않는다(id가 곧 제출 권한이므로).
    */
   correct_times?: string[];
+  /** 공개 시점의 조별 누적 정답(순위순) + 이번 문제에서 얻은 정답 수 */
+  teams?: QuizRevealTeam[];
+}
+
+export interface QuizRevealTeam {
+  rank: number;
+  table_no: number;
+  correct: number;
+  /** 이번 문제 정답 수 */
+  gained: number;
 }
 
 export interface QuizLeaderRow {
