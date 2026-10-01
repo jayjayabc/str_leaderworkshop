@@ -7,6 +7,7 @@ import type {
   QuizParticipant,
   QuizState,
   QuizSubmission,
+  QuizTeamRow,
   QuizVerdict,
   QuizWinner,
 } from './quizTypes';
@@ -49,8 +50,9 @@ export function buildRows(
   const byId = new Map(participants.map((p) => [p.id, p]));
   const opened = openedAt(state, index);
   // 1인 1회는 상품이 걸린 본 문제끼리만 (연습 문제 0번의 첫 정답은 수상으로 치지 않는다)
+  // 1인 1회 규칙은 운영 설정(one_win)이 켜졌을 때만
   const elsewhere = new Set(
-    index === 0
+    index === 0 || state?.settings.one_win !== true
       ? []
       : winners.filter((w) => w.question_index !== index && w.question_index > 0).map((w) => w.participant_id),
   );
@@ -113,6 +115,57 @@ export function leaderboard(
     }));
 }
 
+/**
+ * 조별 집계 — 테이블마다 조원 정답 합계(본 문제만, 판정은 leaderboard와 같은 규칙).
+ * 순위: 정답 합계 내림차순 → 동점이면 1인당 평균 내림차순 → 테이블 번호.
+ * 입장한 사람이 없는 테이블은 빠진다.
+ */
+export function teamBoard(submissions: QuizSubmission[], participants: QuizParticipant[]): QuizTeamRow[] {
+  const tableOf = new Map(participants.map((p) => [p.id, p.table_no]));
+  const members = new Map<number, number>();
+  participants.forEach((p) => members.set(p.table_no, (members.get(p.table_no) ?? 0) + 1));
+  const correct = new Map<number, number>();
+  submissions.forEach((s) => {
+    const q = QUIZ_SEED[s.question_index];
+    if (!q || q.practice) return;
+    const t = tableOf.get(s.participant_id);
+    if (t === undefined) return;
+    if (finalVerdict(s, autoVerdictFor(s.question_index, s.answer)) !== 'correct') return;
+    correct.set(t, (correct.get(t) ?? 0) + 1);
+  });
+  return [...members.entries()]
+    .map(([table_no, m]) => {
+      const c = correct.get(table_no) ?? 0;
+      return { table_no, members: m, correct: c, avg: m ? Math.round((c / m) * 100) / 100 : 0 };
+    })
+    .sort((a, b) => b.correct - a.correct || b.avg - a.avg || a.table_no - b.table_no)
+    .reduce<QuizTeamRow[]>((out, r, i) => {
+      // 합계·평균이 같으면 같은 순위 (1, 2, 2, 4 …)
+      const prev = out[i - 1];
+      const rank = prev && prev.correct === r.correct && prev.avg === r.avg ? prev.rank : i + 1;
+      out.push({ ...r, rank });
+      return out;
+    }, []);
+}
+
+export const TEAM_CSV_COLUMNS = ['순위', '테이블', '조원수', '정답합계', '1인당평균'];
+
+export function teamCsvRows(rows: QuizTeamRow[]): Record<string, string | number>[] {
+  return rows.map((r) => ({ 순위: r.rank, 테이블: r.table_no, 조원수: r.members, 정답합계: r.correct, '1인당평균': r.avg }));
+}
+
+/**
+ * 공개 때 저장된 판정이 '그때의 자동 판정'과 같고(=운영자가 손대지 않음) 지금의 자동 판정이 다르면,
+ * 지금 자동 판정으로 바꿔야 할 제출. (판정 규칙이 고쳐진 뒤 이미 공개한 문항을 다시 채점할 때)
+ */
+export function rejudgeTargets(rows: SubmissionRow[]): { row: SubmissionRow; to: QuizVerdict }[] {
+  return rows
+    .filter((r) => r.auto !== 'review')
+    .filter((r) => r.sub.verdict !== null && r.sub.verdict !== r.auto)
+    .filter((r) => r.sub.auto_verdict === null || r.sub.auto_verdict === r.sub.verdict)
+    .map((r) => ({ row: r, to: r.auto as QuizVerdict }));
+}
+
 const VERDICT_KO: Record<string, string> = { correct: '정답', wrong: '오답', review: '검토' };
 
 export function verdictLabel(v: AutoVerdict | QuizVerdict | null): string {
@@ -142,12 +195,14 @@ export function submissionsCsvRows(
         서버시각: s.created_at,
         경과ms: opened === null ? '' : new Date(s.created_at).getTime() - opened,
         판정: verdictLabel(finalVerdict(s, auto) ?? 'review'),
+        자동판정: verdictLabel(auto),
+        저장판정: s.verdict ? verdictLabel(s.verdict) : '',
         수상: winSub.has(s.id) ? 'Y' : '',
       };
     });
 }
 
-export const SUBMISSION_CSV_COLUMNS = ['no', '이름', '테이블', '답', '서버시각', '경과ms', '판정', '수상'];
+export const SUBMISSION_CSV_COLUMNS = ['no', '이름', '테이블', '답', '서버시각', '경과ms', '판정', '자동판정', '저장판정', '수상'];
 
 /** 수상자 CSV 행 — no, 이름, 테이블, 답, 서버시각, 경과ms */
 export function winnersCsvRows(

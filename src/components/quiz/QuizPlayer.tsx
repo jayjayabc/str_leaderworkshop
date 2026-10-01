@@ -17,9 +17,11 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { QUIZ_QUESTIONS, questionLabel, stars } from '@/lib/quizQuestions';
+import { useNewVersion } from './NewVersionBanner';
 import {
   QUIZ_ERROR_TEXT,
   QuizError,
+  readBoard,
   type QuizMySubmission,
   type QuizState,
 } from '@/lib/quizTypes';
@@ -216,6 +218,12 @@ function PlayerStage({ me }: { me: Me }) {
   const offset = useServerOffset();
   const now = useNow();
 
+  // 새 버전이 배포됐으면 문제를 푸는 중이 아닐 때 조용히 새로고침 (참가 정보·내 답은 기기에 남아 있다)
+  const stale = useNewVersion();
+  useEffect(() => {
+    if (stale && state && state.status !== 'open') window.location.reload();
+  }, [stale, state]);
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[520px] flex-col px-4 pb-8">
       <header className="flex h-14 shrink-0 items-center gap-2">
@@ -227,6 +235,8 @@ function PlayerStage({ me }: { me: Me }) {
           {me.table_no}번 테이블
         </span>
       </header>
+
+      {state ? <MyHistory me={me} state={state} /> : null}
 
       {!state ? (
         <Center>
@@ -493,8 +503,10 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
           {totalCorrect > 0 ? (
             <p className="mt-1 text-[14px]">정답자 {totalCorrect}명 중{rank ? ` ${rank}등` : ''}</p>
           ) : null}
-          {rank === 1 && reveal.winner ? (
-            <p className="mt-1 text-[13px] opacity-90">이미 다른 문제에서 상품을 받으셔서 다음 정답자에게 넘어갔어요</p>
+          {rank === 1 ? (
+            <p className="mt-1 text-[13px] opacity-90">
+              가장 먼저 맞혔지만 1인 1회 수상 규칙으로 이번 상품은 {reveal.winner ? '다음 정답자에게 넘어갔어요' : '없어요'}
+            </p>
           ) : null}
         </div>
       ) : mine && verdict === 'wrong' ? (
@@ -542,7 +554,8 @@ function RevealView({ state, me, mine }: { state: QuizState; me: Me; mine: QuizM
 }
 
 function FinalView({ state, me }: { state: QuizState; me: Me }) {
-  const board = state.leaderboard ?? [];
+  const { people, teams } = readBoard(state.leaderboard);
+  const myTeam = teams?.find((t) => t.table_no === me.table_no) ?? null;
   return (
     <Center>
       <div className="w-full text-center">
@@ -550,25 +563,170 @@ function FinalView({ state, me }: { state: QuizState; me: Me }) {
           🏆
         </p>
         <p className="mt-2 text-[24px] font-extrabold">수고하셨습니다!</p>
-        {board.length ? (
-          <ol className="mt-5 space-y-2 text-left">
-            {board.map((r) => (
-              <li
-                key={r.participant_id}
-                className={clsx(
-                  'flex items-center gap-3 rounded-xl px-4 py-3',
-                  r.participant_id === me.id ? 'bg-[#1E1E1E] text-white' : 'bg-white',
-                )}
-              >
-                <span className="text-[22px] font-extrabold">{r.rank}위</span>
-                <span className="truncate text-[17px] font-bold">{r.name}</span>
-                <span className="ml-auto shrink-0 text-[14px]">{r.correct}문제</span>
-              </li>
-            ))}
-          </ol>
+        {people?.length ? (
+          <>
+            <p className="mt-5 text-left text-[14px] font-bold text-[#5B5B5B]">개인 순위</p>
+            <ol className="mt-1.5 space-y-2 text-left">
+              {people.map((r) => (
+                <li
+                  key={r.participant_id}
+                  className={clsx(
+                    'flex items-center gap-3 rounded-xl px-4 py-3',
+                    r.participant_id === me.id ? 'bg-[#1E1E1E] text-white' : 'bg-white',
+                  )}
+                >
+                  <span className="text-[22px] font-extrabold">{r.rank}위</span>
+                  <span className="truncate text-[17px] font-bold">{r.name}</span>
+                  <span className="ml-auto shrink-0 text-[14px]">{r.correct}문제</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        ) : null}
+        {teams?.length ? (
+          <>
+            {myTeam ? (
+              <div className="mt-5 rounded-2xl bg-[#1E1E1E] p-4 text-white" data-testid="my-team-rank">
+                <p className="text-[14px]">우리 조({me.table_no}번 테이블)</p>
+                <p className="mt-1 text-[26px] font-extrabold text-[#FFE300]">
+                  {myTeam.rank}위 · 정답 {myTeam.correct}개
+                </p>
+                <p className="text-[13px] opacity-80">
+                  {teams.length}개 조 중 · 조원 {myTeam.members}명 · 1인당 {myTeam.avg.toFixed(1)}개
+                </p>
+              </div>
+            ) : null}
+            <p className="mt-5 text-left text-[14px] font-bold text-[#5B5B5B]">조별 순위</p>
+            <ol className="mt-1.5 space-y-1.5 text-left">
+              {teams.slice(0, 10).map((t) => (
+                <li
+                  key={t.table_no}
+                  className={clsx(
+                    'flex items-center gap-3 rounded-xl px-4 py-2.5',
+                    t.table_no === me.table_no ? 'bg-[#FFE300]' : 'bg-white',
+                  )}
+                >
+                  <span className="w-10 text-[18px] font-extrabold">{t.rank}위</span>
+                  <span className="text-[16px] font-bold">{t.table_no}번 테이블</span>
+                  <span className="ml-auto shrink-0 text-[14px] font-bold">{t.correct}개</span>
+                </li>
+              ))}
+            </ol>
+          </>
         ) : null}
       </div>
     </Center>
+  );
+}
+
+// ─── 내 정답 히스토리 (화면 위쪽에 늘 보이는 줄) ─────────────
+
+type HistMark = 'correct' | 'wrong' | 'none' | 'pending';
+
+/**
+ * 지금까지 공개된 본 문제들의 내 결과. 문제를 연 기록(settings.opened)으로 대상 문항을 정하고,
+ * 지금 진행 중인 문제는 공개된 뒤에만 넣는다(공개 전 판정이 새지 않게).
+ * 기기에 저장된 결과가 있으면 쓰고, 없는 것만 서버에서 한 번 읽는다.
+ */
+function MyHistory({ me, state }: { me: Me; state: QuizState }) {
+  const [open, setOpen] = useState(false);
+  const [marks, setMarks] = useState<Record<number, { mark: HistMark; answer: string }>>({});
+
+  const opened = state.settings.opened ?? {};
+  const doneIdx = QUIZ_QUESTIONS.map((q, i) => ({ q, i }))
+    .filter(({ q, i }) => !q.practice && opened[String(i)])
+    .filter(({ i }) => i !== state.current_index || state.status === 'revealed' || state.status === 'final')
+    .map(({ i }) => i);
+  const key = doneIdx.join(',');
+
+  // 기기에 저장된 판정(공개 때 저장됨)이 없는 문항만 서버에서 읽는다
+  useEffect(() => {
+    let cancelled = false;
+    const idx = key ? key.split(',').map(Number) : [];
+    idx
+      .filter((i) => !readCachedSub(me.id, i)?.verdict)
+      .forEach((i) => {
+        void getQuizDb()
+          .mySubmission(me.id, i)
+          .then((sub) => {
+            if (cancelled) return;
+            if (sub?.verdict) writeCachedSub(me.id, i, sub);
+            setMarks((m) => ({
+              ...m,
+              [i]: sub ? { mark: sub.verdict ?? 'pending', answer: sub.answer } : { mark: 'none', answer: '' },
+            }));
+          })
+          .catch(() => undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, me.id, state.status]);
+
+  const markOf = (i: number): { mark: HistMark; answer: string } | undefined => {
+    const c = readCachedSub(me.id, i);
+    if (c?.verdict) return { mark: c.verdict, answer: c.answer };
+    return marks[i];
+  };
+
+  const mains = QUIZ_QUESTIONS.map((q, i) => ({ q, i })).filter(({ q }) => !q.practice);
+  const done = new Set(doneIdx);
+  const correct = doneIdx.filter((i) => markOf(i)?.mark === 'correct').length;
+
+  return (
+    <div className="sticky top-0 z-10 -mx-4 mb-1 bg-[#FFFBEA]/95 px-4 pb-2 backdrop-blur" data-testid="my-history">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 rounded-xl bg-white px-3 py-2 text-left shadow-[0_1px_0_#E8E4D2]"
+        aria-expanded={open}
+      >
+        <span className="shrink-0 text-[13px] font-extrabold">
+          내 정답 <span className="text-[#1F8A3B]">{correct}</span>
+          <span className="text-[#8A8A8A]">/{doneIdx.length}</span>
+        </span>
+        <span className="flex min-w-0 flex-1 flex-wrap gap-[3px]" aria-hidden>
+          {mains.map(({ i }) => {
+            const m = done.has(i) ? markOf(i)?.mark ?? 'pending' : null;
+            return (
+              <span
+                key={i}
+                className={clsx(
+                  'h-2.5 w-2.5 rounded-full',
+                  m === 'correct' && 'bg-[#1F8A3B]',
+                  m === 'wrong' && 'bg-[#C23A1E]',
+                  (m === 'none' || m === 'pending') && 'bg-[#BDBDBD]',
+                  m === null && 'border border-[#D9D5C3] bg-transparent',
+                )}
+              />
+            );
+          })}
+        </span>
+        <span className="shrink-0 text-[12px] text-[#8A8A8A]">{open ? '접기' : '보기'}</span>
+      </button>
+      {open ? (
+        <ol className="mt-1.5 max-h-[45vh] space-y-1 overflow-y-auto rounded-xl bg-white p-2 text-[13px]">
+          {doneIdx.length === 0 ? <li className="px-1 py-1 text-[#8A8A8A]">아직 공개된 문제가 없어요</li> : null}
+          {doneIdx.map((i) => {
+            const m = markOf(i);
+            return (
+              <li key={i} className="flex items-center gap-2 px-1 py-1">
+                <span className="w-9 shrink-0 font-bold">{questionLabel(i).split(' ')[0]}</span>
+                <span className="min-w-0 flex-1 truncate text-[#5B5B5B]">{m?.answer || (m?.mark === 'none' ? '제출 안 함' : '…')}</span>
+                <span
+                  className={clsx(
+                    'shrink-0 font-extrabold',
+                    m?.mark === 'correct' ? 'text-[#1F8A3B]' : m?.mark === 'wrong' ? 'text-[#C23A1E]' : 'text-[#8A8A8A]',
+                  )}
+                >
+                  {m?.mark === 'correct' ? '정답' : m?.mark === 'wrong' ? '오답' : m?.mark === 'none' ? '—' : '채점 중'}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
+    </div>
   );
 }
 

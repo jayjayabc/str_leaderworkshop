@@ -21,11 +21,15 @@ import { QUIZ_SEED } from '@/lib/quizSeed';
 import { questionLabel, stars } from '@/lib/quizQuestions';
 import {
   SUBMISSION_CSV_COLUMNS,
+  TEAM_CSV_COLUMNS,
   WINNER_CSV_COLUMNS,
   buildRows,
   firstEligible,
   leaderboard,
+  rejudgeTargets,
   submissionsCsvRows,
+  teamBoard,
+  teamCsvRows,
   verdictLabel,
   winnersCsvRows,
   type SubmissionRow,
@@ -36,8 +40,10 @@ import {
   type QuizAdminSnapshot,
   type QuizControlAction,
   type QuizState,
+  type QuizTeamRow,
   type QuizVerdict,
 } from '@/lib/quizTypes';
+import { NewVersionBanner } from './NewVersionBanner';
 
 const SNAPSHOT_MS = 1500;
 
@@ -178,6 +184,7 @@ function Console({ opKey }: { opKey: string }) {
   const candidate = firstEligible(rows);
   const confirmed = snap?.winners.find((w) => w.question_index === index) ?? null;
   const reviewLeft = rows.filter((r) => r.final === null).length;
+  const correctCount = rows.filter((r) => r.final === 'correct').length;
   const left = remainingMs(state, now, offset);
 
   // ─── 조작 ───
@@ -209,7 +216,10 @@ function Console({ opKey }: { opKey: string }) {
         toast.message('첫 정답자를 먼저 확정해 주세요');
         return;
       }
-      if (!window.confirm('정답자가 없습니다. 정답자 없이 공개할까요?')) return;
+      const msg = correctCount
+        ? `정답 ${correctCount}명이 모두 이미 다른 문제 수상자라 상품 대상이 없습니다. 수상자 없이 공개할까요?`
+        : '정답자가 없습니다. 정답자 없이 공개할까요?';
+      if (!window.confirm(msg)) return;
     }
     if (reviewLeft > 0 && !window.confirm(`검토하지 않은 답 ${reviewLeft}건은 오답으로 처리하고 공개할까요?`)) return;
 
@@ -242,7 +252,7 @@ function Console({ opKey }: { opKey: string }) {
       },
       '정답을 공개했습니다',
     );
-  }, [state, q, snap, confirmed, candidate, reviewLeft, rows, index, run]);
+  }, [state, q, snap, confirmed, candidate, reviewLeft, correctCount, rows, index, run]);
 
   const next = useCallback(() => {
     if (!state) return;
@@ -327,12 +337,56 @@ function Console({ opKey }: { opKey: string }) {
     );
   }
 
-  async function showFinal(withBoard: boolean) {
+  async function showFinal(mode: 'people' | 'teams' | 'both' | 'none') {
     const all = await fullSnapshot();
     if (!all) return;
-    const board = withBoard ? leaderboard(state, all.submissions, all.participants, 3) : null;
-    if (!window.confirm(withBoard ? '최종 순위(상위 3명)를 공개할까요?' : '순위 없이 종료 화면으로 바꿀까요?')) return;
-    await run({ action: 'final', leaderboard: board }, '종료 화면으로 바꿨습니다');
+    const people = mode === 'people' || mode === 'both' ? leaderboard(state, all.submissions, all.participants, 3) : null;
+    const teams = mode === 'teams' || mode === 'both' ? teamBoard(all.submissions, all.participants) : null;
+    const label = { people: '개인 상위 3명', teams: '조별 순위', both: '개인 상위 3명 + 조별 순위', none: '' }[mode];
+    if (!window.confirm(mode === 'none' ? '순위 없이 종료 화면으로 바꿀까요?' : `${label}를 공개할까요?`)) return;
+    await run(
+      { action: 'final', leaderboard: people || teams ? { people, teams } : null },
+      '종료 화면으로 바꿨습니다',
+    );
+  }
+
+  // ─── 조별 집계 (운영자만 보는 실시간 표) ───
+  const [teams, setTeams] = useState<QuizTeamRow[] | null>(null);
+  const [teamsAt, setTeamsAt] = useState<string>('');
+  const refreshTeams = useCallback(
+    () =>
+      db
+        .adminSnapshot(opKey, null)
+        .then((all) => {
+          setTeams(teamBoard(all.submissions, all.participants));
+          setTeamsAt(new Date().toTimeString().slice(0, 8));
+        })
+        .catch(() => undefined),
+    [db, opKey],
+  );
+  // 공개·종료 때마다 + 20초마다 갱신
+  useEffect(() => {
+    void refreshTeams();
+    const t = setInterval(() => void refreshTeams(), 20_000);
+    return () => clearInterval(t);
+  }, [refreshTeams, state?.status, state?.current_index]);
+
+  async function exportTeams() {
+    const all = await fullSnapshot();
+    if (!all) return;
+    downloadCsv(teamCsvRows(teamBoard(all.submissions, all.participants)), TEAM_CSV_COLUMNS, `quiz_teams_${fileStamp()}.csv`);
+  }
+
+  // 판정 규칙이 고쳐진 뒤, 이미 저장된 '자동 판정'을 지금 규칙으로 다시 채점 (운영자가 직접 ✓/✗ 한 것은 그대로)
+  const toRejudge = rejudgeTargets(rows);
+  async function rejudge() {
+    if (!toRejudge.length) return;
+    if (!window.confirm(`자동 판정이 바뀐 답 ${toRejudge.length}건을 지금 기준으로 다시 채점할까요? (공개된 문항이면 다시 '공개'를 눌러 주세요)`)) return;
+    for (const t of toRejudge) {
+      const ok = await run({ action: 'set_verdict', submission_id: t.row.sub.id, verdict: t.to });
+      if (!ok) return;
+    }
+    toast.success(`${toRejudge.length}건 다시 채점했습니다`);
   }
 
   if (!state || !q) {
@@ -347,6 +401,7 @@ function Console({ opKey }: { opKey: string }) {
 
   return (
     <main className="min-h-screen bg-[#F4F3EE] text-[#1E1E1E]">
+      <NewVersionBanner />
       <header className="flex h-14 items-center gap-3 border-b border-[#E3E1D8] bg-white px-5">
         <span className="rounded-full bg-[#FFE300] px-3 py-0.5 text-[13px] font-black">SPEED QUIZ</span>
         <h1 className="text-[16px] font-extrabold">운영</h1>
@@ -463,10 +518,19 @@ function Console({ opKey }: { opKey: string }) {
               <button type="button" onClick={() => void exportWinners()} className="rounded-lg border px-3 py-2 text-[13px]">
                 수상자 CSV
               </button>
-              <button type="button" onClick={() => void showFinal(true)} className="rounded-lg border px-3 py-2 text-[13px]">
-                최종 순위 공개 (상위 3)
+              <button type="button" onClick={() => void exportTeams()} className="rounded-lg border px-3 py-2 text-[13px]">
+                조별 집계 CSV
               </button>
-              <button type="button" onClick={() => void showFinal(false)} className="rounded-lg border px-3 py-2 text-[13px]">
+              <button type="button" onClick={() => void showFinal('people')} className="rounded-lg border px-3 py-2 text-[13px]">
+                최종 공개: 개인 상위 3
+              </button>
+              <button type="button" onClick={() => void showFinal('teams')} className="rounded-lg border px-3 py-2 text-[13px]">
+                최종 공개: 조별 순위
+              </button>
+              <button type="button" onClick={() => void showFinal('both')} className="rounded-lg border px-3 py-2 text-[13px]">
+                최종 공개: 개인 + 조별
+              </button>
+              <button type="button" onClick={() => void showFinal('none')} className="rounded-lg border px-3 py-2 text-[13px]">
                 순위 없이 종료
               </button>
             </div>
@@ -488,8 +552,20 @@ function Console({ opKey }: { opKey: string }) {
                 <span className="ml-auto rounded-full bg-[#FFE300] px-2.5 py-0.5 text-[12px] font-bold">
                   후보: {candidate.participant?.name}
                 </span>
+              ) : correctCount > 0 ? (
+                <span className="ml-auto rounded-full bg-[#FCE8E4] px-2.5 py-0.5 text-[12px] font-bold text-[#C23A1E]">
+                  정답 {correctCount}명 모두 이전 수상자(1인 1회 켜짐) → 상품 대상 없음
+                </span>
               ) : null}
             </div>
+            {toRejudge.length ? (
+              <div className="mt-2 flex items-center gap-2 rounded-lg bg-[#FFF3C4] px-3 py-2 text-[12px]">
+                <span>저장된 판정 중 {toRejudge.length}건이 지금 자동 판정과 다릅니다(판정 규칙 수정 전 채점).</span>
+                <button type="button" onClick={() => void rejudge()} className="ml-auto rounded-md bg-[#1E1E1E] px-2 py-1 font-bold text-white">
+                  다시 채점
+                </button>
+              </div>
+            ) : null}
             <SubmissionTable
               rows={rows}
               candidateId={candidate?.sub.id ?? null}
@@ -500,7 +576,7 @@ function Console({ opKey }: { opKey: string }) {
           </div>
 
           <div className="rounded-2xl bg-white p-4">
-            <h2 className="text-[14px] font-extrabold">수상자 (1인 1회)</h2>
+            <h2 className="text-[14px] font-extrabold">수상자{state.settings.one_win ? ' (1인 1회)' : ''}</h2>
             {winnersList.length === 0 ? (
               <p className="mt-2 text-[13px] text-[#8A8A8A]">아직 없습니다.</p>
             ) : (
@@ -513,6 +589,42 @@ function Console({ opKey }: { opKey: string }) {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl bg-white p-4" data-testid="team-board">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[14px] font-extrabold">조별 집계</h2>
+              <span className="text-[12px] text-[#8A8A8A]">본 문제 정답 합계 순 · {teamsAt ? `${teamsAt} 기준` : '불러오는 중'}</span>
+              <button type="button" onClick={() => void refreshTeams()} className="ml-auto rounded-md border px-2 py-0.5 text-[12px]">
+                새로고침
+              </button>
+            </div>
+            {!teams || teams.length === 0 ? (
+              <p className="mt-2 text-[13px] text-[#8A8A8A]">아직 없습니다.</p>
+            ) : (
+              <table className="mt-2 w-full text-[13px]">
+                <thead className="text-left text-[12px] text-[#8A8A8A]">
+                  <tr className="border-b">
+                    <th className="py-1">순위</th>
+                    <th className="py-1">테이블</th>
+                    <th className="py-1 text-right">조원</th>
+                    <th className="py-1 text-right">정답 합계</th>
+                    <th className="py-1 text-right">1인당</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.map((t) => (
+                    <tr key={t.table_no} className="border-b border-[#F1F0EA] tabular-nums">
+                      <td className="py-1 font-bold">{t.rank}</td>
+                      <td className="py-1">{t.table_no}번</td>
+                      <td className="py-1 text-right">{t.members}</td>
+                      <td className="py-1 text-right font-bold">{t.correct}</td>
+                      <td className="py-1 text-right">{t.avg.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </section>
@@ -666,6 +778,20 @@ function Settings({
             className="h-4 w-4"
           />
           수정 허용 (마감 전까지 답을 고칠 수 있음 · 기본 꺼짐)
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-[13px]">
+          <input
+            type="checkbox"
+            checked={state.settings.one_win === true}
+            onChange={(e) =>
+              void run(
+                { action: 'settings', one_win: e.target.checked },
+                e.target.checked ? '1인 1회 수상 켬' : '1인 1회 수상 끔',
+              )
+            }
+            className="h-4 w-4"
+          />
+          1인 1회 수상 (이미 상을 받은 사람은 첫 정답 후보에서 제외 · 기본 꺼짐)
         </label>
       </div>
       <div className="grid grid-cols-[1fr_110px] gap-2">

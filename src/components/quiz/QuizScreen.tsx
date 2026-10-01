@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import QRCode from 'qrcode';
 import clsx from 'clsx';
 
@@ -16,7 +16,9 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { QUIZ_QUESTIONS, questionLabel, stars } from '@/lib/quizQuestions';
-import type { QuizState } from '@/lib/quizTypes';
+import { readBoard, type QuizState } from '@/lib/quizTypes';
+import { NewVersionBanner } from './NewVersionBanner';
+import { playSfx, unlockSound } from '@/lib/quizSound';
 
 const W = 1920;
 const H = 1080;
@@ -51,8 +53,14 @@ export function QuizScreen() {
       .catch(() => setQr(''));
   }, [url]);
 
+  const soundOn = useScreenSounds(state, state ? remainingMs(state, now, offset) : null);
+
   return (
     <main className="fixed inset-0 overflow-hidden bg-[#1E1E1E]">
+      <div className="absolute inset-x-0 top-0 z-50">
+        <NewVersionBanner />
+      </div>
+      <SoundToggle on={soundOn.on} onToggle={soundOn.toggle} />
       <div
         className="absolute left-1/2 top-1/2 overflow-hidden bg-[#FFFBEA] text-[#1E1E1E]"
         style={{ width: W, height: H, transform: `translate(-50%, -50%) scale(${scale})` }}
@@ -70,6 +78,75 @@ export function QuizScreen() {
         )}
       </div>
     </main>
+  );
+}
+
+// ─── 효과음 ─────────────────────────────────────────────────
+
+const SOUND_KEY = 'eb:quiz:screen-sound';
+
+/** 상태 전환·남은 시간에 맞춰 효과음을 낸다. 켜기 버튼을 한 번 눌러야 동작(브라우저 자동재생 정책) */
+function useScreenSounds(state: QuizState | null, leftMs: number | null) {
+  const [on, setOn] = useState(false);
+  const prev = useRef<{ status: string; index: number; sec: number | null } | null>(null);
+
+  useEffect(() => {
+    if (!state) return;
+    const sec = state.status === 'open' && leftMs !== null ? Math.ceil(leftMs / 1000) : null;
+    const p = prev.current;
+    prev.current = { status: state.status, index: state.current_index, sec };
+    if (!on || !p) return;
+    if (state.status !== p.status || state.current_index !== p.index) {
+      if (state.status === 'open') playSfx('open');
+      else if (state.status === 'closed' && p.status === 'open') playSfx('timeup');
+      else if (state.status === 'revealed') playSfx(state.reveal?.winner ? 'reveal' : 'noWinner');
+      else if (state.status === 'final') playSfx('final');
+      else if (state.status === 'lobby') playSfx('transition');
+      return;
+    }
+    if (state.status === 'open' && sec !== null && p.sec !== null && sec !== p.sec) {
+      if (sec <= 0 && p.sec > 0) playSfx('timeup');
+      else if (sec >= 1 && sec <= 3) playSfx('tickHigh');
+      else if (sec >= 4 && sec <= 10) playSfx('tick');
+    }
+  }, [state, leftMs, on]);
+
+  const toggle = () => {
+    if (on) {
+      setOn(false);
+      try {
+        window.localStorage.setItem(SOUND_KEY, '0');
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    if (unlockSound()) {
+      setOn(true);
+      playSfx('transition');
+      try {
+        window.localStorage.setItem(SOUND_KEY, '1');
+      } catch {
+        /* noop */
+      }
+    }
+  };
+  return { on, toggle };
+}
+
+function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={clsx(
+        'absolute bottom-3 right-3 z-50 rounded-full px-3 py-1.5 text-[13px] font-bold transition-opacity',
+        on ? 'bg-white/10 text-white/40 opacity-40 hover:opacity-100' : 'bg-[#FFE300] text-[#1E1E1E]',
+      )}
+      data-testid="sound-toggle"
+    >
+      {on ? '🔊 효과음 켜짐' : '🔇 효과음 켜기'}
+    </button>
   );
 }
 
@@ -259,7 +336,12 @@ function RevealScreen({ state }: { state: QuizState }) {
               <p className="text-[90px] leading-none" aria-hidden>
                 🤔
               </p>
-              <p className="mt-6 text-[48px] font-black">정답자가 없습니다</p>
+              <p className="mt-6 text-[48px] font-black">
+                {reveal.correct_times?.length ? `정답자 ${reveal.correct_times.length}명` : '정답자가 없습니다'}
+              </p>
+              {reveal.correct_times?.length ? (
+                <p className="mt-4 text-[32px] font-bold text-[#BDBDBD]">모두 이미 상품을 받아 이번 상품은 없습니다</p>
+              ) : null}
             </>
           )}
         </div>
@@ -269,29 +351,61 @@ function RevealScreen({ state }: { state: QuizState }) {
 }
 
 function FinalScreen({ state }: { state: QuizState }) {
-  const board = state.leaderboard ?? [];
+  const { people, teams } = readBoard(state.leaderboard);
   const medals = ['🥇', '🥈', '🥉'];
+  const both = Boolean(people?.length && teams?.length);
+  const has = Boolean(people?.length || teams?.length);
   return (
-    <div className="qz-fade flex h-full flex-col items-center justify-center px-[120px]">
+    <div className="qz-fade flex h-full flex-col items-center justify-center px-[100px]">
       <Brand />
-      <h1 className="mt-8 text-[110px] font-black tracking-tight">{board.length ? '최종 순위' : '수고하셨습니다!'}</h1>
-      {board.length ? (
-        <ol className="mt-12 w-full max-w-[1400px] space-y-6">
-          {board.map((r) => (
-            <li
-              key={r.participant_id}
-              className={clsx(
-                'flex items-center gap-10 rounded-[40px] px-12 py-8',
-                r.rank === 1 ? 'bg-[#FFE300]' : 'bg-white',
-              )}
-            >
-              <span className="text-[90px] leading-none">{medals[r.rank - 1] ?? `${r.rank}`}</span>
-              <span className="text-[72px] font-black">{r.name}</span>
-              <span className="text-[44px] font-bold text-[#5B5B5B]">{r.table_no}번 테이블</span>
-              <span className="ml-auto text-[56px] font-black">{r.correct}문제</span>
-            </li>
-          ))}
-        </ol>
+      <h1 className={clsx('font-black tracking-tight', has ? 'mt-6 text-[88px]' : 'mt-8 text-[110px]')}>
+        {has ? '최종 순위' : '수고하셨습니다!'}
+      </h1>
+      {has ? (
+        <div className={clsx('mt-10 grid w-full max-w-[1700px] gap-12', both ? 'grid-cols-2' : 'grid-cols-1')}>
+          {people?.length ? (
+            <section>
+              {both ? <h2 className="mb-5 text-[44px] font-black">개인</h2> : null}
+              <ol className="space-y-5">
+                {people.map((r) => (
+                  <li
+                    key={r.participant_id}
+                    className={clsx('flex items-center gap-8 rounded-[36px] px-10 py-6', r.rank === 1 ? 'bg-[#FFE300]' : 'bg-white')}
+                  >
+                    <span className="text-[72px] leading-none">{medals[r.rank - 1] ?? `${r.rank}`}</span>
+                    <span className="truncate text-[60px] font-black">{r.name}</span>
+                    <span className="shrink-0 text-[36px] font-bold text-[#5B5B5B]">{r.table_no}번</span>
+                    <span className="ml-auto shrink-0 text-[48px] font-black">{r.correct}문제</span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+          {teams?.length ? (
+            <section>
+              {both ? <h2 className="mb-5 text-[44px] font-black">조별</h2> : null}
+              <ol className={clsx(both ? 'space-y-3' : 'grid grid-cols-2 gap-x-10 gap-y-4')}>
+                {teams.slice(0, both ? 5 : 10).map((t) => (
+                  <li
+                    key={t.table_no}
+                    className={clsx(
+                      'flex items-center gap-6 rounded-[28px] px-8',
+                      both ? 'py-4' : 'py-5',
+                      t.rank === 1 ? 'bg-[#FFE300]' : 'bg-white',
+                    )}
+                  >
+                    <span className="w-[90px] text-[52px] font-black leading-none">{medals[t.rank - 1] ?? `${t.rank}`}</span>
+                    <span className="text-[52px] font-black">{t.table_no}번 테이블</span>
+                    <span className="ml-auto text-right">
+                      <span className="block text-[44px] font-black leading-none">{t.correct}개</span>
+                      <span className="block text-[24px] font-bold text-[#6B6B6B]">1인당 {t.avg.toFixed(1)}</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

@@ -254,6 +254,7 @@ class LocalQuizAdapter implements QuizAdapter {
           // 1인 1회 — 연습 문제(0번)는 상품이 없으므로 제외
           if (
             act.index > 0 &&
+            s.settings.one_win === true &&
             db.winners.some((w) => w.participant_id === sub.participant_id && w.question_index > 0)
           ) {
             throw new QuizError('QUIZ_ALREADY_WON');
@@ -291,6 +292,7 @@ class LocalQuizAdapter implements QuizAdapter {
       case 'settings':
         if (act.display_mode) s.display_mode = act.display_mode;
         if (typeof act.allow_edit === 'boolean') s.allow_edit = act.allow_edit;
+        if (typeof act.one_win === 'boolean') s.settings = { ...s.settings, one_win: act.one_win };
         if (act.keywords) s.settings = { ...s.settings, keywords: { ...(s.settings.keywords ?? {}), ...act.keywords } };
         if (act.durations) s.settings = { ...s.settings, durations: { ...(s.settings.durations ?? {}), ...act.durations } };
         break;

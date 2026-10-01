@@ -72,10 +72,10 @@ create table if not exists quiz_winners (
   submission_id   uuid not null references quiz_submissions(id) on delete cascade
 );
 
--- 1인 1회 수상 — question_index 0(연습 문제, 상품 없음)은 제외
+-- 1인 1회 수상은 운영 설정(settings.one_win)으로 켜고 끈다 (v1.1 — 기본 꺼짐).
+-- 예전에 걸던 유니크 인덱스는 지운다. 규칙 검사는 quiz_control('set_winner')가 한다.
 drop index if exists uq_quiz_winners_participant;
-create unique index if not exists uq_quiz_winners_participant_prize
-  on quiz_winners (participant_id) where question_index > 0;
+drop index if exists uq_quiz_winners_participant_prize;
 
 -- ─────────────────────────────────────────────────────────────
 -- RLS — quiz_state만 읽기 허용, 나머지는 함수로만
@@ -264,8 +264,9 @@ begin
     if sid is not null then
       select participant_id into pid from quiz_submissions where id = sid and question_index = idx;
       if pid is null then raise exception 'QUIZ_UNKNOWN'; end if;
-      -- 1인 1회 (연습 문제 0번은 상품이 없으므로 제외)
-      if idx > 0 and exists (select 1 from quiz_winners where participant_id = pid and question_index > 0) then
+      -- 1인 1회 (설정 one_win이 켜졌을 때만, 연습 문제 0번은 제외)
+      if idx > 0 and coalesce((s.settings->>'one_win')::boolean, false)
+         and exists (select 1 from quiz_winners where participant_id = pid and question_index > 0) then
         raise exception 'QUIZ_ALREADY_WON';
       end if;
       insert into quiz_winners (question_index, participant_id, submission_id) values (idx, pid, sid);
@@ -295,6 +296,9 @@ begin
       settings     = settings
                      || case when p_payload ? 'keywords'
                           then jsonb_build_object('keywords', coalesce(settings->'keywords','{}'::jsonb) || (p_payload->'keywords'))
+                          else '{}'::jsonb end
+                     || case when p_payload ? 'one_win'
+                          then jsonb_build_object('one_win', coalesce((p_payload->>'one_win')::boolean, false))
                           else '{}'::jsonb end
                      || case when p_payload ? 'durations'
                           then jsonb_build_object('durations', coalesce(settings->'durations','{}'::jsonb) || (p_payload->'durations'))

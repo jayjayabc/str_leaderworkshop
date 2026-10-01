@@ -27,11 +27,38 @@ export interface QuizLeaderRow {
   latency_ms: number;
 }
 
+/** 조별 집계 한 줄 — 테이블(조) 단위 정답 합계 */
+export interface QuizTeamRow {
+  rank: number;
+  table_no: number;
+  /** 입장한 조원 수 */
+  members: number;
+  /** 조원 정답 합계(본 문제만) */
+  correct: number;
+  /** 1인당 평균 정답 수 */
+  avg: number;
+}
+
+/** 종료 화면 순위 — 개인 상위 N, 조별 순위 (둘 다 선택) */
+export interface QuizBoard {
+  people: QuizLeaderRow[] | null;
+  teams: QuizTeamRow[] | null;
+}
+
+/** 예전 형식(개인 순위 배열)과 새 형식(QuizBoard)을 모두 읽는다 */
+export function readBoard(raw: QuizState['leaderboard']): QuizBoard {
+  if (!raw) return { people: null, teams: null };
+  if (Array.isArray(raw)) return { people: raw, teams: null };
+  return { people: raw.people ?? null, teams: raw.teams ?? null };
+}
+
 export interface QuizSettings {
   /** 문항별 키워드(‘키워드만’ 표시 모드) — index 문자열 키 */
   keywords?: Record<string, string>;
   /** 문항별 제한시간(초) */
   durations?: Record<string, number>;
+  /** 1인 1회 수상 규칙 (기본 꺼짐 — 켜면 이미 상을 받은 사람은 첫 정답 후보에서 빠진다) */
+  one_win?: boolean;
   /** 문항별로 마지막으로 연 시각(ISO) — 경과 ms 계산용 */
   opened?: Record<string, string>;
 }
@@ -47,7 +74,7 @@ export interface QuizState {
   winner_submission_id: string | null;
   settings: QuizSettings;
   reveal: QuizReveal | null;
-  leaderboard: QuizLeaderRow[] | null;
+  leaderboard: QuizLeaderRow[] | QuizBoard | null;
   updated_at: string;
 }
 
@@ -104,10 +131,11 @@ export type QuizControlAction =
       action: 'settings';
       display_mode?: QuizDisplayMode;
       allow_edit?: boolean;
+      one_win?: boolean;
       keywords?: Record<string, string>;
       durations?: Record<string, number>;
     }
-  | { action: 'final'; leaderboard: QuizLeaderRow[] | null }
+  | { action: 'final'; leaderboard: QuizBoard | null }
   | { action: 'reset_question'; index: number }
   | { action: 'reset_all'; participants: boolean };
 
