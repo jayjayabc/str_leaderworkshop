@@ -315,10 +315,11 @@ begin
      where id = 1 and current_index = idx;
 
   elsif p_action = 'reset_all' then
-    delete from quiz_winners;
-    delete from quiz_submissions;
+    -- Supabase(pg_safeupdate)는 WHERE 없는 DELETE를 막으므로 where true를 붙인다
+    delete from quiz_winners where true;
+    delete from quiz_submissions where true;
     if coalesce((p_payload->>'participants')::boolean, false) then
-      delete from quiz_participants;
+      delete from quiz_participants where true;
     end if;
     update quiz_state set
       status = 'lobby', current_index = 0, opened_at = null, reveal = null, leaderboard = null,
