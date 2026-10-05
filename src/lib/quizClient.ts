@@ -133,10 +133,12 @@ export function useScoreboard(stamp: string, intervalMs = 0): QuizScoreRow[] | n
           if (!cancelled) setRows(r);
         })
         .catch(() => undefined);
-    void pull();
+    // 240대가 같은 순간에 묻지 않게 0~1.5초 흩는다
+    const first = setTimeout(() => void pull(), Math.random() * 1500);
     const t = intervalMs > 0 ? setInterval(() => void pull(), intervalMs) : null;
     return () => {
       cancelled = true;
+      clearTimeout(first);
       if (t) clearInterval(t);
     };
   }, [stamp, intervalMs]);

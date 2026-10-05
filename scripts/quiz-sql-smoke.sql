@@ -1,3 +1,4 @@
+-- ⚠ v2.0: 단체전 기준(quiz_join_team). 조당 1건 제출 규칙이라 일부 v1 시나리오 기대값은 다를 수 있다.
 -- 스피드 퀴즈 SQL 스모크 테스트 (Quiz v1.0)
 -- ⚠ 운영 DB가 아니라 버리는 로컬 Postgres에서만 돌린다 (데이터를 지운다).
 --
@@ -24,8 +25,8 @@ declare
   sid_a uuid; sid_b uuid;
 begin
   -- 참가
-  a := quiz_join('제인', 3);
-  b := quiz_join('', 7);
+  a := quiz_join_team(3, 'answerer', false, '제인');
+  b := quiz_join_team(7, 'answerer', false, '');
   assert b.name = '익명', '빈 이름은 익명';
   assert (quiz_me(a.id)).table_no = 3, 'quiz_me';
 
@@ -157,7 +158,7 @@ set role anon;
 do $$
 declare p quiz_participants; err text;
 begin
-  p := quiz_join('늦은 사람', 1);
+  p := quiz_join_team(1, 'answerer', false, '늦은 사람');
   begin perform submit_answer(p.id, 5, '1'); raise exception 'should fail';
   exception when others then err := sqlerrm; end;
   assert err like 'QUIZ_CLOSED%', '제한시간 + 2초 지나면 거부: ' || err;

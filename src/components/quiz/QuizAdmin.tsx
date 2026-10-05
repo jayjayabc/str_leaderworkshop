@@ -286,7 +286,10 @@ function Console({ opKey }: { opKey: string }) {
   );
 
   async function setVerdict(row: SubmissionRow, verdict: QuizVerdict | null) {
-    await run({ action: 'set_verdict', submission_id: row.sub.id, verdict });
+    const ok = await run({ action: 'set_verdict', submission_id: row.sub.id, verdict });
+    if (ok && state?.status === 'revealed') {
+      toast.message("점수판은 바로 바뀝니다. '맞힌 조' 표시까지 바꾸려면 '공개'를 한 번 더 눌러 주세요");
+    }
   }
 
   function setPoints(i: number, value: number) {
@@ -302,7 +305,8 @@ function Console({ opKey }: { opKey: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable)) return;
+      // 버튼에 포커스가 있으면 Space가 그 버튼도 누르므로 단축키에서 뺀다
+      if (t && (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(t.tagName) || t.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const k = keysRef.current;
       if (k.busy) return;
@@ -312,7 +316,7 @@ function Console({ opKey }: { opKey: string }) {
         else if (k.state?.status === 'lobby') k.open();
       } else if (e.key === 'r' || e.key === 'R') {
         void k.reveal();
-      } else if (e.key === 'n' || e.key === 'N') {
+      } else if ((e.key === 'n' || e.key === 'N') && (k.state?.current_index ?? 0) < QUIZ_QUESTIONS.length - 1) {
         k.next();
       }
     };
@@ -371,7 +375,6 @@ function Console({ opKey }: { opKey: string }) {
     return <main className="flex min-h-screen items-center justify-center bg-[#F4F3EE] text-[#8A8A8A]">연결하는 중…</main>;
   }
 
-  const points = pointsFor(state, index);
 
   return (
     <main className="min-h-screen bg-[#F4F3EE] text-[#1E1E1E]">
@@ -499,36 +502,48 @@ function Console({ opKey }: { opKey: string }) {
             <p className="mt-2 text-[12px] text-[#8A8A8A]">순서: 열기 → 마감(시간이 다 되면 제출이 자동으로 막힘) → 채점 확인 → 공개 → 다음.</p>
           </div>
 
-          {/* 배점 — 키보드 없이 버튼으로 */}
-          {!q.practice ? (
-            <div className="rounded-2xl bg-white p-4" data-testid="points-panel">
-              <p className="text-[13px] font-extrabold">이 문제 배점</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Btn onClick={() => setPoints(index, points - 5)} disabled={busy || points <= 0} testId="pts-minus">
-                  −5
-                </Btn>
-                <span className="min-w-[72px] text-center text-[28px] font-black tabular-nums" data-testid="pts-value">
-                  {points}점
-                </span>
-                <Btn onClick={() => setPoints(index, points + 5)} disabled={busy} testId="pts-plus">
-                  +5
-                </Btn>
-                <span className="mx-2 h-8 w-px bg-[#E3E1D8]" />
-                {[5, 10, 20, 30, 50].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setPoints(index, v)}
-                    className={clsx('h-10 rounded-lg px-3 text-[14px] font-bold', points === v ? 'bg-[#1E1E1E] text-white' : 'border border-[#DDD]')}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-2 text-[12px] text-[#8A8A8A]">공개 뒤에 바꾸면 점수판이 바로 다시 계산됩니다. 왼쪽 목록에서 문항을 골라 미리 정해 둘 수도 있어요.</p>
+          {/* 배점표 — 키보드 없이 버튼으로, 문항 이동 없이 미리 정해 둘 수 있다 */}
+          <div className="rounded-2xl bg-white p-4" data-testid="points-panel">
+            <div className="flex items-center gap-2">
+              <p className="text-[13px] font-extrabold">배점표</p>
+              <span className="text-[12px] text-[#8A8A8A]">참가자가 많이 접속한 동안에는 되도록 바꾸지 마세요(바꿀 때마다 모든 화면이 새로 읽습니다)</span>
             </div>
-          ) : null}
+            <ol className="mt-2 grid gap-1.5 md:grid-cols-2">
+              {QUIZ_QUESTIONS.map((item, i) =>
+                item.practice ? null : (
+                  <li
+                    key={item.no}
+                    className={clsx('flex items-center gap-2 rounded-lg px-2 py-1', i === index ? 'bg-[#FFF6B3]' : 'bg-[#F7F6F1]')}
+                    data-testid={`pts-row-${i}`}
+                  >
+                    <span className="w-9 text-[13px] font-bold">Q{item.no}</span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-[#5B5B5B]">{item.keyword}</span>
+                    <button
+                      type="button"
+                      disabled={busy || pointsFor(state, i) <= 0}
+                      onClick={() => setPoints(i, pointsFor(state, i) - 5)}
+                      className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
+                      aria-label={`Q${item.no} 배점 5점 내리기`}
+                    >
+                      −5
+                    </button>
+                    <span className="w-12 text-center text-[16px] font-black tabular-nums" data-testid={`pts-value-${i}`}>
+                      {pointsFor(state, i)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setPoints(i, pointsFor(state, i) + 5)}
+                      className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
+                      aria-label={`Q${item.no} 배점 5점 올리기`}
+                    >
+                      +5
+                    </button>
+                  </li>
+                ),
+              )}
+            </ol>
+          </div>
 
           <Settings state={state} index={index} run={run} />
 

@@ -107,7 +107,12 @@ async function realBackend() {
       let channel = null;
       return {
         serverNow: async () => new Date(unwrap(await c.rpc('server_now'))).getTime(),
-        join: async (name, table) => unwrap(await c.rpc('quiz_join', { p_name: name, p_table: table })),
+        // v2.0 단체전: 조마다 첫 가상 참가자가 답변자, 나머지는 관전자(관전자는 제출하지 않는다)
+        join: async (name, table) => {
+          const r = await c.rpc('quiz_join_team', { p_table: table, p_role: 'answerer', p_takeover: false, p_name: name });
+          if (!r.error) return unwrap(r);
+          return unwrap(await c.rpc('quiz_join_team', { p_table: table, p_role: 'spectator', p_takeover: false, p_name: name }));
+        },
         getState: async () => unwrap(await c.from('quiz_state').select('*').eq('id', 1).maybeSingle()),
         subscribe(onRow, onStatus) {
           channel = c

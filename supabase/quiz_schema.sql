@@ -436,8 +436,10 @@ begin
   select * into r from quiz_participants where id = p_participant;
   if r.id is null then raise exception 'QUIZ_UNKNOWN'; end if;
   if p_role not in ('answerer','spectator') then raise exception 'QUIZ_EMPTY: role'; end if;
+  -- 넘겨받기와 겹치지 않게 조 단위 잠금을 먼저 잡고 역할을 다시 읽는다
+  perform pg_advisory_xact_lock(4242, r.table_no);
+  select * into r from quiz_participants where id = p_participant;
   if p_role = 'answerer' and r.role <> 'answerer' then
-    perform pg_advisory_xact_lock(4242, r.table_no);
     if exists (select 1 from quiz_participants where table_no = r.table_no and role = 'answerer' and id <> r.id) then
       if not coalesce(p_takeover, false) then raise exception 'QUIZ_ANSWERER_TAKEN'; end if;
       update quiz_participants set role = 'spectator' where table_no = r.table_no and role = 'answerer' and id <> r.id;

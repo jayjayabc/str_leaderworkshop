@@ -74,7 +74,7 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
     judge: {
       type: 'text',
       accept: ['0', '없음', '없다', '영', '2763만', '2763', '27630000', '2763만명', '고객수', '고객수만큼'],
-      contains: ['2763만', '고객수', '손안에'],
+      contains: ['2763만', '고객수', '손안에', '없'],
       why: '복수 정답 — 0개 또는 2,763만 개',
     },
   },
@@ -98,7 +98,7 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
       '보통 금융 앱은 한 달에 한두 번 씁니다. 그런데 우리 앱은 600만 명이 용건이 없어도 엽니다 — 출근길에 모임통장 보고, 저녁에 기록 보고, 친구에게 송금하고. 600만에서 나아가 2,700만 고객이 매일 우리 앱을 열게 하려면 무엇이 필요할지 함께 고민해 보면 좋겠습니다.',
     notes: '정답 600만 (BI 포털, 2026년 9월) — 허용 범위는 팀 확인 필요(현재 정확히 600)',
     author: '',
-    judge: { type: 'numeric', target: 600, min: 600, max: 600, unit: '만', why: '만 명 단위 — 정확히 600 [팀 확인]' },
+    judge: { type: 'numeric', target: 600, min: 600, max: 600, unit: '만', accept: ['6백만', '육백만', '6백만명', '육백만명'], why: '만 명 단위 — 정확히 600 [팀 확인]' },
   },
   {
     no: 7,
@@ -130,9 +130,9 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
     notes: '정답 A > B > C (2025년 말 당행 M/S)',
     author: '',
     judge: {
-      type: 'text',
-      accept: ['a>b>c', 'abc', 'a→b→c', 'a=>b=>c', 'a>b>c순'],
-      why: '순서 A, B, C — 구분 기호(>, 쉼표, 공백, -)는 무관',
+      type: 'keywords',
+      all: ['re:^[^abc]*a[^abc]*b[^abc]*c[^abc]*$'],
+      why: 'A, B, C가 이 순서로 한 번씩 — 구분 기호·말 덧붙임(>, 〉, 쉼표, 공백, 입니다)은 무관',
     },
   },
   {
@@ -143,7 +143,7 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
     author: '',
     judge: {
       type: 'keywords',
-      all: [['air'], ['로빈후드', '로빈훗', 'robinhood', 'robin hood'], ['시그널', 'signal']],
+      all: [['air'], ['로빈후드', '로빈훗', 'robinhood', 'robin hood'], ['시그널', '시그날', 'signal']],
       why: '세 칸 모두 필요 (순서·대소문자 무관)',
     },
   },

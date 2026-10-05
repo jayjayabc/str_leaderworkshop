@@ -4,7 +4,7 @@
 //   1) 우리 조(1~30)를 누른다 → 2) 답변자(조당 1명) / 관전자를 고른다 → 3) 조 페이지
 //   답변자만 답을 낸다(조당 1건). 관전자는 문제·이미지를 보며 함께 풀고, 우리 조 제출·결과·점수를 본다.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
@@ -258,44 +258,63 @@ function Brand() {
 
 // ─── 조 페이지 ────────────────────────────────────────────────
 
-/** 우리 조 상황 — 상태가 바뀔 때마다, 그리고 문제가 열려 있는 동안 4초마다 */
-function useTeamStatus(me: Me, state: QuizState | null): QuizTeamStatus | null {
+/**
+ * 우리 조 상황 — 상태가 바뀔 때마다(+ bump), 그리고 문제가 열려 있는 동안 4초마다.
+ * 240대가 한꺼번에 묻지 않게 0~1.2초 흩어서 읽는다. 서버가 null(참가 정보 없음)을 주면 onGone.
+ */
+function useTeamStatus(me: Me, state: QuizState | null, bump: number, onGone: () => void): QuizTeamStatus | null {
   const [status, setStatus] = useState<{ key: string; v: QuizTeamStatus | null } | null>(null);
   const index = state?.current_index ?? 0;
-  const key = `${me.id}:${index}:${state?.status ?? ''}:${state?.updated_at ?? ''}`;
+  const key = `${me.id}:${index}:${state?.status ?? ''}:${state?.updated_at ?? ''}:${bump}`;
   const open = state?.status === 'open';
+  const goneRef = useRef(onGone);
+  useEffect(() => {
+    goneRef.current = onGone;
+  });
   useEffect(() => {
     let cancelled = false;
     const pull = () =>
       getQuizDb()
         .teamStatus(me.id, index)
         .then((v) => {
-          if (!cancelled) setStatus({ key, v });
+          if (cancelled) return;
+          if (v === null) goneRef.current();
+          else setStatus({ key, v });
         })
         .catch(() => undefined);
-    void pull();
+    const first = setTimeout(() => void pull(), bump > 0 ? 0 : Math.random() * 1200);
     const t = open ? setInterval(() => void pull(), 4000) : null;
     return () => {
       cancelled = true;
+      clearTimeout(first);
       if (t) clearInterval(t);
     };
-  }, [me.id, index, key, open]);
-  return status?.v ?? null;
+  }, [me.id, index, key, open, bump]);
+  // 다른 문제의 지난 상황은 보여 주지 않는다 (같은 문제의 직전 값은 새 값이 올 때까지 유지)
+  if (!status || !status.key.startsWith(`${me.id}:${index}:`)) return null;
+  return status.v;
 }
 
 function TeamStage({ me, setMe }: { me: Me; setMe: (m: Me | null) => void }) {
   const state = useQuizState();
   const offset = useServerOffset();
   const now = useNow();
-  const team = useTeamStatus(me, state);
+  const [bump, setBump] = useState(0);
+  const refresh = useCallback(() => setBump((b) => b + 1), []);
+  const team = useTeamStatus(me, state, bump, () => {
+    setMe(null);
+    toast.message('퀴즈가 초기화되었습니다. 조를 다시 선택해 주세요');
+  });
   const [localSub, setLocalSub] = useState<{ index: number; answer: string } | null>(null);
+  const pendingRole = useRef<QuizRole | null>(null);
 
-  // 다른 기기가 답변자를 넘겨받았으면 내 역할도 맞춘다
+  // 서버 기준 역할로 맞춘다 — 내가 방금 바꾼 경우엔 조용히, 다른 기기가 넘겨받은 경우엔 알림
   useEffect(() => {
-    if (team && team.role !== me.role) {
-      setMe({ ...me, role: team.role });
-      if (team.role === 'spectator') toast.message('다른 조원이 답변자를 맡아 관전자로 바뀌었어요');
-    }
+    if (!team || team.role === me.role) return;
+    const mine = pendingRole.current === team.role;
+    pendingRole.current = null;
+    setMe({ ...me, role: team.role });
+    if (!mine && team.role === 'spectator') toast.message('다른 조원이 답변자를 맡아 관전자로 바뀌었어요');
   }, [team, me, setMe]);
 
   // 새 버전이 배포됐으면 문제 진행 중이 아닐 때 0~20초 사이에 조용히 새로고침
@@ -322,7 +341,8 @@ function TeamStage({ me, setMe }: { me: Me; setMe: (m: Me | null) => void }) {
   async function switchRole(role: QuizRole, takeover = false) {
     try {
       await getQuizDb().setRole(me.id, role, takeover);
-      setMe({ ...me, role });
+      pendingRole.current = role;
+      refresh(); // 서버 역할을 다시 읽어 맞춘다(낙관적 변경 없음 — 되돌림 깜빡임 방지)
     } catch (err) {
       if (err instanceof QuizError && err.code === 'QUIZ_ANSWERER_TAKEN') {
         if (window.confirm('이미 답변자가 있어요. 내가 넘겨받을까요? (기존 답변자는 관전자로 바뀝니다)')) {
@@ -372,6 +392,7 @@ function TeamStage({ me, setMe }: { me: Me; setMe: (m: Me | null) => void }) {
           team={team}
           submission={submission}
           onSubmitted={(answer) => setLocalSub({ index, answer })}
+          onStale={refresh}
           onBecomeAnswerer={() => void switchRole('answerer')}
           mineRank={mine}
         />
@@ -457,6 +478,7 @@ function QuestionStage({
   team,
   submission,
   onSubmitted,
+  onStale,
   onBecomeAnswerer,
   mineRank,
 }: {
@@ -467,6 +489,7 @@ function QuestionStage({
   team: QuizTeamStatus | null;
   submission: { answer: string; created_at: string; verdict: 'correct' | 'wrong' | null } | null;
   onSubmitted: (answer: string) => void;
+  onStale: () => void;
   onBecomeAnswerer: () => void;
   mineRank: { score: number; rank: number } | null;
 }) {
@@ -509,6 +532,7 @@ function QuestionStage({
               editing={Boolean(submission)}
               initial={submission?.answer ?? ''}
               onSubmitted={onSubmitted}
+              onStale={onStale}
             />
           ) : (
             <TeamAnswerBox role={me.role} submission={submission} open={open} />
@@ -558,6 +582,7 @@ function AnswerForm({
   editing,
   initial,
   onSubmitted,
+  onStale,
 }: {
   me: Me;
   index: number;
@@ -565,6 +590,7 @@ function AnswerForm({
   editing: boolean;
   initial: string;
   onSubmitted: (answer: string) => void;
+  onStale: () => void;
 }) {
   const [values, setValues] = useState<string[]>(() => {
     const parts = initial ? initial.split(FIELD_SEP) : [];
@@ -584,6 +610,8 @@ function AnswerForm({
       toast.success('우리 조 답을 제출했어요');
     } catch (err) {
       toast.error(errText(err));
+      // 역할이 바뀌었거나(넘겨받기) 이미 다른 조원이 냈으면 우리 조 상황을 다시 읽는다
+      if (err instanceof QuizError && ['QUIZ_NOT_ANSWERER', 'QUIZ_UNKNOWN', 'QUIZ_DUPLICATE'].includes(err.code)) onStale();
     } finally {
       setBusy(false);
     }
