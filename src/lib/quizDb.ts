@@ -10,7 +10,10 @@ import type {
   QuizControlAction,
   QuizMySubmission,
   QuizParticipant,
+  QuizRole,
+  QuizScoreRow,
   QuizState,
+  QuizTeamStatus,
 } from './quizTypes';
 
 /** 진행 중 문제의 판정 집계 — 운영자 화면이 계산해 올리고 송출 화면이 읽는다 */
@@ -22,6 +25,9 @@ export interface QuizLiveCounts {
 
 export interface QuizCounts {
   participants: number;
+  /** v2.0 — 사람이 들어온 조 수 · 답변자가 있는 조 수 */
+  teams?: number;
+  answerers?: number;
   submissions: number;
   /** 운영자 화면이 올린 현재 문제의 정답/오답 집계 (없으면 null) */
   live?: QuizLiveCounts | null;
@@ -40,6 +46,11 @@ export interface QuizAdapter {
   subscribeState(cb: (state: QuizState) => void): () => void;
 
   join(name: string, tableNo: number): Promise<QuizParticipant>;
+  /** v2.0 — 조 입장(역할 포함). 답변자가 이미 있으면 takeover=true일 때만 넘겨받는다 */
+  joinTeam(tableNo: number, role: QuizRole, takeover: boolean): Promise<QuizParticipant>;
+  setRole(participantId: string, role: QuizRole, takeover: boolean): Promise<QuizParticipant>;
+  teamStatus(participantId: string, index: number): Promise<QuizTeamStatus | null>;
+  scoreboard(teams: number): Promise<QuizScoreRow[]>;
   me(id: string): Promise<QuizParticipant | null>;
   /** 제출 — 서버 제출 시각(ISO)을 돌려준다. 실패하면 QuizError */
   submit(participantId: string, index: number, answer: string): Promise<string>;

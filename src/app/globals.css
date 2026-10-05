@@ -174,3 +174,11 @@ body {
     animation: none;
   }
 }
+
+/* ─── 스피드 퀴즈 v2.0 — 퀴즈쇼 무대 배경 ─────────────────────── */
+.qz-stage {
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(255, 227, 0, 0.1), transparent 60%),
+    radial-gradient(1000px 800px at -10% 110%, rgba(90, 120, 255, 0.12), transparent 60%),
+    #0e0f13;
+}

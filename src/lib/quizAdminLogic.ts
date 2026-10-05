@@ -7,6 +7,7 @@ import type {
   QuizLeaderRow,
   QuizParticipant,
   QuizState,
+  QuizScoreRow,
   QuizSubmission,
   QuizTeamRow,
   QuizVerdict,
@@ -16,6 +17,8 @@ import type {
 export interface SubmissionRow {
   sub: QuizSubmission;
   participant: QuizParticipant | undefined;
+  /** v2.0 — 제출한 조 */
+  team: number | null;
   auto: AutoVerdict;
   /** 최종 판정: 운영자 ✓/✗ > 자동(정답/오답). 자동이 '검토'이고 운영자가 안 정했으면 null */
   final: QuizVerdict | null;
@@ -65,6 +68,7 @@ export function buildRows(
       return {
         sub,
         participant: byId.get(sub.participant_id),
+        team: sub.team_no ?? byId.get(sub.participant_id)?.table_no ?? null,
         auto,
         final: finalVerdict(sub, auto),
         elapsedMs: opened === null ? null : new Date(sub.created_at).getTime() - opened,
@@ -192,8 +196,8 @@ export function submissionsCsvRows(
       const p = byId.get(s.participant_id);
       return {
         no: getSeed()[s.question_index]?.no ?? s.question_index,
-        이름: p?.name ?? '',
-        테이블: p?.table_no ?? '',
+        조: s.team_no ?? p?.table_no ?? '',
+        제출자: p?.name ?? '',
         답: s.answer,
         서버시각: s.created_at,
         경과ms: opened === null ? '' : new Date(s.created_at).getTime() - opened,
@@ -205,7 +209,7 @@ export function submissionsCsvRows(
     });
 }
 
-export const SUBMISSION_CSV_COLUMNS = ['no', '이름', '테이블', '답', '서버시각', '경과ms', '판정', '자동판정', '저장판정', '수상'];
+export const SUBMISSION_CSV_COLUMNS = ['no', '조', '제출자', '답', '서버시각', '경과ms', '판정', '자동판정', '저장판정'];
 
 /** 수상자 CSV 행 — no, 이름, 테이블, 답, 서버시각, 경과ms */
 export function winnersCsvRows(
@@ -235,3 +239,10 @@ export function winnersCsvRows(
 }
 
 export const WINNER_CSV_COLUMNS = ['no', '이름', '테이블', '답', '서버시각', '경과ms'];
+
+/** v2.0 점수판 CSV */
+export const SCORE_CSV_COLUMNS = ['순위', '조', '점수', '맞힌 문제', '입장 인원'];
+
+export function scoreCsvRows(rows: (QuizScoreRow & { rank: number })[]): Record<string, string | number>[] {
+  return rows.map((r) => ({ 순위: r.rank, 조: r.team_no, 점수: r.score, '맞힌 문제': r.correct, '입장 인원': r.members }));
+}

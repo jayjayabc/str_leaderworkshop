@@ -16,8 +16,11 @@ import {
   type QuizControlAction,
   type QuizMySubmission,
   type QuizParticipant,
+  type QuizRole,
+  type QuizScoreRow,
   type QuizState,
   type QuizSubmission,
+  type QuizTeamStatus,
   type QuizWinner,
 } from './quizTypes';
 
@@ -142,12 +145,87 @@ class LocalQuizAdapter implements QuizAdapter {
     return p;
   }
 
+  async joinTeam(tableNo: number, role: QuizRole, takeover: boolean): Promise<QuizParticipant> {
+    if (!Number.isInteger(tableNo) || tableNo < 1 || tableNo > 99) throw new QuizError('QUIZ_EMPTY');
+    const db = read();
+    if (role === 'answerer') {
+      const cur = db.participants.find((p) => p.table_no === tableNo && p.role === 'answerer');
+      if (cur) {
+        if (!takeover) throw new QuizError('QUIZ_ANSWERER_TAKEN');
+        cur.role = 'spectator';
+      }
+    }
+    const p: QuizParticipant = {
+      id: uid(),
+      name: `${tableNo}조 ${role === 'answerer' ? '답변자' : '관전자'}`,
+      table_no: tableNo,
+      role,
+      created_at: new Date().toISOString(),
+    };
+    db.participants.push(p);
+    this.commit(db, false);
+    return p;
+  }
+
+  async setRole(participantId: string, role: QuizRole, takeover: boolean): Promise<QuizParticipant> {
+    const db = read();
+    const me = db.participants.find((p) => p.id === participantId);
+    if (!me) throw new QuizError('QUIZ_UNKNOWN');
+    if (role === 'answerer' && me.role !== 'answerer') {
+      const cur = db.participants.find((p) => p.table_no === me.table_no && p.role === 'answerer' && p.id !== me.id);
+      if (cur) {
+        if (!takeover) throw new QuizError('QUIZ_ANSWERER_TAKEN');
+        cur.role = 'spectator';
+      }
+    }
+    me.role = role;
+    this.commit(db, false);
+    return { ...me };
+  }
+
+  async teamStatus(participantId: string, index: number): Promise<QuizTeamStatus | null> {
+    const db = read();
+    const me = db.participants.find((p) => p.id === participantId);
+    if (!me) return null;
+    const sub = db.submissions.find((x) => x.question_index === index && x.team_no === me.table_no);
+    return {
+      team_no: me.table_no,
+      role: me.role ?? 'spectator',
+      answerer: db.participants.some((p) => p.table_no === me.table_no && p.role === 'answerer'),
+      members: db.participants.filter((p) => p.table_no === me.table_no).length,
+      submission: sub ? { answer: sub.answer, created_at: sub.created_at, verdict: sub.verdict } : null,
+    };
+  }
+
+  async scoreboard(teams: number): Promise<QuizScoreRow[]> {
+    const db = read();
+    const s = db.state;
+    const pts = s.settings.points ?? {};
+    const rows: QuizScoreRow[] = [];
+    for (let t = 1; t <= teams; t += 1) {
+      const subs = db.submissions.filter(
+        (x) =>
+          x.team_no === t &&
+          x.verdict === 'correct' &&
+          x.question_index > 0 &&
+          (x.question_index !== s.current_index || s.status === 'revealed' || s.status === 'final'),
+      );
+      rows.push({
+        team_no: t,
+        score: subs.reduce((a, x) => a + (pts[String(x.question_index)] ?? 10), 0),
+        correct: subs.length,
+        members: db.participants.filter((p) => p.table_no === t).length,
+      });
+    }
+    return rows;
+  }
+
   async me(id: string): Promise<QuizParticipant | null> {
     return read().participants.find((p) => p.id === id) ?? null;
   }
 
   async submit(participantId: string, index: number, answer: string): Promise<string> {
-    const ans = answer.trim().slice(0, 200);
+    const ans = answer.trim().slice(0, 300);
     if (!ans) throw new QuizError('QUIZ_EMPTY');
     const db = read();
     const s = db.state;
@@ -160,20 +238,22 @@ class LocalQuizAdapter implements QuizAdapter {
     ) {
       throw new QuizError('QUIZ_CLOSED');
     }
-    if (!db.participants.some((p) => p.id === participantId)) throw new QuizError('QUIZ_UNKNOWN');
+    const me = db.participants.find((p) => p.id === participantId);
+    if (!me) throw new QuizError('QUIZ_UNKNOWN');
+    if (me.role !== 'answerer') throw new QuizError('QUIZ_NOT_ANSWERER');
     const ts = new Date(now).toISOString();
-    const existing = db.submissions.find(
-      (x) => x.question_index === index && x.participant_id === participantId,
-    );
+    const existing = db.submissions.find((x) => x.question_index === index && x.team_no === me.table_no);
     if (existing) {
       if (!s.allow_edit) throw new QuizError('QUIZ_DUPLICATE');
       existing.answer = ans;
       existing.created_at = ts;
+      existing.participant_id = me.id;
     } else {
       db.submissions.push({
         id: uid(),
         question_index: index,
         participant_id: participantId,
+        team_no: me.table_no,
         answer: ans,
         created_at: ts,
         auto_verdict: null,
@@ -196,6 +276,8 @@ class LocalQuizAdapter implements QuizAdapter {
     const live = db.live && db.live.index === index ? db.live.counts : null;
     return {
       participants: db.participants.length,
+      teams: new Set(db.participants.map((p) => p.table_no)).size,
+      answerers: db.participants.filter((p) => p.role === 'answerer').length,
       submissions: db.submissions.filter((x) => x.question_index === index).length,
       live,
     };
@@ -305,6 +387,7 @@ class LocalQuizAdapter implements QuizAdapter {
         if (typeof act.one_win === 'boolean') s.settings = { ...s.settings, one_win: act.one_win };
         if (act.keywords) s.settings = { ...s.settings, keywords: { ...(s.settings.keywords ?? {}), ...act.keywords } };
         if (act.durations) s.settings = { ...s.settings, durations: { ...(s.settings.durations ?? {}), ...act.durations } };
+        if (act.points) s.settings = { ...s.settings, points: { ...(s.settings.points ?? {}), ...act.points } };
         break;
       case 'final':
         s.status = 'final';

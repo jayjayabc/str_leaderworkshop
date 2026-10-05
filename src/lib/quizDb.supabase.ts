@@ -16,7 +16,10 @@ import {
   type QuizErrorCode,
   type QuizMySubmission,
   type QuizParticipant,
+  type QuizRole,
+  type QuizScoreRow,
   type QuizState,
+  type QuizTeamStatus,
 } from './quizTypes';
 
 const CODES: QuizErrorCode[] = [
@@ -26,6 +29,8 @@ const CODES: QuizErrorCode[] = [
   'QUIZ_EMPTY',
   'QUIZ_FORBIDDEN',
   'QUIZ_ALREADY_WON',
+  'QUIZ_ANSWERER_TAKEN',
+  'QUIZ_NOT_ANSWERER',
 ];
 
 /** PostgREST 오류 → QuizError (함수가 'QUIZ_…'로 시작하는 메시지로 raise한다) */
@@ -117,6 +122,34 @@ class SupabaseQuizAdapter implements QuizAdapter {
     const { data, error } = await sb().rpc('quiz_join', { p_name: name, p_table: tableNo });
     if (error || !data) throw toQuizError(error);
     return data as QuizParticipant;
+  }
+
+  async joinTeam(tableNo: number, role: QuizRole, takeover: boolean): Promise<QuizParticipant> {
+    const { data, error } = await sb().rpc('quiz_join_team', { p_table: tableNo, p_role: role, p_takeover: takeover });
+    if (error || !data) throw toQuizError(error);
+    return data as QuizParticipant;
+  }
+
+  async setRole(participantId: string, role: QuizRole, takeover: boolean): Promise<QuizParticipant> {
+    const { data, error } = await sb().rpc('quiz_set_role', {
+      p_participant: participantId,
+      p_role: role,
+      p_takeover: takeover,
+    });
+    if (error || !data) throw toQuizError(error);
+    return data as QuizParticipant;
+  }
+
+  async teamStatus(participantId: string, index: number): Promise<QuizTeamStatus | null> {
+    const { data, error } = await sb().rpc('quiz_team_status', { p_participant: participantId, p_index: index });
+    if (error) throw toQuizError(error);
+    return (data as QuizTeamStatus | null) ?? null;
+  }
+
+  async scoreboard(teams: number): Promise<QuizScoreRow[]> {
+    const { data, error } = await sb().rpc('quiz_scoreboard', { p_teams: teams });
+    if (error) throw toQuizError(error);
+    return (data as QuizScoreRow[] | null) ?? [];
   }
 
   async me(id: string): Promise<QuizParticipant | null> {

@@ -5,8 +5,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { getQuizDb } from './quizDb';
-import { QUIZ_QUESTIONS, DEFAULT_DURATION_SEC } from './quizQuestions';
-import type { QuizState } from './quizTypes';
+import { QUIZ_QUESTIONS, QUIZ_TEAMS, DEFAULT_DURATION_SEC } from './quizQuestions';
+import type { QuizScoreRow, QuizState } from './quizTypes';
 
 /** quiz_state 구독 (Realtime/BroadcastChannel + 3초 폴링). 첫 값이 오기 전에는 null */
 export function useQuizState(): QuizState | null {
@@ -116,4 +116,46 @@ export function screenPromptSize(text: string): number {
   if (n <= 160) return 50;
   if (n <= 240) return 42;
   return 36;
+}
+
+/**
+ * v2.0 점수판 — stamp가 바뀔 때마다(상태 전환 등) 다시 읽고, intervalMs가 있으면 주기적으로도 읽는다.
+ * 실패하면 마지막 값을 유지한다.
+ */
+export function useScoreboard(stamp: string, intervalMs = 0): QuizScoreRow[] | null {
+  const [rows, setRows] = useState<QuizScoreRow[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const pull = () =>
+      getQuizDb()
+        .scoreboard(QUIZ_TEAMS)
+        .then((r) => {
+          if (!cancelled) setRows(r);
+        })
+        .catch(() => undefined);
+    void pull();
+    const t = intervalMs > 0 ? setInterval(() => void pull(), intervalMs) : null;
+    return () => {
+      cancelled = true;
+      if (t) clearInterval(t);
+    };
+  }, [stamp, intervalMs]);
+  return rows;
+}
+
+/** 점수판 정렬 + 순위(동점 같은 순위) */
+export function rankScores(rows: QuizScoreRow[]): (QuizScoreRow & { rank: number })[] {
+  const sorted = [...rows].sort((a, b) => b.score - a.score || b.correct - a.correct || a.team_no - b.team_no);
+  return sorted.reduce<(QuizScoreRow & { rank: number })[]>((out, r, i) => {
+    const prev = out[i - 1];
+    out.push({ ...r, rank: prev && prev.score === r.score ? prev.rank : i + 1 });
+    return out;
+  }, []);
+}
+
+/** 문항 배점 — 운영자 설정 > 문항 기본 배점 */
+export function pointsFor(state: QuizState | null, index: number): number {
+  const v = state?.settings.points?.[String(index)];
+  if (typeof v === 'number' && v >= 0) return v;
+  return QUIZ_QUESTIONS[index]?.points ?? 10;
 }

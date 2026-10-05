@@ -1,4 +1,4 @@
-// 스피드 퀴즈 — 공통 타입 (Quiz v1.0). 테이블 구조는 supabase/quiz_schema.sql과 같다.
+// 스피드 퀴즈 — 공통 타입 (Quiz v2.0 단체전). 테이블 구조는 supabase/quiz_schema.sql과 같다.
 
 export type QuizStatus = 'lobby' | 'open' | 'closed' | 'revealed' | 'final';
 export type QuizDisplayMode = 'full' | 'keyword';
@@ -18,6 +18,30 @@ export interface QuizReveal {
   correct_times?: string[];
   /** 공개 시점의 조별 누적 정답(순위순) + 이번 문제에서 얻은 정답 수 */
   teams?: QuizRevealTeam[];
+  /** v2.0 단체전 — 이 문제를 맞힌 조 번호들 */
+  correct_teams?: number[];
+  /** v2.0 단체전 — 이 문제의 배점 */
+  points?: number;
+}
+
+/** v2.0 점수판 한 줄 (quiz_scoreboard) */
+export interface QuizScoreRow {
+  team_no: number;
+  score: number;
+  correct: number;
+  members: number;
+}
+
+export type QuizRole = 'answerer' | 'spectator';
+
+/** v2.0 — 우리 조 상황 (quiz_team_status) */
+export interface QuizTeamStatus {
+  team_no: number;
+  role: QuizRole;
+  /** 우리 조에 답변자가 있는지 */
+  answerer: boolean;
+  members: number;
+  submission: QuizMySubmission | null;
 }
 
 export interface QuizRevealTeam {
@@ -69,6 +93,8 @@ export interface QuizSettings {
   keywords?: Record<string, string>;
   /** 문항별 제한시간(초) */
   durations?: Record<string, number>;
+  /** 문항별 배점 — 없으면 기본 배점(문항 정의의 points) */
+  points?: Record<string, number>;
   /** 1인 1회 수상 규칙 (기본 꺼짐 — 켜면 이미 상을 받은 사람은 첫 정답 후보에서 빠진다) */
   one_win?: boolean;
   /** 문항별로 마지막으로 연 시각(ISO) — 경과 ms 계산용 */
@@ -93,7 +119,10 @@ export interface QuizState {
 export interface QuizParticipant {
   id: string;
   name: string;
+  /** 조 번호 */
   table_no: number;
+  /** v2.0 — 답변자(조당 1명) / 관전자 */
+  role?: QuizRole;
   created_at: string;
 }
 
@@ -101,6 +130,8 @@ export interface QuizSubmission {
   id: string;
   question_index: number;
   participant_id: string;
+  /** v2.0 — 조 번호 (조 단위 제출) */
+  team_no?: number | null;
   answer: string;
   /** 서버 시각 (제출 시각, 수정 허용 시 마지막 수정 시각) */
   created_at: string;
@@ -146,6 +177,7 @@ export type QuizControlAction =
       one_win?: boolean;
       keywords?: Record<string, string>;
       durations?: Record<string, number>;
+      points?: Record<string, number>;
     }
   | { action: 'final'; leaderboard: QuizBoard | null }
   | { action: 'reset_question'; index: number }
@@ -158,6 +190,8 @@ export type QuizErrorCode =
   | 'QUIZ_EMPTY'
   | 'QUIZ_FORBIDDEN'
   | 'QUIZ_ALREADY_WON'
+  | 'QUIZ_ANSWERER_TAKEN'
+  | 'QUIZ_NOT_ANSWERER'
   | 'QUIZ_NETWORK';
 
 export class QuizError extends Error {
@@ -177,6 +211,8 @@ export const QUIZ_ERROR_TEXT: Record<QuizErrorCode, string> = {
   QUIZ_EMPTY: '답을 입력해 주세요',
   QUIZ_FORBIDDEN: '운영자 키가 맞지 않습니다',
   QUIZ_ALREADY_WON: '이미 다른 문제에서 상품을 받은 사람입니다',
+  QUIZ_ANSWERER_TAKEN: '이 조에는 이미 답변자가 있습니다',
+  QUIZ_NOT_ANSWERER: '답변자만 제출할 수 있습니다',
   QUIZ_NETWORK: '연결이 불안정합니다. 잠시 후 다시 시도해 주세요',
 };
 
