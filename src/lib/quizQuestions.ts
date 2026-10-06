@@ -3,9 +3,9 @@
 // ⚠ 이 파일에는 정답을 넣지 않는다. 참가자·송출·운영자 화면이 모두 import한다.
 //   정답·판정·해설은 quizSeed.ts(서버 전용, /api/quiz/keys)에 있다.
 //
-// 원본: 팀 Google Sheet '출제본 정리' 3~18행 (2026-10-05 판) — 3행 = 연습, 4~18행 = 본 문제 1~15.
+// 원본: 팀 Google Sheet '출제본 정리' 3~18행 (2026-10-06 판) — 3행 = 연습, 4~18행 = 본 문제 1~15.
 
-export const QUIZ_SOURCE_NOTE = '출제본 정리 3~18행 (2026-10-05)';
+export const QUIZ_SOURCE_NOTE = '출제본 정리 3~18행 (2026-10-06)';
 
 export type QuizCategory = '연습' | '금융 상식' | '카뱅 성과' | '돈의 흐름' | '새로운 목표와 성장';
 
@@ -28,8 +28,14 @@ export interface QuizQuestionPublic {
   choices?: string[];
   /** 답 입력칸 — 보통 1개, 빈칸이 여러 개인 문제는 여러 개 */
   fields: QuizField[];
-  /** 문제 이미지 (public/ 아래 경로, 예: /quiz/images/q9.jpg) */
-  image?: string;
+  /** 문제 이미지 (public/ 아래 경로, 예: /quiz/images/q9.jpg) — 여러 장이면 순서대로 나란히 */
+  images?: string[];
+  /** 이미지별 설명(송출 화면은 이미지 아래, 휴대폰은 이미지 위 띠) */
+  imageCaptions?: string[];
+  /** 송출 화면 이미지 배치 — side(문제 옆, 기본) · below(문제 아래 넓게, 가로로 긴 장표용) */
+  imageLayout?: 'side' | 'below';
+  /** 송출 화면에만 쓰는 짧은 문장 — 이미지가 많아 자리가 모자랄 때 (없으면 prompt) */
+  screenPrompt?: string;
   /** '키워드만' 표시 모드의 기본 키워드 */
   keyword: string;
   /** 기본 제한시간(초). 없으면 전체 기본값 */
@@ -79,7 +85,7 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
   Q({
     no: 3,
     category: '금융 상식',
-    prompt: '예금자보호 한도가 5천만원에서 1억원으로 올랐습니다.\n몇 년 만의 인상일까요?',
+    prompt: '예금자보호 한도가 5천만원에서 1억원으로 올랐습니다.\n몇 년 만의 인상일까요? (숫자만 입력)',
     fields: DEC('년'),
     keyword: '예금자보호',
     durationSec: 60,
@@ -87,7 +93,7 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
   Q({
     no: 4,
     category: '금융 상식',
-    prompt: '(넌센스) 카카오뱅크 지점은 전국에 몇 개일까요?\n(2026년 6월 말 기준)',
+    prompt: '(넌센스) 카카오뱅크 지점은 전국에 몇 개일까요?\n(2026년 6월 말 기준, 숫자만 입력)',
     fields: TXT('개'),
     keyword: '카뱅 지점',
     durationSec: 60,
@@ -105,7 +111,7 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
   Q({
     no: 6,
     category: '카뱅 성과',
-    prompt: '2026년 9월 기준 카카오뱅크의 MAU는 1,880만 명입니다.\n9월 기준 DAU는 얼마일까요? (BI 포털 기준)',
+    prompt: '2026년 9월 기준 카카오뱅크의 MAU는 1,880만 명입니다.\n9월 기준 DAU는 얼마일까요? (BI 포털 기준, 만 명 단위)',
     fields: DEC('만 명'),
     keyword: 'DAU',
     durationSec: 60,
@@ -132,22 +138,26 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
   Q({
     no: 9,
     category: '돈의 흐름',
-    prompt: '2025년 말 기준 세 가지 돈의 흐름(A, B, C)에서\n당행 M/S가 높은 순서대로 쓰세요. (예: B>C>A)',
-    fields: TXT(undefined, 'A>B>C'),
-    image: '/quiz/images/q9.jpg',
+    prompt:
+      '2025년 말 기준 세 가지 돈의 흐름에서 카카오뱅크 M/S가 높은 순서는?\nA. 돈 보내기·받기 (이체/대출)\nB. 돈 쓰기 (결제)\nC. 돈 모으기 (투자)',
+    choices: ['A > B > C', 'A > C > B', 'B > A > C', 'B > C > A', 'C > A > B', 'C > B > A'],
+    fields: CHOICE,
+    images: ['/quiz/images/q9.jpg'],
     keyword: '돈의 흐름 M/S',
     durationSec: 60,
   }),
   Q({
     no: 10,
     category: '돈의 흐름',
-    prompt: '다음은 국내외 금융 앱과 그 앱의 AI 서비스 화면입니다. 각 빈칸을 채우세요.',
+    prompt: "다음은 국내외 금융 앱과 그 앱의 AI 서비스 화면입니다. 각 빈칸을 채우세요.\n① Revolut의 '____'\n② ____의 'Finances'\n③ 토스증권의 'AI ____'",
     fields: [
       { label: "① Revolut의 '____'", input: 'text' },
-      { label: "② ____의 'AI Trading Agents'", input: 'text' },
-      { label: "③ 토스증권의 'AI____'", input: 'text' },
+      { label: "② ____의 'Finances'", input: 'text' },
+      { label: "③ 토스증권의 'AI ____'", input: 'text' },
     ],
-    image: '/quiz/images/q10.jpg',
+    images: ['/quiz/images/q10-1.jpg', '/quiz/images/q10-2.jpg', '/quiz/images/q10-3.jpg'],
+    imageCaptions: ["① Revolut의 '____'", "② ____의 'Finances'", "③ 토스증권의 'AI ____'"],
+    screenPrompt: '다음은 국내외 금융 앱과 그 앱의 AI 서비스 화면입니다. 각 빈칸을 채우세요.',
     keyword: '금융 앱 AI',
     durationSec: 90,
   }),
@@ -157,7 +167,8 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
     prompt:
       '다음은 2024년에 발표한 카카오뱅크 밸류업 목표입니다. 빈칸에 들어갈 숫자를 모두 더하면 얼마일까요?\n① 고객 수 X천만 명  ② 자산 XXX조 원  ③ F&P 수익 CAGR XX%',
     fields: DEC(undefined, '합계'),
-    image: '/quiz/images/q11.jpg',
+    images: ['/quiz/images/q11.jpg'],
+    imageLayout: 'below',
     keyword: '밸류업 목표',
     durationSec: 90,
   }),
@@ -183,17 +194,20 @@ export const QUIZ_QUESTIONS: QuizQuestionPublic[] = [
     no: 14,
     category: '새로운 목표와 성장',
     prompt:
-      '윤호영 대표는 2026년 4월 전략 발표에서 "AI라는 엔진과 글로벌이라는 날개"라고 표현했습니다.\n현재 카카오뱅크가 진출·제휴한 해외 3개국이 아닌 곳은?',
-    choices: ['인도네시아', '태국', '일본', '몽골'],
-    fields: CHOICE,
+      '윤호영 대표는 2026년 4월 전략 발표에서 "AI라는 엔진과 글로벌이라는 날개"라고 표현했습니다.\n현재 카카오뱅크가 진출·제휴한 해외 3개국은? (순서 무관)',
+    fields: [
+      { label: '①', input: 'text', placeholder: '나라' },
+      { label: '②', input: 'text', placeholder: '나라' },
+      { label: '③', input: 'text', placeholder: '나라' },
+    ],
     keyword: 'AI와 글로벌',
-    durationSec: 45,
+    durationSec: 60,
   }),
   Q({
     no: 15,
     category: '새로운 목표와 성장',
     prompt:
-      '카카오뱅크 대화형 AI를 통해 아래 답을 구해 주세요. (A × B × C)\nA. 카카오뱅크 수신 상품 수\nB. 카카오뱅크 여신 상품 수\nC. 카카오뱅크 카드 상품 수',
+      '카카오뱅크 대화형 AI를 통해 아래 답을 구해 주세요. (A × B × C)\nA. 카카오뱅크 입출금통장 기본금리(세전) ____%\nB. 카카오뱅크 줍줍 신용카드 연회비 ____원\nC. 카카오뱅크 mini 26일 저금 최대 동시 개설 개수 ____개',
     fields: DEC(undefined, 'A×B×C'),
     keyword: '카뱅 AI에게 물어봐',
     durationSec: 120,

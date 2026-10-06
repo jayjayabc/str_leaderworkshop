@@ -161,3 +161,21 @@ export function pointsFor(state: QuizState | null, index: number): number {
   if (typeof v === 'number' && v >= 0) return v;
   return QUIZ_QUESTIONS[index]?.points ?? 10;
 }
+
+export { DEFAULT_SPEED_TIERS, speedRuleFor, awardFor, speedLabel } from './quizScore';
+
+/** 다음 문제 이미지를 미리 받아 둔다 (문제가 열리는 순간 240대가 한꺼번에 받지 않게) */
+export function usePreloadImages(urls: string[] | undefined): void {
+  const key = (urls ?? []).join('|');
+  useEffect(() => {
+    if (!key) return;
+    const timer = setTimeout(() => {
+      for (const u of key.split('|')) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = u;
+      }
+    }, Math.random() * 4000);
+    return () => clearTimeout(timer);
+  }, [key]);
+}

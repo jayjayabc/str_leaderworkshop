@@ -22,6 +22,21 @@ export interface QuizReveal {
   correct_teams?: number[];
   /** v2.0 단체전 — 이 문제의 배점 */
   points?: number;
+  /** v2.1 선착순 — 이 문제에 적용된 규칙(꺼져 있으면 없음) */
+  speed?: SpeedRule | null;
+  /** v2.1 — 맞힌 조별 정답 순서·받은 점수 (조 번호 문자열 키) */
+  awards?: Record<string, { rank: number; pts: number }>;
+}
+
+/** v2.1 선착순 가산 — 정답 순서 upto등까지 mode(x = 배수, + = 추가점수) v 적용. 위 구간부터 본다 */
+export interface SpeedTier {
+  upto: number;
+  mode: 'x' | '+';
+  v: number;
+}
+export interface SpeedRule {
+  on: boolean;
+  tiers: SpeedTier[];
 }
 
 /** v2.0 점수판 한 줄 (quiz_scoreboard) */
@@ -95,6 +110,8 @@ export interface QuizSettings {
   durations?: Record<string, number>;
   /** 문항별 배점 — 없으면 기본 배점(문항 정의의 points) */
   points?: Record<string, number>;
+  /** v2.1 문항별 선착순 가산 규칙 */
+  speed?: Record<string, SpeedRule | null>;
   /** 1인 1회 수상 규칙 (기본 꺼짐 — 켜면 이미 상을 받은 사람은 첫 정답 후보에서 빠진다) */
   one_win?: boolean;
   /** 문항별로 마지막으로 연 시각(ISO) — 경과 ms 계산용 */
@@ -178,6 +195,7 @@ export type QuizControlAction =
       keywords?: Record<string, string>;
       durations?: Record<string, number>;
       points?: Record<string, number>;
+      speed?: Record<string, SpeedRule | null>;
     }
   | { action: 'final'; leaderboard: QuizBoard | null }
   | { action: 'reset_question'; index: number }

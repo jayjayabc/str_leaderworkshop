@@ -18,13 +18,16 @@ import {
   rankScores,
   remainingMs,
   screenPromptSize,
+  speedLabel,
+  speedRuleFor,
   useNow,
+  usePreloadImages,
   useQuizState,
   useScoreboard,
   useServerOffset,
 } from '@/lib/quizClient';
 import { QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel } from '@/lib/quizQuestions';
-import type { QuizScoreRow, QuizState } from '@/lib/quizTypes';
+import type { QuizState } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
 import { playSfx, setAmbient, unlockSound } from '@/lib/quizSound';
 
@@ -210,48 +213,76 @@ function Header({ state, right }: { state: QuizState; right?: React.ReactNode })
           {pointsFor(state, index)}점
         </span>
       ) : null}
+      {q && !q.practice && speedRuleFor(state, index) ? (
+        <span className="qz-pulse rounded-2xl bg-[#FFE300] px-5 py-2.5 text-[30px] font-black text-[#0E0F13]" data-testid="screen-speed">
+          ⚡ 선착순 {speedLabel(speedRuleFor(state, index))}
+        </span>
+      ) : null}
       <div className="ml-auto">{right}</div>
     </header>
   );
 }
 
-/** 점수판 — 순위순 타일 (30조면 10×3) */
+/**
+ * 점수판 — 순위순 줄 목록을 열 단위(위→아래, 왼→오른쪽)로 채운다.
+ * 칸 폭이 고정(순위·조·점수)이라 세 자리 점수·30조도 깨지지 않는다. 막대는 남는 폭만 쓴다.
+ */
+const GRID_SIZE = {
+  lg: { font: 30, row: 60, gap: 8 },
+  md: { font: 24, row: 46, gap: 6 },
+  sm: { font: 21, row: 38, gap: 5 },
+} as const;
+
 function ScoreGrid({
   ranked,
   highlight,
   gained,
-  compact,
+  cols,
+  size,
 }: {
   ranked: Ranked;
   highlight?: Set<number>;
-  gained?: number;
-  compact?: boolean;
+  gained?: Map<number, number>;
+  cols: number;
+  size: keyof typeof GRID_SIZE;
 }) {
-  const cols = ranked.length <= 10 ? ranked.length : ranked.length <= 30 ? 10 : Math.ceil(ranked.length / 3);
+  const z = GRID_SIZE[size];
+  const rows = Math.max(1, Math.ceil(ranked.length / cols));
+  const max = Math.max(1, ...ranked.map((r) => r.score));
   return (
-    <ol className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }} data-testid="score-grid">
+    <ol
+      className="grid"
+      style={{
+        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rows}, ${z.row}px)`,
+        gridAutoFlow: 'column',
+        columnGap: z.gap * 2,
+        rowGap: z.gap,
+        fontSize: z.font,
+      }}
+      data-testid="score-grid"
+    >
       {ranked.map((r) => {
         const hit = highlight?.has(r.team_no);
+        const top = r.rank === 1 && r.score > 0;
+        const plus = hit ? gained?.get(r.team_no) : undefined;
         return (
           <li
             key={r.team_no}
             className={clsx(
-              'relative flex items-center gap-2 rounded-2xl px-3',
-              compact ? 'py-2' : 'py-3',
-              r.rank === 1 && r.score > 0
-                ? 'bg-[#FFE300] text-[#0E0F13]'
-                : hit
-                  ? 'bg-[#1F8A3B] text-white'
-                  : 'bg-white/[0.07] text-white',
+              'flex min-w-0 items-center gap-[0.4em] overflow-hidden rounded-[0.45em] px-[0.5em] leading-none',
+              top ? 'bg-[#FFE300] text-[#0E0F13]' : hit ? 'bg-[#1F8A3B] text-white' : 'bg-white/[0.07] text-white',
               hit && 'qz-pop',
             )}
+            data-testid="score-row"
           >
-            <span className={clsx('shrink-0 font-bold opacity-60', compact ? 'w-[38px] text-[17px]' : 'w-[46px] text-[22px]')}>{r.rank}위</span>
-            <span className={clsx('whitespace-nowrap font-black', compact ? 'text-[26px]' : 'text-[32px]')}>{r.team_no}조</span>
-            <span className="ml-auto text-right leading-none">
-              <span className={clsx('block font-black tabular-nums', compact ? 'text-[30px]' : 'text-[34px]')}>{r.score}</span>
-              {hit && gained ? <span className="block whitespace-nowrap text-[16px] font-bold opacity-90">+{gained}</span> : null}
+            <span className="w-[1.6em] shrink-0 text-right text-[0.8em] font-bold tabular-nums opacity-60">{r.rank}</span>
+            <span className="w-[2.6em] shrink-0 whitespace-nowrap font-black tabular-nums">{r.team_no}조</span>
+            <span className={clsx('h-[0.32em] min-w-0 flex-1 overflow-hidden rounded-full', top ? 'bg-black/15' : 'bg-white/10')} aria-hidden>
+              <span className={clsx('block h-full rounded-full', top ? 'bg-black/60' : 'bg-[#FFE300]/80')} style={{ width: `${(r.score / max) * 100}%` }} />
             </span>
+            {plus ? <span className="shrink-0 whitespace-nowrap text-[0.72em] font-black tabular-nums text-[#BDF5C6]">+{plus}</span> : null}
+            <span className="w-[2.3em] shrink-0 text-right font-black tabular-nums">{r.score}</span>
           </li>
         );
       })}
@@ -275,6 +306,9 @@ function LobbyScreen({
   ranked: Ranked | null;
 }) {
   const started = Boolean(state.settings.opened && Object.keys(state.settings.opened).some((k) => Number(k) > 0));
+  const nextQ = QUIZ_QUESTIONS[state.current_index];
+  const nextSpeed = nextQ && !nextQ.practice ? speedRuleFor(state, state.current_index) : null;
+  usePreloadImages(nextQ?.images);
   const stats = (
     <div className="flex gap-12 text-[30px] font-bold tabular-nums text-white/80">
       <span>
@@ -297,7 +331,15 @@ function LobbyScreen({
             <Brand small />
             <h1 className="mt-5 text-[84px] font-black leading-none tracking-tight">
               다음 <span className="text-[#FFE300]">{questionLabel(state.current_index)}</span>
+              {nextQ && !nextQ.practice ? (
+                <span className="ml-6 align-middle text-[44px] font-black text-white/80">{pointsFor(state, state.current_index)}점</span>
+              ) : null}
             </h1>
+            {nextSpeed ? (
+              <p className="qz-pulse mt-4 inline-block rounded-2xl bg-[#FFE300] px-5 py-2 text-[34px] font-black text-[#0E0F13]">
+                ⚡ 선착순 문제 — {speedLabel(nextSpeed)}
+              </p>
+            ) : null}
           </div>
           <div className="ml-auto flex items-center gap-6">
             <p className="text-right text-[24px] font-semibold leading-snug text-white/60">
@@ -308,9 +350,9 @@ function LobbyScreen({
             <div className="h-[170px] w-[170px] rounded-xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
           </div>
         </div>
-        <p className="mt-10 text-[30px] font-bold text-white/60">현재 점수</p>
+        <p className="mt-8 text-[30px] font-bold text-white/60">현재 점수</p>
         <div className="mt-4">
-          <ScoreGrid ranked={ranked} />
+          <ScoreGrid ranked={ranked} cols={3} size="lg" />
         </div>
       </div>
     );
@@ -387,28 +429,56 @@ function QuestionScreen({
   const teamsIn = Math.max(counts?.answerers ?? 0, counts?.submissions ?? 0);
   const submitted = counts?.submissions ?? 0;
   const pct = teamsIn > 0 ? Math.min(100, (submitted / teamsIn) * 100) : 0;
-  const hasImage = Boolean(q.image) && !keyword;
+  const images = keyword ? [] : (q.images ?? []);
+  const below = images.length === 1 && q.imageLayout === 'below';
+  const hasImage = images.length === 1 && !below;
+  const gallery = images.length > 1 || below;
+  const prompt = gallery && q.screenPrompt ? q.screenPrompt : q.prompt;
   return (
     <div className="qz-fade flex h-full flex-col px-[90px] pb-[50px] pt-[50px]">
       <Header state={state} right={<Timer state={state} left={left} />} />
 
-      <section className={clsx('mt-8 flex min-h-0 flex-1 gap-12', hasImage ? 'items-stretch' : 'items-center')}>
-        <div className={clsx('flex min-w-0 flex-col justify-center', hasImage ? 'w-[52%]' : 'w-full')}>
+      <section
+        className={clsx(
+          'mt-8 flex min-h-0 flex-1',
+          gallery ? 'flex-col gap-5' : 'gap-12',
+          hasImage ? 'items-stretch' : gallery ? '' : 'items-center',
+        )}
+      >
+        <div className={clsx('flex min-w-0 flex-col justify-center', hasImage ? 'min-h-0 w-[52%] overflow-hidden' : 'w-full')}>
           {keyword ? (
             <p className="w-full text-center text-[150px] font-black leading-tight tracking-tight">{keywordFor(state, state.current_index)}</p>
           ) : (
             <>
               <p
                 className="whitespace-pre-line font-bold leading-[1.45]"
-                style={{ fontSize: Math.round(screenPromptSize(q.prompt) * (hasImage ? 0.82 : 1)) }}
+                style={{
+                  fontSize: gallery
+                    ? 44
+                    : hasImage && q.choices
+                      ? Math.min(46, Math.round(screenPromptSize(prompt) * 0.82))
+                      : Math.round(screenPromptSize(prompt) * (hasImage ? 0.82 : 1)),
+                }}
               >
-                {q.prompt}
+                {prompt}
               </p>
               {q.choices ? (
-                <ol className={clsx('mt-8 grid gap-4', q.choices.length > 3 && !hasImage ? 'grid-cols-2' : 'grid-cols-1')}>
+                <ol
+                  className={clsx(
+                    'grid',
+                    hasImage && q.choices.length > 3 ? 'mt-6 grid-cols-2 gap-3' : 'mt-8 gap-4',
+                    !hasImage && q.choices.length > 3 ? 'grid-cols-2' : !(hasImage && q.choices.length > 3) && 'grid-cols-1',
+                  )}
+                >
                   {q.choices.map((c, i) => (
-                    <li key={c} className="flex items-center gap-5 rounded-3xl bg-white/[0.08] px-7 py-4 text-[40px] font-bold">
-                      <span className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-full bg-[#FFE300] text-[34px] font-black text-[#0E0F13]">
+                    <li
+                      key={c}
+                      className={clsx(
+                        'flex items-center rounded-3xl bg-white/[0.08] font-bold',
+                        hasImage && q.choices!.length > 3 ? 'gap-4 px-5 py-3 text-[34px]' : 'gap-5 px-7 py-4 text-[40px]',
+                      )}
+                    >
+                      <span className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full bg-[#FFE300] text-[32px] font-black text-[#0E0F13]">
                         {i + 1}
                       </span>
                       {c}
@@ -421,9 +491,10 @@ function QuestionScreen({
         </div>
         {hasImage ? (
           <div className="flex min-w-0 flex-1 items-center justify-center rounded-[32px] bg-white p-4">
-            <QuestionImage key={q.image} src={q.image!} />
+            <QuestionImage key={images[0]} src={images[0]} />
           </div>
         ) : null}
+        {gallery ? <ImageGallery images={images} captions={q.imageCaptions} /> : null}
       </section>
 
       <footer className="mt-6 flex items-end gap-10">
@@ -457,6 +528,38 @@ function QuestionScreen({
   );
 }
 
+/** 여러 장 — 가로로 나란히, 높이를 맞추고(가로세로 비율만큼 폭을 나눔) 아래에 설명 */
+function ImageGallery({ images, captions }: { images: string[]; captions?: string[] }) {
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+  return (
+    <div className="flex min-h-0 flex-1 items-stretch justify-center gap-4" data-testid="screen-gallery">
+      {images.map((src, i) => (
+        <figure
+          key={src}
+          className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[24px] bg-white"
+          style={{ flex: `${ratios[src] ?? 0.7} 1 0` }}
+        >
+          <div className="relative min-h-0 flex-1 bg-[#111]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={`문제 이미지 ${i + 1}`}
+              onLoad={(e) => {
+                const im = e.currentTarget;
+                if (im.naturalWidth && im.naturalHeight) setRatios((r) => ({ ...r, [src]: im.naturalWidth / im.naturalHeight }));
+              }}
+              className="absolute inset-0 h-full w-full object-contain"
+            />
+          </div>
+          {captions?.[i] ? (
+            <figcaption className="shrink-0 truncate bg-white px-4 py-2 text-center text-[28px] font-black text-[#0E0F13]">{captions[i]}</figcaption>
+          ) : null}
+        </figure>
+      ))}
+    </div>
+  );
+}
+
 function QuestionImage({ src }: { src: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <p className="text-[32px] font-bold text-[#8A8A8A]">이미지 준비 중</p>;
@@ -475,6 +578,14 @@ function RevealScreen({ state, ranked }: { state: QuizState; ranked: Ranked | nu
   const hits = new Set(correct);
   const points = reveal.points ?? pointsFor(state, reveal.index);
   const practice = Boolean(q?.practice);
+  const awards = reveal.awards ?? {};
+  const speed = reveal.speed ?? null;
+  const gained = new Map<number, number>(correct.map((t) => [t, awards[String(t)]?.pts ?? points]));
+  // 선착순이면 정답 순서대로, 아니면 조 번호순
+  const chips = speed
+    ? [...correct].sort((a, b) => (awards[String(a)]?.rank ?? 99) - (awards[String(b)]?.rank ?? 99))
+    : [...correct].sort((a, b) => a - b);
+  const chipFont = chips.length <= 8 ? 30 : chips.length <= 16 ? 24 : 20;
   return (
     <div className="qz-fade flex h-full flex-col px-[90px] pb-[40px] pt-[44px]">
       <Header state={state} right={<span className="rounded-2xl bg-[#FFE300] px-7 py-3 text-[42px] font-black text-[#0E0F13]">정답 공개</span>} />
@@ -485,22 +596,33 @@ function RevealScreen({ state, ranked }: { state: QuizState; ranked: Ranked | nu
           <p className="qz-pop mt-1 whitespace-pre-line text-[76px] font-black leading-[1.08] tracking-tight text-[#FFE300]">{reveal.answer}</p>
           <p className="mt-6 text-[32px] leading-[1.5] text-white/85">{reveal.explanation}</p>
         </div>
-        <div className="qz-pop flex flex-col rounded-[40px] bg-white/[0.07] p-8">
+        <div className="qz-pop flex min-h-0 flex-col overflow-hidden rounded-[40px] bg-white/[0.07] p-8">
           <p className="text-[30px] font-bold text-white/60">맞힌 조</p>
           <p className="mt-1 text-[88px] font-black leading-none">
             {correct.length}
             <span className="text-[40px] text-white/60">개 조</span>
           </p>
-          {!practice && correct.length ? <p className="mt-2 text-[30px] font-bold text-[#7CE38B]">각 +{points}점</p> : null}
-          <div className="mt-6 flex flex-wrap content-start gap-2.5">
-            {correct.length ? (
-              [...correct]
-                .sort((a, b) => a - b)
-                .map((t) => (
-                  <span key={t} className="rounded-xl bg-[#1F8A3B] px-3.5 py-1.5 text-[30px] font-black">
-                    {t}조
+          {!practice && correct.length ? (
+            <p className="mt-2 text-[28px] font-bold text-[#7CE38B]">{speed ? `⚡ 선착순 ${speedLabel(speed)} · 기본 +${points}점` : `각 +${points}점`}</p>
+          ) : null}
+          <div className="mt-5 flex min-h-0 flex-wrap content-start gap-2 overflow-hidden" style={{ fontSize: chipFont }} data-testid="correct-chips">
+            {chips.length ? (
+              chips.map((t) => {
+                const a = awards[String(t)];
+                const bonus = speed && a && a.pts !== points;
+                return (
+                  <span
+                    key={t}
+                    className={clsx(
+                      'whitespace-nowrap rounded-[0.4em] px-[0.45em] py-[0.15em] font-black',
+                      bonus ? 'bg-[#FFE300] text-[#0E0F13]' : 'bg-[#1F8A3B]',
+                    )}
+                  >
+                    {speed && a ? <span className="mr-[0.25em] text-[0.7em] opacity-70">{a.rank}.</span> : null}
+                    {t}조{bonus ? <span className="ml-[0.25em] text-[0.7em]">+{a.pts}</span> : null}
                   </span>
-                ))
+                );
+              })
             ) : (
               <span className="text-[34px] font-bold text-white/50">이번엔 아무도 못 맞혔어요</span>
             )}
@@ -511,7 +633,7 @@ function RevealScreen({ state, ranked }: { state: QuizState; ranked: Ranked | nu
       {ranked && !practice ? (
         <section className="mt-6">
           <p className="mb-2 text-[24px] font-bold text-white/50">점수판</p>
-          <ScoreGrid ranked={ranked} highlight={hits} gained={points} compact />
+          <ScoreGrid ranked={ranked} highlight={hits} gained={gained} cols={5} size="md" />
         </section>
       ) : null}
     </div>
@@ -549,15 +671,9 @@ function FinalScreen({ ranked }: { ranked: Ranked | null }) {
         })}
       </div>
       {rest.length ? (
-        <ol className="mt-8 grid w-full max-w-[1700px] grid-cols-9 gap-2.5">
-          {rest.map((r: QuizScoreRow & { rank: number }) => (
-            <li key={r.team_no} className="flex items-center gap-2 rounded-xl bg-white/[0.07] px-3 py-2">
-              <span className="text-[18px] font-bold text-white/60">{r.rank}위</span>
-              <span className="text-[24px] font-black">{r.team_no}조</span>
-              <span className="ml-auto text-[24px] font-black tabular-nums">{r.score}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="mt-8 w-full max-w-[1740px]">
+          <ScoreGrid ranked={rest} cols={3} size="sm" />
+        </div>
       ) : null}
     </div>
   );

@@ -5,6 +5,7 @@
 //
 // 규칙은 supabase/quiz_schema.sql의 함수와 똑같이 맞췄다(제출 마감 +2초, 1인 1회 수상, 중복 제출 거부 …).
 
+import { scoreTeams } from './quizScore';
 import { OPERATOR_KEY } from './admin';
 import type { QuizAdapter, QuizCounts, QuizLiveCounts } from './quizDb';
 import {
@@ -199,26 +200,11 @@ class LocalQuizAdapter implements QuizAdapter {
 
   async scoreboard(teams: number): Promise<QuizScoreRow[]> {
     const db = read();
-    const s = db.state;
-    const pts = s.settings.points ?? {};
-    const rows: QuizScoreRow[] = [];
-    for (let t = 1; t <= teams; t += 1) {
-      const subs = db.submissions.filter(
-        (x) =>
-          x.team_no === t &&
-          x.verdict === 'correct' &&
-          x.question_index > 0 &&
-          (x.question_index !== s.current_index || s.status === 'revealed' || s.status === 'final'),
-      );
-      rows.push({
-        team_no: t,
-        score: subs.reduce((a, x) => a + (pts[String(x.question_index)] ?? 10), 0),
-        correct: subs.length,
-        members: db.participants.filter((p) => p.table_no === t).length,
-      });
-    }
-    return rows;
+    const members = new Map<number, number>();
+    for (const p of db.participants) members.set(p.table_no, (members.get(p.table_no) ?? 0) + 1);
+    return scoreTeams(db.submissions, db.state, teams, members);
   }
+
 
   async me(id: string): Promise<QuizParticipant | null> {
     return read().participants.find((p) => p.id === id) ?? null;
@@ -388,6 +374,7 @@ class LocalQuizAdapter implements QuizAdapter {
         if (act.keywords) s.settings = { ...s.settings, keywords: { ...(s.settings.keywords ?? {}), ...act.keywords } };
         if (act.durations) s.settings = { ...s.settings, durations: { ...(s.settings.durations ?? {}), ...act.durations } };
         if (act.points) s.settings = { ...s.settings, points: { ...(s.settings.points ?? {}), ...act.points } };
+        if (act.speed) s.settings = { ...s.settings, speed: { ...(s.settings.speed ?? {}), ...act.speed } };
         break;
       case 'final':
         s.status = 'final';

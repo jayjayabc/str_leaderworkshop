@@ -27,7 +27,7 @@ begin
   -- 참가
   a := quiz_join_team(3, 'answerer', false, '제인');
   b := quiz_join_team(7, 'answerer', false, '');
-  assert b.name = '익명', '빈 이름은 익명';
+  assert b.name like '%조%', '빈 이름은 N조 역할';
   assert (quiz_me(a.id)).table_no = 3, 'quiz_me';
 
   -- 대기 중 제출 거부

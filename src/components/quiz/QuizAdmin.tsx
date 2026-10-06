@@ -24,6 +24,7 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { describeJudge } from '@/lib/quizJudge';
+import { DEFAULT_SPEED_TIERS, awardFor, speedLabel, speedRuleFor } from '@/lib/quizScore';
 import { getSeed, loadQuizKeys } from '@/lib/quizSeedStore';
 import { FIELD_SEP, QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel } from '@/lib/quizQuestions';
 import {
@@ -43,6 +44,8 @@ import {
   type QuizControlAction,
   type QuizState,
   type QuizVerdict,
+  type SpeedRule,
+  type SpeedTier,
 } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
 
@@ -195,6 +198,21 @@ function Console({ opKey }: { opKey: string }) {
     });
   }, [db, opKey, index, snap, state, correctCount, wrongCount, reviewLeft]);
 
+  // 회사 PC의 원격 격리 브라우저(Menlo 등)에서 마우스 휠이 안 먹는 경우가 있어,
+  // 운영자 화면에서는 문서 스크롤을 가장 기본 형태(html이 스크롤, body는 그대로)로 되돌린다.
+  useEffect(() => {
+    const h = document.documentElement.style;
+    const b = document.body.style;
+    const prev = [h.overflow, h.overscrollBehavior, b.overflow, b.overscrollBehavior];
+    h.overflow = 'auto';
+    h.overscrollBehavior = 'auto';
+    b.overflow = 'visible';
+    b.overscrollBehavior = 'auto';
+    return () => {
+      [h.overflow, h.overscrollBehavior, b.overflow, b.overscrollBehavior] = prev;
+    };
+  }, []);
+
   const left = remainingMs(state, now, offset);
   const scoreStamp = state ? `${state.status}:${state.current_index}:${state.updated_at}` : '';
   const board = useScoreboard(scoreStamp, 5000);
@@ -249,7 +267,19 @@ function Console({ opKey }: { opKey: string }) {
     fresh.forEach((r) => {
       verdicts[r.sub.id] = { auto: r.auto, verdict: r.final ?? 'wrong' };
     });
-    const correctTeams = [...new Set(fresh.filter((r) => (r.final ?? 'wrong') === 'correct' && r.team !== null).map((r) => r.team as number))];
+    // 정답 조 — 서버 제출 시각 순(동시면 id 순). 점수판(SQL quiz_scoreboard)과 같은 순서
+    const correctRows = fresh
+      .filter((r) => (r.final ?? 'wrong') === 'correct' && r.team !== null)
+      .sort((a, b) =>
+        a.sub.created_at < b.sub.created_at ? -1 : a.sub.created_at > b.sub.created_at ? 1 : a.sub.id < b.sub.id ? -1 : a.sub.id > b.sub.id ? 1 : 0,
+      );
+    const correctTeams = [...new Set(correctRows.map((r) => r.team as number))];
+    const base = pointsFor(state, index);
+    const speed = q.practice ? null : speedRuleFor(state, index);
+    const awards: Record<string, { rank: number; pts: number }> = {};
+    correctTeams.forEach((t, k) => {
+      awards[String(t)] = { rank: k + 1, pts: Math.round(awardFor(base, speed, k + 1).pts) };
+    });
     await run(
       {
         action: 'reveal',
@@ -260,7 +290,9 @@ function Console({ opKey }: { opKey: string }) {
           explanation: q.explanation,
           winner: null,
           correct_teams: correctTeams,
-          points: pointsFor(state, index),
+          points: base,
+          speed,
+          awards,
         },
       },
       '정답을 공개했습니다',
@@ -295,6 +327,14 @@ function Console({ opKey }: { opKey: string }) {
   function setPoints(i: number, value: number) {
     const v = Math.max(0, Math.min(1000, Math.round(value)));
     void run({ action: 'settings', points: { [String(i)]: v } }, `${questionLabel(i).split(' ')[0]} 배점 ${v}점`);
+  }
+
+  function setSpeed(i: number, rule: SpeedRule) {
+    const label = questionLabel(i).split(' ')[0];
+    void run(
+      { action: 'settings', speed: { [String(i)]: rule } },
+      rule.on ? `${label} 선착순 켬 — ${speedLabel(rule)}` : `${label} 선착순 끔`,
+    );
   }
 
   // ─── 단축키: Space = 열기/마감 · R = 공개 · N = 다음 ───
@@ -379,6 +419,7 @@ function Console({ opKey }: { opKey: string }) {
   return (
     <main className="min-h-screen bg-[#F4F3EE] text-[#1E1E1E]">
       <NewVersionBanner />
+      <ScrollPad />
       <header className="flex h-14 items-center gap-3 border-b border-[#E3E1D8] bg-white px-5">
         <span className="rounded-full bg-[#FFE300] px-3 py-0.5 text-[13px] font-black">SPEED QUIZ</span>
         <h1 className="text-[16px] font-extrabold">운영 · 단체전</h1>
@@ -419,7 +460,8 @@ function Console({ opKey }: { opKey: string }) {
                   >
                     <span className="w-9 shrink-0 font-bold tabular-nums">{item.practice ? '연습' : `Q${item.no}`}</span>
                     <span className="truncate">{item.keyword}</span>
-                    {item.image ? <span title="이미지 문항">🖼</span> : null}
+                    {item.images?.length ? <span title="이미지 문항">🖼</span> : null}
+                    {speedRuleFor(state, i) ? <span title="선착순 가산">⚡</span> : null}
                     <span className="ml-auto shrink-0 text-[12px] font-bold tabular-nums text-[#8A6A00]">
                       {item.practice ? '' : `${pointsFor(state, i)}점`}
                     </span>
@@ -457,9 +499,20 @@ function Console({ opKey }: { opKey: string }) {
                 ))}
               </ol>
             ) : null}
-            {q.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={q.image} alt="문제 이미지" onError={(e) => (e.currentTarget.style.display = 'none')} className="mt-3 max-h-[220px] rounded-lg border object-contain" />
+            {q.images?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {q.images.map((src) => (
+                  <a key={src} href={src} target="_blank" rel="noreferrer" title="새 탭에서 크게 보기">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="문제 이미지" onError={(e) => (e.currentTarget.style.display = 'none')} className="max-h-[200px] rounded-lg border object-contain" />
+                  </a>
+                ))}
+              </div>
+            ) : null}
+            {!q.practice && speedRuleFor(state, index) ? (
+              <p className="mt-2 inline-block rounded-lg bg-[#1E1E1E] px-2.5 py-1 text-[12px] font-bold text-[#FFE300]">
+                ⚡ 선착순 — {speedLabel(speedRuleFor(state, index))} (배점 {pointsFor(state, index)}점 기준)
+              </p>
             ) : null}
             <p className="mt-2 text-[12px] text-[#8A8A8A]">
               입력칸: {q.fields.map((f) => `${f.label ? `${f.label} ` : ''}[ ]${f.unit ? ` ${f.unit}` : ''}`).join(' · ')}
@@ -508,12 +561,12 @@ function Console({ opKey }: { opKey: string }) {
               <p className="text-[13px] font-extrabold">배점표</p>
               <span className="text-[12px] text-[#8A8A8A]">참가자가 많이 접속한 동안에는 되도록 바꾸지 마세요(바꿀 때마다 모든 화면이 새로 읽습니다)</span>
             </div>
-            <ol className="mt-2 grid gap-1.5 md:grid-cols-2">
+            <ol className="mt-2 grid gap-1.5 2xl:grid-cols-2">
               {QUIZ_QUESTIONS.map((item, i) =>
                 item.practice ? null : (
                   <li
                     key={item.no}
-                    className={clsx('flex items-center gap-2 rounded-lg px-2 py-1', i === index ? 'bg-[#FFF6B3]' : 'bg-[#F7F6F1]')}
+                    className={clsx('flex flex-wrap items-center gap-2 rounded-lg px-2 py-1', i === index ? 'bg-[#FFF6B3]' : 'bg-[#F7F6F1]')}
                     data-testid={`pts-row-${i}`}
                   >
                     <span className="w-9 text-[13px] font-bold">Q{item.no}</span>
@@ -539,10 +592,28 @@ function Console({ opKey }: { opKey: string }) {
                     >
                       +5
                     </button>
+                    <SpeedToggle
+                      rule={state.settings.speed?.[String(i)] ?? null}
+                      disabled={busy}
+                      label={`Q${item.no}`}
+                      onChange={(r) => setSpeed(i, r)}
+                    />
+                    {speedRuleFor(state, i) ? (
+                      <SpeedEditor
+                        rule={speedRuleFor(state, i)!}
+                        base={pointsFor(state, i)}
+                        disabled={busy}
+                        label={`Q${item.no}`}
+                        onChange={(r) => setSpeed(i, r)}
+                      />
+                    ) : null}
                   </li>
                 ),
               )}
             </ol>
+            <p className="mt-2 text-[12px] text-[#8A8A8A]">
+              ⚡ 선착순: 정답을 맞힌 조 가운데 먼저 낸 순서(서버 시각)로 배점에 배수(×) 또는 추가점수(+)를 줍니다. 처음 켜면 1등 ×3 · 2~5등 ×2.
+            </p>
           </div>
 
           <Settings state={state} index={index} run={run} />
@@ -587,7 +658,12 @@ function Console({ opKey }: { opKey: string }) {
                 </button>
               </div>
             ) : null}
-            <SubmissionTable rows={rows} onVerdict={(r, v) => void setVerdict(r, v)} />
+            <SubmissionTable
+              rows={rows}
+              speed={q.practice ? null : speedRuleFor(state, index)}
+              base={pointsFor(state, index)}
+              onVerdict={(r, v) => void setVerdict(r, v)}
+            />
           </div>
 
           <div className="rounded-2xl bg-white p-4" data-testid="team-board">
@@ -715,8 +791,26 @@ function Settings({
   );
 }
 
-function SubmissionTable({ rows, onVerdict }: { rows: SubmissionRow[]; onVerdict: (r: SubmissionRow, v: QuizVerdict | null) => void }) {
+function SubmissionTable({
+  rows,
+  speed,
+  base,
+  onVerdict,
+}: {
+  rows: SubmissionRow[];
+  speed: SpeedRule | null;
+  base: number;
+  onVerdict: (r: SubmissionRow, v: QuizVerdict | null) => void;
+}) {
   if (rows.length === 0) return <p className="mt-3 text-[13px] text-[#8A8A8A]">아직 제출한 조가 없습니다.</p>;
+  // 정답 순서(서버 시각 → id) — 점수판과 같은 기준
+  const order = new Map<string, number>();
+  rows
+    .filter((r) => r.final === 'correct' && r.team !== null)
+    .sort((a, b) =>
+      a.sub.created_at < b.sub.created_at ? -1 : a.sub.created_at > b.sub.created_at ? 1 : a.sub.id < b.sub.id ? -1 : a.sub.id > b.sub.id ? 1 : 0,
+    )
+    .forEach((r, k) => order.set(r.sub.id, k + 1));
   return (
     <div className="mt-2 max-h-[560px] overflow-auto">
       <table className="w-full border-collapse text-[13px]" data-testid="submissions">
@@ -728,6 +822,7 @@ function SubmissionTable({ rows, onVerdict }: { rows: SubmissionRow[]; onVerdict
             <th className="py-1.5 pr-1">자동</th>
             <th className="py-1.5 pr-1">최종</th>
             <th className="py-1.5 pr-1 text-right">경과</th>
+            <th className="py-1.5 pr-1 text-right">{speed ? '⚡ 순서·점수' : '점수'}</th>
           </tr>
         </thead>
         <tbody>
@@ -768,11 +863,168 @@ function SubmissionTable({ rows, onVerdict }: { rows: SubmissionRow[]; onVerdict
                 </div>
               </td>
               <td className="py-1.5 pr-1 text-right tabular-nums">{r.elapsedMs === null ? '—' : `${(r.elapsedMs / 1000).toFixed(1)}s`}</td>
+              <td className="py-1.5 pr-1 text-right tabular-nums">
+                {order.has(r.sub.id) ? (
+                  <span className={clsx('font-bold', speed && awardFor(base, speed, order.get(r.sub.id)!).tier ? 'text-[#B8860B]' : '')}>
+                    {speed ? `${order.get(r.sub.id)}등 · ` : ''}+{Math.round(awardFor(base, speed, order.get(r.sub.id)!).pts)}
+                  </span>
+                ) : (
+                  <span className="text-[#BBB]">—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+// ─── 선착순 설정 (키보드 없이 버튼만) ───
+
+function SpeedToggle({
+  rule,
+  disabled,
+  label,
+  onChange,
+}: {
+  rule: SpeedRule | null;
+  disabled?: boolean;
+  label: string;
+  onChange: (r: SpeedRule) => void;
+}) {
+  const on = Boolean(rule?.on && rule.tiers?.length);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-pressed={on}
+      aria-label={`${label} 선착순 ${on ? '끄기' : '켜기'}`}
+      data-testid={`speed-toggle-${label}`}
+      onClick={() => onChange({ on: !on, tiers: rule?.tiers?.length ? rule.tiers : DEFAULT_SPEED_TIERS })}
+      className={clsx(
+        'h-8 rounded-md px-2 text-[12px] font-bold disabled:opacity-30',
+        on ? 'bg-[#1E1E1E] text-[#FFE300]' : 'border border-[#DDD] bg-white text-[#8A8A8A]',
+      )}
+    >
+      ⚡ 선착순 {on ? '켜짐' : '꺼짐'}
+    </button>
+  );
+}
+
+function SpeedEditor({
+  rule,
+  base,
+  disabled,
+  label,
+  onChange,
+}: {
+  rule: SpeedRule;
+  base: number;
+  disabled?: boolean;
+  label: string;
+  onChange: (r: SpeedRule) => void;
+}) {
+  const tiers = rule.tiers;
+  const set = (k: number, patch: Partial<SpeedTier>) => {
+    const next = tiers.map((t, i) => (i === k ? { ...t, ...patch } : t));
+    // 구간은 앞 구간보다 뒤로만 — 겹치면 뒤 구간을 민다
+    for (let i = 1; i < next.length; i += 1) if (next[i].upto <= next[i - 1].upto) next[i] = { ...next[i], upto: next[i - 1].upto + 1 };
+    onChange({ on: true, tiers: next });
+  };
+  const small = 'h-7 min-w-7 rounded border border-[#DDD] bg-white px-1 text-[12px] font-bold disabled:opacity-30';
+  return (
+    <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-white/70 px-2 py-1 text-[12px]" data-testid={`speed-editor-${label}`}>
+      {tiers.map((t, k) => {
+        const from = k === 0 ? 1 : tiers[k - 1].upto + 1;
+        return (
+          <span key={k} className="flex items-center gap-1">
+            <span className="font-bold tabular-nums">{t.upto <= from ? `${t.upto}등` : `${from}~${t.upto}등`}</span>
+            <button type="button" className={small} disabled={disabled || t.upto <= from} onClick={() => set(k, { upto: t.upto - 1 })} aria-label={`${label} ${k + 1}구간 끝 순위 내리기`}>
+              ◀
+            </button>
+            <button type="button" className={small} disabled={disabled || t.upto >= 30} onClick={() => set(k, { upto: t.upto + 1 })} aria-label={`${label} ${k + 1}구간 끝 순위 올리기`}>
+              ▶
+            </button>
+            <button
+              type="button"
+              className={clsx(small, 'w-8')}
+              disabled={disabled}
+              onClick={() => set(k, t.mode === 'x' ? { mode: '+', v: 5 } : { mode: 'x', v: 2 })}
+              aria-label={`${label} ${k + 1}구간 방식 바꾸기`}
+              title="배수(×) ↔ 추가점수(+)"
+            >
+              {t.mode === 'x' ? '×' : '+'}
+            </button>
+            <button
+              type="button"
+              className={small}
+              disabled={disabled || t.v <= (t.mode === 'x' ? 1 : 0)}
+              onClick={() => set(k, { v: t.mode === 'x' ? t.v - 1 : t.v - 5 })}
+              aria-label={`${label} ${k + 1}구간 값 내리기`}
+            >
+              −
+            </button>
+            <span className="w-9 text-center font-black tabular-nums">{t.mode === 'x' ? `×${t.v}` : `+${t.v}`}</span>
+            <button
+              type="button"
+              className={small}
+              disabled={disabled || t.v >= (t.mode === 'x' ? 10 : 100)}
+              onClick={() => set(k, { v: t.mode === 'x' ? t.v + 1 : t.v + 5 })}
+              aria-label={`${label} ${k + 1}구간 값 올리기`}
+            >
+              +
+            </button>
+            <span className="text-[#8A8A8A] tabular-nums">= {Math.round(awardFor(base, { on: true, tiers: [t] }, 1).pts)}점</span>
+          </span>
+        );
+      })}
+      <span className="ml-auto flex gap-1">
+        {tiers.length < 3 ? (
+          <button
+            type="button"
+            className={clsx(small, 'px-2')}
+            disabled={disabled}
+            onClick={() => onChange({ on: true, tiers: [...tiers, { upto: tiers[tiers.length - 1].upto + 5, mode: 'x', v: 2 }] })}
+          >
+            구간 추가
+          </button>
+        ) : null}
+        {tiers.length > 1 ? (
+          <button type="button" className={clsx(small, 'px-2')} disabled={disabled} onClick={() => onChange({ on: true, tiers: tiers.slice(0, -1) })}>
+            구간 빼기
+          </button>
+        ) : null}
+      </span>
+    </div>
+  );
+}
+
+/** 휠이 안 될 때를 위한 스크롤 버튼 (오른쪽 아래 고정) */
+function ScrollPad() {
+  const by = (dy: number) => window.scrollBy({ top: dy * window.innerHeight, behavior: 'smooth' });
+  const cls = 'flex h-10 w-10 items-center justify-center rounded-full bg-[#1E1E1E]/80 text-[16px] font-bold text-white shadow-lg hover:bg-[#1E1E1E]';
+  return (
+    <nav className="fixed bottom-4 right-4 z-40 flex flex-col gap-1.5" aria-label="화면 스크롤">
+      <button type="button" className={cls} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} aria-label="맨 위로" title="맨 위로">
+        ⇈
+      </button>
+      <button type="button" className={cls} onClick={() => by(-0.7)} aria-label="위로" title="위로">
+        ▲
+      </button>
+      <button type="button" className={cls} onClick={() => by(0.7)} aria-label="아래로" title="아래로">
+        ▼
+      </button>
+      <button
+        type="button"
+        className={cls}
+        onClick={() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })}
+        aria-label="맨 아래로"
+        title="맨 아래로"
+      >
+        ⇊
+      </button>
+    </nav>
   );
 }
 

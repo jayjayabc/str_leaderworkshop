@@ -4,7 +4,7 @@
 //   (운영자 화면도 포함 — 운영자 키를 확인한 뒤 /api/quiz/keys로 받아 quizSeedStore에 넣는다).
 //   공개 문항은 quizQuestions.ts, 공개 시점의 정답·해설은 운영자가 quiz_state.reveal로 내려보낸다.
 //
-// 원본: Google Sheet '출제본 정리' 3~18행 (2026-10-05 판, v2.0 단체전).
+// 원본: Google Sheet '출제본 정리' 3~18행 (2026-10-06 판, v2.1).
 //   열: NUM · 카테고리 · 질문 · 답 · 설명/전략적 의미(→ explanation, 정답 공개 화면) · 슬라이드(→ notes) · 작성자
 //   오타 '고개들'→'고객들', '빈도 굉장히'→'빈도가 굉장히' 등만 고쳤다.
 
@@ -124,26 +124,28 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
   },
   {
     no: 9,
-    answerDisplay: 'A > B > C',
+    answerDisplay: '1. A > B > C',
     explanation:
       '돈이 오고 가는 길목은 우리가 1등으로 잡았습니다. 이제 이 영향력을 돈이 붙는 쓰기와 모으기까지 넓혀야 하는데 — 그 고민을 오후에 함께 해 보면 좋겠습니다.',
-    notes: '정답 A > B > C (2025년 말 당행 M/S)',
+    notes: '정답 1번 A > B > C — 돈 보내기·받기(이체 건수 M/S 16%) > 돈 쓰기(결제금액 1.7%) > 돈 모으기(투자자산 1.4%), 2025년 말',
     author: '',
     judge: {
       type: 'keywords',
-      all: ['re:^[^abc]*a[^abc]*b[^abc]*c[^abc]*$'],
-      why: 'A, B, C가 이 순서로 한 번씩 — 구분 기호·말 덧붙임(>, 〉, 쉼표, 공백, 입니다)은 무관',
+      any: ['re:^[^0-9abc]*1[^0-9abc]*$', 're:^[^abc0-9]*1?[^abc0-9]*a[^abc0-9]*b[^abc0-9]*c[^abc0-9]*$'],
+      all: [],
+      why: '보기 1번(A > B > C) — 번호 또는 A·B·C 순서로 써도 정답',
     },
   },
   {
     no: 10,
-    answerDisplay: '① AIR  ② 로빈후드(Robinhood)  ③ 시그널',
-    explanation: "Revolut의 'AIR', 로빈후드의 'AI Trading Agents', 토스증권의 'AI 시그널' — 국내외 금융 앱이 AI를 어디에 붙이고 있는지 보여 주는 세 장면입니다.",
-    notes: '정답 AIR, 로빈후드, 시그널 — 세 칸 모두 맞아야 정답',
+    answerDisplay: '① AIR  ② ChatGPT  ③ 시그널',
+    explanation:
+      "Revolut의 'AIR', ChatGPT의 'Finances', 토스증권의 'AI 시그널' — 국내외 다양한 금융 서비스가 AI 서비스를 내놓고 있습니다. 어떤 서비스가 있는지 계속 센싱하는 것도 중요합니다.",
+    notes: '정답 AIR, ChatGPT, 시그널 — 세 칸 모두 맞아야 정답',
     author: '',
     judge: {
       type: 'keywords',
-      all: [['air'], ['로빈후드', '로빈훗', 'robinhood', 'robin hood'], ['시그널', '시그날', 'signal']],
+      all: [['air', '에어'], ['chatgpt', 'gpt', '챗gpt', '챗지피티', '쳇gpt', '쳇지피티', '지피티'], ['시그널', '시그날', 'signal']],
       why: '세 칸 모두 필요 (순서·대소문자 무관)',
     },
   },
@@ -176,20 +178,25 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
   },
   {
     no: 14,
-    answerDisplay: '3. 일본',
+    answerDisplay: '인도네시아 · 태국 · 몽골',
     explanation:
       '인도네시아는 지분 투자, 태국은 앱 개발을 우리가 주도하고, 몽골은 신용평가모델 수출입니다. 카카오뱅크의 어떤 경쟁력을 수출하는지 — 세 나라의 접근법이 다 다릅니다.',
-    notes: '정답 3. 일본',
+    notes: '정답 인도네시아(Superbank 지분 투자), 태국(SCBX 가상은행 앱 개발), 몽골(신용평가모델 수출) — 세 나라 모두, 순서 무관',
     author: '지니',
-    judge: { type: 'text', accept: ['3', '3번', '③', '일본', 'japan'] },
+    judge: {
+      type: 'keywords',
+      all: [['인도네시아', '인니', 'indonesia'], ['태국', '타이', 'thailand'], ['몽골', 'mongolia']],
+      why: '세 나라 모두 (순서 무관)',
+    },
   },
   {
     no: 15,
-    answerDisplay: '(정답 확정 전)',
-    explanation: '카카오뱅크 대화형 AI에게 물어 구한 A × B × C — 우리 상품을 우리 AI에게 묻는 문제였습니다.',
-    notes: '⚠ 시트 답란이 비어 있음 — 정답 확정 전까지 운영자가 직접 ✓/✗ 판정',
+    answerDisplay: '5,400 (0.1 × 18,000 × 3)',
+    explanation:
+      'A. 입출금통장 기본금리(세전) 0.1% × B. 줍줍 신용카드 연회비 18,000원 × C. mini 26일 저금 최대 동시 개설 3개 = 5,400 — 우리 상품을 우리 AI에게 물어 푼 문제였습니다.',
+    notes: 'A 0.1 × B 18,000 × C 3 = 5,400',
     author: '',
-    judge: { type: 'manual', rubric: '수신 상품 수 × 여신 상품 수 × 카드 상품 수 (정답 확정 필요)' },
+    judge: { type: 'numeric', target: 5400, min: 5400, max: 5400 },
   },
 ];
 

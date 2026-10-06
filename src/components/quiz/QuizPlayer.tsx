@@ -16,7 +16,10 @@ import {
   pointsFor,
   rankScores,
   remainingMs,
+  speedLabel,
+  speedRuleFor,
   useNow,
+  usePreloadImages,
   useQuizState,
   useScoreboard,
   useServerOffset,
@@ -30,6 +33,7 @@ import {
   type QuizTeamStatus,
 } from '@/lib/quizTypes';
 import { useNewVersion } from './NewVersionBanner';
+import { PhoneImages } from './QuizImages';
 
 /**
  * 참가 정보 키. 주소에 ?as=라벨 이 있으면 그 라벨로 구분한다 — 한 브라우저에서 여러 참가자 탭을 띄우는
@@ -453,6 +457,8 @@ function Lobby({
   onBecomeAnswerer: () => void;
 }) {
   const q = QUIZ_QUESTIONS[state.current_index];
+  const speed = q && !q.practice ? speedRuleFor(state, state.current_index) : null;
+  usePreloadImages(q?.images);
   return (
     <Center>
       <div className="w-full text-center">
@@ -463,6 +469,11 @@ function Lobby({
         <p className="mt-2 text-[14px] text-white/60">
           {me.role === 'answerer' ? '답변자는 조원과 상의해 답을 입력합니다' : '앞 화면과 내 폰에 문제가 함께 나와요'}
         </p>
+        {q && !q.practice ? (
+          <p className="mt-4 text-[15px] font-bold text-[#FFE300]">
+            배점 {pointsFor(state, state.current_index)}점{speed ? ` · ⚡ 선착순 ${speedLabel(speed)}` : ''}
+          </p>
+        ) : null}
         {team ? <p className="mt-4 text-[13px] text-white/50">우리 조 입장 {team.members}명</p> : null}
         {team && !team.answerer ? <NoAnswererWarning onBecomeAnswerer={onBecomeAnswerer} /> : null}
       </div>
@@ -499,6 +510,7 @@ function QuestionStage({
   if (!q) return null;
   const open = state.status === 'open' && left !== null && left > 0;
   const points = pointsFor(state, index);
+  const speed = q.practice ? null : speedRuleFor(state, index);
 
   return (
     <div className="flex flex-col">
@@ -506,6 +518,7 @@ function QuestionStage({
         <span className="rounded-lg bg-white px-2.5 py-1 text-[15px] font-extrabold text-[#1E1E1E]">{questionLabel(index)}</span>
         <span className="rounded-lg bg-white/10 px-2 py-1 text-[13px] font-semibold">{q.category}</span>
         {!q.practice ? <span className="text-[13px] font-bold text-[#FFE300]">{points}점</span> : null}
+        {speed ? <span className="rounded-md bg-[#FFE300] px-1.5 py-0.5 text-[12px] font-black text-[#1E1E1E]">⚡ 선착순</span> : null}
         <span
           className={clsx(
             'ml-auto min-w-[64px] rounded-lg px-2.5 py-1 text-center text-[20px] font-extrabold tabular-nums',
@@ -519,9 +532,14 @@ function QuestionStage({
       </div>
 
       {state.status === 'revealed' && state.reveal ? (
-        <RevealView state={state} submission={submission} points={points} mineRank={mineRank} />
+        <RevealView state={state} submission={submission} points={points} mineRank={mineRank} team={me.team} />
       ) : (
         <>
+          {speed && open ? (
+            <p className="mt-2 rounded-xl bg-[#FFE300] px-3 py-2 text-center text-[14px] font-extrabold text-[#1E1E1E]" data-testid="speed-banner">
+              ⚡ 선착순 문제 — 정답 조 중 {speedLabel(speed)}
+            </p>
+          ) : null}
           <QuestionCard state={state} q={q} />
           {team && !team.answerer && open ? <NoAnswererWarning onBecomeAnswerer={onBecomeAnswerer} /> : null}
           {me.role === 'answerer' && open && (!submission || state.allow_edit) ? (
@@ -535,7 +553,7 @@ function QuestionStage({
               onStale={onStale}
             />
           ) : (
-            <TeamAnswerBox role={me.role} submission={submission} open={open} />
+            <TeamAnswerBox q={q} role={me.role} submission={submission} open={open} />
           )}
         </>
       )}
@@ -567,10 +585,7 @@ function QuestionCard({ state, q }: { state: QuizState; q: QuizQuestionPublic })
           ) : null}
         </div>
       )}
-      {q.image && !keyword ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={q.image} alt="문제 이미지" onError={(e) => (e.currentTarget.style.display = 'none')} className="block w-full border-t border-black/5 bg-[#F4F3EE]" />
-      ) : null}
+      {q.images?.length && !keyword ? <PhoneImages images={q.images} captions={q.imageCaptions} /> : null}
     </div>
   );
 }
@@ -678,11 +693,20 @@ function AnswerForm({
   );
 }
 
+/** 제출한 답을 사람이 읽는 형태로 — 객관식은 '2. 13%', 여러 칸은 ' · '로 */
+function answerText(q: QuizQuestionPublic | undefined, answer: string): string {
+  const n = Number(answer.trim());
+  if (q?.choices && Number.isInteger(n) && q.choices[n - 1]) return `${n}. ${q.choices[n - 1]}`;
+  return answer.split(FIELD_SEP).join(' · ');
+}
+
 function TeamAnswerBox({
+  q,
   role,
   submission,
   open,
 }: {
+  q: QuizQuestionPublic;
   role: QuizRole;
   submission: { answer: string } | null;
   open: boolean;
@@ -692,7 +716,7 @@ function TeamAnswerBox({
       {submission ? (
         <>
           <p className="text-[13px] font-bold text-[#7CE38B]">✓ 우리 조 제출 완료</p>
-          <p className="mt-1 break-words text-[22px] font-extrabold">{submission.answer.split(FIELD_SEP).join(' · ')}</p>
+          <p className="mt-1 break-words text-[22px] font-extrabold">{answerText(q, submission.answer)}</p>
           <p className="mt-1 text-[13px] text-white/50">정답은 공개 때 확인할 수 있어요</p>
         </>
       ) : open ? (
@@ -715,13 +739,18 @@ function RevealView({
   submission,
   points,
   mineRank,
+  team,
 }: {
   state: QuizState;
   submission: { answer: string; verdict: 'correct' | 'wrong' | null } | null;
   points: number;
   mineRank: { score: number; rank: number } | null;
+  team: number;
 }) {
   const reveal = state.reveal!;
+  const award = reveal.awards?.[String(team)] ?? null;
+  const got = award ? award.pts : (reveal.points ?? points);
+  const bonus = award && reveal.speed && award.pts !== (reveal.points ?? points);
   const q = QUIZ_QUESTIONS[reveal.index];
   const verdict = submission?.verdict ?? null;
   const practice = Boolean(q?.practice);
@@ -743,7 +772,7 @@ function RevealView({
           {verdict === 'correct'
             ? practice
               ? '정답! (연습 문제)'
-              : `정답! +${points}점`
+              : `정답! +${got}점`
             : verdict === 'wrong'
               ? '아쉽게도 오답'
               : submission
@@ -751,7 +780,12 @@ function RevealView({
                 : '제출하지 않았어요'}
         </p>
         {submission ? (
-          <p className="mt-1 break-words text-[15px] text-white/80">우리 조 답: {submission.answer.split(FIELD_SEP).join(' · ')}</p>
+          <p className="mt-1 break-words text-[15px] text-white/80">우리 조 답: {answerText(q, submission.answer)}</p>
+        ) : null}
+        {verdict === 'correct' && !practice && award && reveal.speed ? (
+          <p className="mt-1 text-[15px] font-extrabold text-[#FFE300]" data-testid="speed-result">
+            ⚡ 정답 {award.rank}번째{bonus ? ' — 선착순 보너스!' : ''}
+          </p>
         ) : null}
         {nCorrect !== null ? <p className="mt-1 text-[13px] text-white/70">{nCorrect}개 조가 맞혔어요</p> : null}
       </div>
