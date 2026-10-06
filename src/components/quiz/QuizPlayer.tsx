@@ -31,6 +31,7 @@ import {
   type QuizRole,
   type QuizState,
   type QuizTeamStatus,
+  type SpeedRule,
 } from '@/lib/quizTypes';
 import { useNewVersion } from './NewVersionBanner';
 import { PhoneImages } from './QuizImages';
@@ -551,6 +552,7 @@ function QuestionStage({
               initial={submission?.answer ?? ''}
               onSubmitted={onSubmitted}
               onStale={onStale}
+              speed={speed}
             />
           ) : (
             <TeamAnswerBox q={q} role={me.role} submission={submission} open={open} />
@@ -598,7 +600,9 @@ function AnswerForm({
   initial,
   onSubmitted,
   onStale,
+  speed,
 }: {
+  speed: SpeedRule | null;
   me: Me;
   index: number;
   q: QuizQuestionPublic;
@@ -613,6 +617,7 @@ function AnswerForm({
   });
   const [busy, setBusy] = useState(false);
   const filled = values.every((v) => v.trim());
+  const speedOn = Boolean(speed);
 
   async function submit() {
     if (!filled || busy) return;
@@ -667,6 +672,15 @@ function AnswerForm({
               <span className="flex h-14 items-center rounded-xl bg-white px-4 text-[#1E1E1E] focus-within:ring-4 focus-within:ring-[#FFE300]">
                 <input
                   value={values[i]}
+                  data-field={i}
+                  onKeyDown={(e) => {
+                    // 여러 칸 문제에서 키보드 '다음/Enter'로 바로 제출되지 않게 — 다음 칸으로만 이동
+                    if (e.key === 'Enter' && i < q.fields.length - 1) {
+                      e.preventDefault();
+                      const nextInput = e.currentTarget.form?.querySelector<HTMLInputElement>(`input[data-field="${i + 1}"]`);
+                      nextInput?.focus();
+                    }
+                  }}
                   onChange={(e) => setValues((v) => v.map((x, j) => (j === i ? e.target.value : x)))}
                   inputMode={f.input === 'decimal' ? 'decimal' : 'text'}
                   enterKeyHint={i === q.fields.length - 1 ? 'done' : 'next'}
@@ -689,6 +703,9 @@ function AnswerForm({
       >
         {busy ? '보내는 중…' : editing ? '답 수정하기' : '우리 조 답 제출'}
       </button>
+      {speedOn && editing ? (
+        <p className="mt-2 text-center text-[12px] font-semibold text-[#FFE300]">⚡ 선착순 문제 — 답을 고치면 제출 순서가 고친 시각으로 바뀝니다</p>
+      ) : null}
     </form>
   );
 }

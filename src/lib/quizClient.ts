@@ -155,14 +155,13 @@ export function rankScores(rows: QuizScoreRow[]): (QuizScoreRow & { rank: number
   }, []);
 }
 
-/** 문항 배점 — 운영자 설정 > 문항 기본 배점 */
+/** 문항 배점 — 운영자 설정 > 10 (SQL quiz_scoreboard·quizScore.basePoints와 같은 기본값) */
 export function pointsFor(state: QuizState | null, index: number): number {
-  const v = state?.settings.points?.[String(index)];
-  if (typeof v === 'number' && v >= 0) return v;
-  return QUIZ_QUESTIONS[index]?.points ?? 10;
+  return basePoints(state, index);
 }
 
 export { DEFAULT_SPEED_TIERS, speedRuleFor, awardFor, speedLabel } from './quizScore';
+import { basePoints } from './quizScore';
 
 /** 다음 문제 이미지를 미리 받아 둔다 (문제가 열리는 순간 240대가 한꺼번에 받지 않게) */
 export function usePreloadImages(urls: string[] | undefined): void {

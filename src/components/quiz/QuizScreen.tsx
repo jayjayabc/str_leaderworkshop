@@ -282,7 +282,7 @@ function ScoreGrid({
               <span className={clsx('block h-full rounded-full', top ? 'bg-black/60' : 'bg-[#FFE300]/80')} style={{ width: `${(r.score / max) * 100}%` }} />
             </span>
             {plus ? <span className="shrink-0 whitespace-nowrap text-[0.72em] font-black tabular-nums text-[#BDF5C6]">+{plus}</span> : null}
-            <span className="w-[2.3em] shrink-0 text-right font-black tabular-nums">{r.score}</span>
+            <span className="w-[2.8em] shrink-0 text-right font-black tabular-nums">{r.score}</span>
           </li>
         );
       })}
@@ -585,7 +585,7 @@ function RevealScreen({ state, ranked }: { state: QuizState; ranked: Ranked | nu
   const chips = speed
     ? [...correct].sort((a, b) => (awards[String(a)]?.rank ?? 99) - (awards[String(b)]?.rank ?? 99))
     : [...correct].sort((a, b) => a - b);
-  const chipFont = chips.length <= 8 ? 30 : chips.length <= 16 ? 24 : 20;
+  const chipFont = chips.length <= 8 ? 30 : chips.length <= 16 ? 24 : chips.length <= 22 ? 20 : 16;
   return (
     <div className="qz-fade flex h-full flex-col px-[90px] pb-[40px] pt-[44px]">
       <Header state={state} right={<span className="rounded-2xl bg-[#FFE300] px-7 py-3 text-[42px] font-black text-[#0E0F13]">정답 공개</span>} />
@@ -598,7 +598,7 @@ function RevealScreen({ state, ranked }: { state: QuizState; ranked: Ranked | nu
         </div>
         <div className="qz-pop flex min-h-0 flex-col overflow-hidden rounded-[40px] bg-white/[0.07] p-8">
           <p className="text-[30px] font-bold text-white/60">맞힌 조</p>
-          <p className="mt-1 text-[88px] font-black leading-none">
+          <p className="mt-1 text-[72px] font-black leading-none">
             {correct.length}
             <span className="text-[40px] text-white/60">개 조</span>
           </p>
@@ -649,7 +649,7 @@ function FinalScreen({ ranked }: { ranked: Ranked | null }) {
   return (
     <div className="qz-fade flex h-full flex-col items-center px-[90px] pt-[50px]">
       <Brand />
-      <h1 className="mt-5 text-[96px] font-black tracking-tight">최종 순위</h1>
+      <h1 className="mt-3 text-[80px] font-black leading-tight tracking-tight">최종 순위</h1>
       <div className="mt-6 grid w-full max-w-[1500px] grid-cols-3 items-end gap-8">
         {[1, 0, 2].map((i) => {
           const r = top[i];
@@ -661,17 +661,17 @@ function FinalScreen({ ranked }: { ranked: Ranked | null }) {
                 'qz-pop flex flex-col items-center rounded-[40px] px-6 pb-8 pt-6',
                 i === 0 ? 'bg-[#FFE300] text-[#0E0F13]' : 'bg-white/[0.08]',
               )}
-              style={{ minHeight: i === 0 ? 380 : 300 }}
+              style={{ minHeight: i === 0 ? 330 : 270 }}
             >
-              <span className="text-[110px] leading-none">{medals[r.rank - 1] ?? r.rank}</span>
-              <span className="mt-3 text-[96px] font-black leading-none">{r.team_no}조</span>
+              <span className="text-[88px] leading-none">{medals[r.rank - 1] ?? r.rank}</span>
+              <span className="mt-2 text-[84px] font-black leading-none">{r.team_no}조</span>
               <span className="mt-3 text-[54px] font-black tabular-nums">{r.score}점</span>
             </div>
           );
         })}
       </div>
       {rest.length ? (
-        <div className="mt-8 w-full max-w-[1740px]">
+        <div className="mt-6 w-full max-w-[1740px]">
           <ScoreGrid ranked={rest} cols={3} size="sm" />
         </div>
       ) : null}

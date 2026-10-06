@@ -125,7 +125,11 @@ export function QuizAdmin() {
 
 function Console({ opKey }: { opKey: string }) {
   const db = useMemo(() => getQuizDb(), []);
-  const state = useQuizState();
+  const polled = useQuizState();
+  // 조작 직후 돌려받은 상태를 바로 쓴다 — 원격 격리 브라우저(실시간 연결 없음)에서 3초 폴링을 기다리지 않게
+  const [fresh, setFresh] = useState<QuizState | null>(null);
+  const state = polled && fresh ? (fresh.updated_at > polled.updated_at ? fresh : polled) : (polled ?? fresh);
+  const [ask, confirmNode] = useInPageConfirm();
   const offset = useServerOffset();
   const now = useNow();
   const [snap, setSnap] = useState<QuizAdminSnapshot | null>(null);
@@ -162,7 +166,7 @@ function Console({ opKey }: { opKey: string }) {
     async (act: QuizControlAction, ok?: string): Promise<boolean> => {
       setBusy(true);
       try {
-        await db.control(opKey, act);
+        setFresh(await db.control(opKey, act));
         if (ok) toast.success(ok);
         await pull();
         return true;
@@ -233,16 +237,16 @@ function Console({ opKey }: { opKey: string }) {
 
   // ─── 조작 ───
 
-  const open = useCallback(() => {
+  const open = useCallback(async () => {
     if (!state) return;
     if (
       state.settings.opened?.[String(index)] &&
-      !window.confirm("이미 진행한 문제입니다. 다시 열면 이미 공개된 문제를 새로 낼 수 있게 됩니다. 그래도 열까요? (보통은 '이 문제 초기화' 후 다시 엽니다)")
+      !(await ask("이미 진행한 문제입니다. 다시 열면 이미 공개된 문제를 새로 낼 수 있게 됩니다. 그래도 열까요? (보통은 '이 문제 초기화' 후 다시 엽니다)"))
     ) {
       return;
     }
     void run({ action: 'open', index, duration_sec: durationFor(state, index) });
-  }, [run, state, index]);
+  }, [run, state, index, ask]);
 
   const close = useCallback(() => void run({ action: 'close' }), [run]);
 
@@ -262,7 +266,14 @@ function Console({ opKey }: { opKey: string }) {
     }
     const fresh = buildRows(index, state, all.submissions, all.participants, all.winners);
     const pending = fresh.filter((r) => r.final === null).length;
-    if (pending > 0 && !window.confirm(`채점하지 않은 답 ${pending}건은 오답으로 처리하고 공개할까요?`)) return;
+    if (pending > 0 && !(await ask(`채점하지 않은 답 ${pending}건은 오답으로 처리하고 공개할까요?`))) return;
+    // 배점·선착순은 서버의 최신 설정으로 계산한다(방금 바꾼 설정이 화면에 아직 안 왔을 수 있음)
+    let cur: QuizState = state;
+    try {
+      cur = await db.getState();
+    } catch {
+      /* 화면의 상태로 계산 */
+    }
     const verdicts: Record<string, { auto: string | null; verdict: QuizVerdict }> = {};
     fresh.forEach((r) => {
       verdicts[r.sub.id] = { auto: r.auto, verdict: r.final ?? 'wrong' };
@@ -274,8 +285,8 @@ function Console({ opKey }: { opKey: string }) {
         a.sub.created_at < b.sub.created_at ? -1 : a.sub.created_at > b.sub.created_at ? 1 : a.sub.id < b.sub.id ? -1 : a.sub.id > b.sub.id ? 1 : 0,
       );
     const correctTeams = [...new Set(correctRows.map((r) => r.team as number))];
-    const base = pointsFor(state, index);
-    const speed = q.practice ? null : speedRuleFor(state, index);
+    const base = pointsFor(cur, index);
+    const speed = q.practice ? null : speedRuleFor(cur, index);
     const awards: Record<string, { rank: number; pts: number }> = {};
     correctTeams.forEach((t, k) => {
       awards[String(t)] = { rank: k + 1, pts: Math.round(awardFor(base, speed, k + 1).pts) };
@@ -297,24 +308,24 @@ function Console({ opKey }: { opKey: string }) {
       },
       '정답을 공개했습니다',
     );
-  }, [state, q, index, run, db, opKey]);
+  }, [state, q, index, run, db, opKey, ask]);
 
-  const next = useCallback(() => {
+  const next = useCallback(async () => {
     if (!state) return;
-    if (state.status === 'open' && !window.confirm('진행 중인 문제가 있습니다. 넘어갈까요?')) return;
-    if (state.status === 'closed' && !window.confirm('아직 정답을 공개하지 않았습니다. 공개하지 않고 넘어갈까요?')) return;
+    if (state.status === 'open' && !(await ask('진행 중인 문제가 있습니다. 넘어갈까요?'))) return;
+    if (state.status === 'closed' && !(await ask('아직 정답을 공개하지 않았습니다. 공개하지 않고 넘어갈까요?'))) return;
     const to = Math.min(QUIZ_QUESTIONS.length - 1, index + 1);
     if (to === index && state.status !== 'revealed') return;
     void run({ action: 'next', index: to });
-  }, [state, index, run]);
+  }, [state, index, run, ask]);
 
   const goto = useCallback(
-    (to: number) => {
+    async (to: number) => {
       if (!state || to === index) return;
-      if (state.status === 'open' && !window.confirm('진행 중인 문제가 있습니다. 이동할까요?')) return;
+      if (state.status === 'open' && !(await ask('진행 중인 문제가 있습니다. 이동할까요?'))) return;
       void run({ action: 'next', index: to });
     },
-    [state, index, run],
+    [state, index, run, ask],
   );
 
   async function setVerdict(row: SubmissionRow, verdict: QuizVerdict | null) {
@@ -324,17 +335,33 @@ function Console({ opKey }: { opKey: string }) {
     }
   }
 
-  function setPoints(i: number, value: number) {
-    const v = Math.max(0, Math.min(1000, Math.round(value)));
-    void run({ action: 'settings', points: { [String(i)]: v } }, `${questionLabel(i).split(' ')[0]} 배점 ${v}점`);
+  /** 이미 진행한 문항의 배점·선착순을 바꾸면 점수판이 소급해서 바뀐다 — 한 번 더 묻는다 */
+  async function guardPlayed(i: number): Promise<boolean> {
+    if (!state || !state.settings.opened?.[String(i)]) return true;
+    if (i === index && (state.status === 'open' || state.status === 'closed')) return true;
+    return ask(`${questionLabel(i).split(' ')[0]}은(는) 이미 진행한 문제입니다. 바꾸면 점수판 점수가 바로 다시 계산됩니다. 바꿀까요?`);
+  }
+  function afterPlayedChange(i: number) {
+    if (state?.status === 'revealed' && i === index) {
+      toast.message("점수판은 바로 바뀝니다. 공개 화면의 '+점수'까지 바꾸려면 '공개'를 한 번 더 눌러 주세요");
+    }
   }
 
-  function setSpeed(i: number, rule: SpeedRule) {
+  async function setPoints(i: number, value: number) {
+    if (!(await guardPlayed(i))) return;
+    const v = Math.max(0, Math.min(1000, Math.round(value)));
+    const ok = await run({ action: 'settings', points: { [String(i)]: v } }, `${questionLabel(i).split(' ')[0]} 배점 ${v}점`);
+    if (ok) afterPlayedChange(i);
+  }
+
+  async function setSpeed(i: number, rule: SpeedRule) {
+    if (!(await guardPlayed(i))) return;
     const label = questionLabel(i).split(' ')[0];
-    void run(
+    const ok = await run(
       { action: 'settings', speed: { [String(i)]: rule } },
       rule.on ? `${label} 선착순 켬 — ${speedLabel(rule)}` : `${label} 선착순 끔`,
     );
+    if (ok) afterPlayedChange(i);
   }
 
   // ─── 단축키: Space = 열기/마감 · R = 공개 · N = 다음 ───
@@ -396,14 +423,14 @@ function Console({ opKey }: { opKey: string }) {
   }
 
   async function showFinal() {
-    if (!window.confirm('최종 순위 화면으로 바꿀까요? (송출 화면·휴대폰에 점수판이 나옵니다)')) return;
+    if (!(await ask('최종 순위 화면으로 바꿀까요? (송출 화면·휴대폰에 점수판이 나옵니다)'))) return;
     await run({ action: 'final', leaderboard: null }, '최종 순위를 공개했습니다');
   }
 
   const toRejudge = rejudgeTargets(rows);
   async function rejudge() {
     if (!toRejudge.length) return;
-    if (!window.confirm(`자동 판정이 바뀐 답 ${toRejudge.length}건을 지금 기준으로 다시 채점할까요? (공개된 문항이면 다시 '공개'를 눌러 주세요)`)) return;
+    if (!(await ask(`자동 판정이 바뀐 답 ${toRejudge.length}건을 지금 기준으로 다시 채점할까요? (공개된 문항이면 다시 '공개'를 눌러 주세요)`))) return;
     for (const t of toRejudge) {
       const ok = await run({ action: 'set_verdict', submission_id: t.row.sub.id, verdict: t.to });
       if (!ok) return;
@@ -420,6 +447,7 @@ function Console({ opKey }: { opKey: string }) {
     <main className="min-h-screen bg-[#F4F3EE] text-[#1E1E1E]">
       <NewVersionBanner />
       <ScrollPad />
+      {confirmNode}
       <header className="flex h-14 items-center gap-3 border-b border-[#E3E1D8] bg-white px-5">
         <span className="rounded-full bg-[#FFE300] px-3 py-0.5 text-[13px] font-black">SPEED QUIZ</span>
         <h1 className="text-[16px] font-extrabold">운영 · 단체전</h1>
@@ -444,7 +472,7 @@ function Console({ opKey }: { opKey: string }) {
 
       <div className="grid gap-4 p-4 xl:grid-cols-[300px_minmax(0,1fr)_minmax(0,640px)]">
         {/* 문항 목록 + 배점 */}
-        <aside className="rounded-2xl bg-white p-3 xl:max-h-[calc(100vh-88px)] xl:overflow-y-auto" aria-label="문항 목록">
+        <aside className="rounded-2xl bg-white p-3" aria-label="문항 목록">
           <ol className="space-y-1">
             {QUIZ_QUESTIONS.map((item, i) => {
               const done = Boolean(state.settings.opened?.[String(i)]);
@@ -452,7 +480,7 @@ function Console({ opKey }: { opKey: string }) {
                 <li key={item.no}>
                   <button
                     type="button"
-                    onClick={() => goto(i)}
+                    onClick={() => void goto(i)}
                     className={clsx(
                       'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px]',
                       i === index ? 'bg-[#FFE300] font-bold' : 'hover:bg-[#F7F6F1]',
@@ -574,7 +602,7 @@ function Console({ opKey }: { opKey: string }) {
                     <button
                       type="button"
                       disabled={busy || pointsFor(state, i) <= 0}
-                      onClick={() => setPoints(i, pointsFor(state, i) - 5)}
+                      onClick={() => void setPoints(i, pointsFor(state, i) - 5)}
                       className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
                       aria-label={`Q${item.no} 배점 5점 내리기`}
                     >
@@ -586,7 +614,7 @@ function Console({ opKey }: { opKey: string }) {
                     <button
                       type="button"
                       disabled={busy}
-                      onClick={() => setPoints(i, pointsFor(state, i) + 5)}
+                      onClick={() => void setPoints(i, pointsFor(state, i) + 5)}
                       className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
                       aria-label={`Q${item.no} 배점 5점 올리기`}
                     >
@@ -596,7 +624,7 @@ function Console({ opKey }: { opKey: string }) {
                       rule={state.settings.speed?.[String(i)] ?? null}
                       disabled={busy}
                       label={`Q${item.no}`}
-                      onChange={(r) => setSpeed(i, r)}
+                      onChange={(r) => void setSpeed(i, r)}
                     />
                     {speedRuleFor(state, i) ? (
                       <SpeedEditor
@@ -604,7 +632,7 @@ function Console({ opKey }: { opKey: string }) {
                         base={pointsFor(state, i)}
                         disabled={busy}
                         label={`Q${item.no}`}
-                        onChange={(r) => setSpeed(i, r)}
+                        onChange={(r) => void setSpeed(i, r)}
                       />
                     ) : null}
                   </li>
@@ -812,9 +840,9 @@ function SubmissionTable({
     )
     .forEach((r, k) => order.set(r.sub.id, k + 1));
   return (
-    <div className="mt-2 max-h-[560px] overflow-auto">
+    <div className="mt-2">
       <table className="w-full border-collapse text-[13px]" data-testid="submissions">
-        <thead className="sticky top-0 bg-white text-left text-[12px] text-[#8A8A8A]">
+        <thead className="text-left text-[12px] text-[#8A8A8A]">
           <tr className="border-b">
             <th className="py-1.5 pr-1">#</th>
             <th className="py-1.5 pr-1">조</th>
@@ -998,6 +1026,44 @@ function SpeedEditor({
       </span>
     </div>
   );
+}
+
+/**
+ * 화면 안 확인창 — 원격 격리 브라우저(Menlo)에서 window.confirm이 막히거나 자동 처리되는 경우를 피한다.
+ * ask(문구) → 예/아니오 Promise
+ */
+function useInPageConfirm(): [(msg: string) => Promise<boolean>, React.ReactNode] {
+  const [pending, setPending] = useState<{ msg: string; resolve: (v: boolean) => void } | null>(null);
+  const ask = useCallback(
+    (msg: string) =>
+      new Promise<boolean>((resolve) => {
+        setPending((prev) => {
+          prev?.resolve(false);
+          return { msg, resolve };
+        });
+      }),
+    [],
+  );
+  const done = (v: boolean) => {
+    pending?.resolve(v);
+    setPending(null);
+  };
+  const node = pending ? (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal data-testid="confirm-dialog">
+      <div className="w-full max-w-[460px] rounded-2xl bg-white p-5 shadow-xl">
+        <p className="whitespace-pre-line text-[15px] font-semibold leading-6">{pending.msg}</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <button type="button" onClick={() => done(false)} className="h-11 rounded-xl border border-[#DDD] px-5 text-[15px] font-bold" data-testid="confirm-no">
+            아니오
+          </button>
+          <button type="button" onClick={() => done(true)} className="h-11 rounded-xl bg-[#1E1E1E] px-5 text-[15px] font-bold text-white" data-testid="confirm-yes">
+            예, 진행
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+  return [ask, node];
 }
 
 /** 휠이 안 될 때를 위한 스크롤 버튼 (오른쪽 아래 고정) */

@@ -145,7 +145,7 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
     author: '',
     judge: {
       type: 'keywords',
-      all: [['air', '에어'], ['chatgpt', 'gpt', '챗gpt', '챗지피티', '쳇gpt', '쳇지피티', '지피티'], ['시그널', '시그날', 'signal']],
+      all: [['air', '에어'], ['chatgpt', 'gpt', '챗gpt', '챗지피티', '쳇gpt', '쳇지피티', '지피티'], ['시그널', '시그날', '씨그널', 'signal']],
       why: '세 칸 모두 필요 (순서·대소문자 무관)',
     },
   },
@@ -185,7 +185,11 @@ export const QUIZ_KEYS: QuizAnswerKey[] = [
     author: '지니',
     judge: {
       type: 'keywords',
-      all: [['인도네시아', '인니', 'indonesia'], ['태국', '타이', 'thailand'], ['몽골', 'mongolia']],
+      all: [
+        ['인도네시아', '인니', 'indonesia'],
+        ['태국', '타일랜드', 'thailand', 're:(^|[\\s|,·/])(타이|thai)([\\s|,·/]|$)'],
+        ['몽골', '몽고', 'mongolia', 'mongol'],
+      ],
       why: '세 나라 모두 (순서 무관)',
     },
   },
