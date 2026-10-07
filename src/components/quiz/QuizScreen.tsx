@@ -5,7 +5,7 @@
 //   공개: 정답·해설·맞힌 조 + 점수판 · 종료: 최종 순위
 //   정답은 운영자가 공개할 때 quiz_state.reveal로만 받는다.
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import QRCode from 'qrcode';
 import clsx from 'clsx';
 
@@ -29,7 +29,7 @@ import {
 import { QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel } from '@/lib/quizQuestions';
 import type { QuizState } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
-import { playSfx, setAmbient, unlockSound } from '@/lib/quizSound';
+import { SoundToggle, useQuizSound } from './QuizSoundControl';
 
 const W = 1920;
 const H = 1080;
@@ -68,7 +68,7 @@ export function QuizScreen() {
   const ranked = useMemo(() => (board ? rankScores(board) : null), [board]);
 
   const left = state ? remainingMs(state, now, offset) : null;
-  const sound = useScreenSounds(state, left, counts?.submissions ?? null);
+  const sound = useQuizSound(state, left);
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black">
@@ -91,73 +91,8 @@ export function QuizScreen() {
       <div className="absolute inset-x-0 top-0 z-50">
         <NewVersionBanner />
       </div>
-      <SoundToggle on={sound.on} onToggle={sound.toggle} />
+      <SoundToggle on={sound.on} onToggle={sound.toggle} className="absolute left-2 top-2 z-50" />
     </main>
-  );
-}
-
-// ─── 효과음 ─────────────────────────────────────────────────
-
-/** 상태 전환·남은 시간·제출에 맞춰 효과음. 켜기 버튼을 한 번 눌러야 동작(브라우저 자동재생 정책) */
-function useScreenSounds(state: QuizState | null, leftMs: number | null, submissions: number | null) {
-  const [on, setOn] = useState(false);
-  const prev = useRef<{ status: string; index: number; sec: number | null; subs: number | null } | null>(null);
-
-  useEffect(() => {
-    if (!state) return;
-    const sec = state.status === 'open' && leftMs !== null ? Math.ceil(leftMs / 1000) : null;
-    const p = prev.current;
-    prev.current = { status: state.status, index: state.current_index, sec, subs: submissions };
-    if (!on || !p) return;
-    if (state.status !== p.status || state.current_index !== p.index) {
-      setAmbient(state.status === 'open');
-      if (state.status === 'open') playSfx('open');
-      else if (state.status === 'closed' && p.status === 'open') playSfx('timeup');
-      else if (state.status === 'revealed') playSfx(state.reveal?.correct_teams?.length ? 'reveal' : 'revealNone');
-      else if (state.status === 'final') playSfx('final');
-      else if (state.status === 'lobby') playSfx('transition');
-      return;
-    }
-    if (state.status === 'open') {
-      if (submissions !== null && p.subs !== null && submissions > p.subs) playSfx('submit');
-      if (sec !== null && p.sec !== null && sec !== p.sec) {
-        if (sec <= 0 && p.sec > 0) {
-          setAmbient(false);
-          playSfx('timeup');
-        } else if (sec >= 1 && sec <= 5) playSfx('tickHigh');
-        else if (sec >= 6 && sec <= 10) playSfx('tick');
-      }
-    }
-  }, [state, leftMs, submissions, on]);
-
-  const toggle = () => {
-    if (on) {
-      setAmbient(false);
-      setOn(false);
-      return;
-    }
-    if (unlockSound()) {
-      setOn(true);
-      playSfx('transition');
-      if (state?.status === 'open') setAmbient(true);
-    }
-  };
-  return { on, toggle };
-}
-
-function SoundToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={clsx(
-        'absolute left-2 top-2 z-50 rounded-full px-2.5 py-1 text-[12px] font-bold transition-opacity',
-        on ? 'bg-white/10 text-white/40 opacity-40 hover:opacity-100' : 'bg-[#FFE300] text-[#1E1E1E]',
-      )}
-      data-testid="sound-toggle"
-    >
-      {on ? '🔊 효과음 켜짐' : '🔇 효과음 켜기'}
-    </button>
   );
 }
 

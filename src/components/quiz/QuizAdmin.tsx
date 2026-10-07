@@ -48,6 +48,7 @@ import {
   type SpeedTier,
 } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
+import { SoundToggle, useQuizSound } from './QuizSoundControl';
 
 const SNAPSHOT_MS = 1500;
 
@@ -218,6 +219,7 @@ function Console({ opKey }: { opKey: string }) {
   }, []);
 
   const left = remainingMs(state, now, offset);
+  const sound = useQuizSound(state, left);
   const scoreStamp = state ? `${state.status}:${state.current_index}:${state.updated_at}` : '';
   const board = useScoreboard(scoreStamp, 5000);
   const ranked = useMemo(() => (board ? rankScores(board) : null), [board]);
@@ -465,6 +467,7 @@ function Console({ opKey }: { opKey: string }) {
           단축키 <kbd className="rounded border px-1">Space</kbd> 열기/마감 · <kbd className="rounded border px-1">R</kbd> 공개 ·{' '}
           <kbd className="rounded border px-1">N</kbd> 다음
         </span>
+        <SoundToggle on={sound.on} onToggle={sound.toggle} className={sound.on ? '!bg-[#1E1E1E] !text-white !opacity-100' : ''} />
         <a href="/quiz/screen" target="_blank" rel="noreferrer" className="rounded-lg border px-2.5 py-1 text-[12px]">
           스크린 열기 ↗
         </a>
