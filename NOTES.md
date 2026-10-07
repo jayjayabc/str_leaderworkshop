@@ -489,3 +489,69 @@ EDV 보드는 은퇴 예정이지만 **지우지 않았다**. 퀴즈는 같은 N
 - 실제 Supabase(PostgREST·Realtime)에서의 실행 — 스키마는 로컬 Postgres로 검증했지만 Realtime 방송·RPC 왕복은 리허설에서 확인.
 - 250명 실부하 — 스크립트만 준비(위 Free 플랜 한도 주의).
 - 홈(`/`)에 퀴즈 링크는 넣지 않았다(참가자는 QR로 `/quiz`에 들어온다).
+
+---
+
+# Board v1.0 — 리더 토론세션 토의보드 (/board · /board/screen · /board/admin)
+
+10/14 D2 15:50~17:00. 58개 반조(1A~29B)의 기록자가 폰으로 항목별 답을 내면 송출 월에 카드로 쌓이고,
+사회자가 골라 크게 보여 주며, 끝나면 반조 × 항목 CSV로 내보낸다. 퀴즈·코끼리보드 코드와 테이블은 건드리지 않았다
+(바뀐 기존 파일은 `package.json`의 스크립트 한 줄뿐).
+
+## 파일
+
+| 파일 | 역할 |
+|---|---|
+| `supabase/board_v1.0_migration.sql` | 테이블 5개(`board_state/items/teams/participants/submissions`) + 시드 + RLS + RPC. 멱등 |
+| `src/lib/boardSeed.ts` | 질문·항목·힌트·예시·그라운드 룰·58개 반조. **SQL 시드와 같은 값** — 바꾸면 두 곳 다 |
+| `src/lib/boardDb*.ts` | 어댑터(Supabase / 로컬 localStorage+BroadcastChannel, 규칙 동일) |
+| `src/lib/boardClient.ts` · `boardExport.ts` | 훅(상태·시계·월·집계) · CSV/JSON |
+| `src/components/board/BoardPlayer·BoardCast·BoardAdmin.tsx` | 참가자 · 송출 · 운영자 |
+| `scripts/board-sql-smoke.sql` · `board-loadtest.mjs` | SQL 스모크(anon) · 부하 테스트 |
+
+## 데이터 모델·RPC
+
+- `board_state`(1행)만 anon 읽기 + Realtime 방송. 나머지는 RLS로 막고 SECURITY DEFINER 함수로만.
+  `phase` · `current_item`(**그룹** ID: Q1-1…Q1-4, Q2-1, Q2-2, Q2-3) · `item_open` · `opened_groups` · `wall_public` ·
+  `allow_edit` · `timer_ends_at` · `screen_theme` · `sound_on` · `scroll_speed` · `focus`(크게 보기 카드). `replica identity full`.
+- 참가자: `board_join(team, name, device)` — 같은 기기·같은 반조면 같은 참가자, 반조를 바꾸면 예전 기록 삭제 ·
+  `board_my(id)` — 우리 반조 제출 전부(같은 반조 다른 기기 것 포함), 없으면 null → 입장 화면 ·
+  `board_submit(id, {item: body})` — 열린 그룹의 항목만, 필수·1,000자·NFKC·수정 허용을 서버가 판정, 서버 시각 ·
+  `board_counts()` · `board_feed(groups[])` — 송출 중 그룹이거나 월 공개일 때만, 숨김·빈 본문 제외, 이름 없음.
+- 운영자: `board_admin_snapshot` · `board_set_state(key, patch)` · `board_moderate`(hide/unhide/highlight) · `board_reset`(group/all).
+
+## 브리프와 다른 점 (의도)
+
+- **`board_config` 없음** — 운영자 키는 `quiz_config.operator_key`를 그대로 쓴다(`board_check_key`). 키를 두 곳에 두면 엇갈린다.
+  → **quiz_schema.sql이 먼저 적용돼 있어야 한다.**
+- **송출 월은 Realtime이 아니라 `board_feed` 1초 폴링**. 제출 테이블을 Realtime에 열면 anon 전체에 방송되므로(퀴즈와 같은 이유).
+  송출 1대 × 1 req/s라 부하는 없다. 운영자 스냅샷은 2초 폴링.
+- Q2-3a·Q2-3b는 그룹 `Q2-3` 하나로 함께 제출(송출 카드도 한 장에 두 줄).
+- 선택 항목(Q1-4, Q2-3b)을 비우고 내면 빈 행으로 저장 → 현황표 '비움', 월·와이드 CSV에는 안 나옴.
+- 항목을 열 때 타이머 자동 시작(질문 ① 3분 · 질문 ② 6분, 운영 화면에서 끌 수 있음).
+- 카드가 24장을 넘으면 송출 카드 본문을 7줄로 자른다(전문은 크게 보기).
+- `expected_size`는 모두 4. 7명 테이블 6개가 확정되면 SQL로 해당 B 반조만 3으로(정보용, 동작에 영향 없음).
+
+## 장애 대비
+
+- 참가자 RPC 8초 시간 제한 → 실패하면 입력을 폰에 임시 저장(`eb:board:outbox`)하고 '다시 보내기' + 온라인 복귀·상태 변경·5초마다 자동 재전송.
+  보내지 못한 채 항목이 닫히면 폰에 "종이 카드로 옮겨 달라"는 안내와 본문을 보여 준다.
+- 입력 중인 글은 반조·항목별로 임시 저장(새로고침·잠금 후 복원). 반조 바꾸기·전체 초기화 때 지운다.
+- 운영 화면 Space 연타·키 반복은 한 번만 처리(동기 잠금).
+
+## 검증
+
+- SQL: 로컬 PostgreSQL 16에 `quiz_schema.sql` → 마이그레이션 **두 번** 적용(멱등) → `scripts/board-sql-smoke.sql`을 **anon 권한**으로 실행해 전부 통과
+  (직접 읽기/쓰기 차단 · 키 검사 · 대기 중 제출 거부 · 다른 그룹 거부 · 필수/길이 · NFKC · 덮어쓰기 1장 · 수정 허용 off 거부 ·
+  닫힘 후 거부 · Q1-4 빈 제출 · Q2-3 a 필수 · 숨김/크게 보기 해제 · 월 공개 · 휴식 시 자동 닫힘 · 타이머 연장 · 유령 반조 · 초기화).
+- Playwright E2E(로컬 모드, 운영 1 + 송출 1920×1080 1 + 폰 4대): **38/38 통과, 페이지 오류 0** — 브리프 §6 항목 전부
+  (입장 3/58 · Q1-1 열기 후 폰 입력칸 ≤60ms · 제출 → 월 카드 ≤0.9초 · 재제출 1장 · 수정 잠금 · Q2-3 두 칸·a 필수 ·
+  크게 보기/Esc · 숨김 → 월·와이드 CSV 제외 · 롱 CSV hidden=true · 와이드 58행×12열·BOM·임원 Y · 폰 월 공개 · 종료 · 전체 초기화 → 폰 입장 화면).
+- 부하 테스트 `--local-dry-run`(60명): 접속 60/60, 제출 실패 0, **missing 0, 월 갱신 p95 1.0초**.
+- `npm run lint` · `typecheck` · `build` 무오류, `npm run test:quiz` 286/286(퀴즈 회귀 없음).
+- 독립 검수(별도 에이전트) 지적 P0 2건·P1 5건 반영.
+
+## 실제 Supabase에서 아직 확인 안 한 것
+
+- Realtime 방송·RPC 왕복·8초 시간 제한 동작 → 마이그레이션 적용 후 `npm run board:loadtest -- --key <키> --cleanup`으로 확인.
+- Free 플랜 Realtime 200 한도: 참가 60 + 송출·운영 2라 여유. 퀴즈(250명)와 같은 날이라도 시간대가 달라 겹치지 않는다.
