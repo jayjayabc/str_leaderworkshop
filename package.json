@@ -9,7 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:quiz": "node scripts/quiz-judge-test.mjs",
-    "quiz:loadtest": "node scripts/quiz-loadtest.mjs"
+    "quiz:loadtest": "node scripts/quiz-loadtest.mjs",
+    "board:loadtest": "node scripts/board-loadtest.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
