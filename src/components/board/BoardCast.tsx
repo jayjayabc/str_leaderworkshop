@@ -35,7 +35,12 @@ function getScale(): number {
 }
 
 /** 참가 주소 — NEXT_PUBLIC_BOARD_URL(짧은 주소)이 있으면 그것, 없으면 이 사이트의 /board */
-const joinUrl = cachedSnapshot(() => process.env.NEXT_PUBLIC_BOARD_URL || `${window.location.origin}/board`);
+// 짧은 주소(lw2026-board…/screen)로 열었으면 QR도 짧은 주소 그대로 (Sites v1.0)
+const joinUrl = cachedSnapshot(
+  () =>
+    process.env.NEXT_PUBLIC_BOARD_URL ||
+    (window.location.pathname.startsWith('/board') ? `${window.location.origin}/board` : window.location.origin),
+);
 
 const THEMES = {
   dark: {

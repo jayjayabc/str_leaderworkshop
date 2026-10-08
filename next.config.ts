@@ -17,17 +17,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseKey,
   },
-  // 퀴즈 전용 주소(호스트에 'quiz'가 들어간 도메인)로 들어오면 첫 화면을 바로 퀴즈 참가 페이지로
-  async redirects() {
-    return [
-      {
-        source: "/",
-        has: [{ type: "host", value: ".*quiz.*" }],
-        destination: "/quiz",
-        permanent: false,
-      },
-    ];
-  },
+  // 퀴즈·토의보드 전용 주소 처리는 src/proxy.ts 로 옮겼다 (Sites v1.0).
+  //   호스트에 'quiz'가 들어간 주소는 예전처럼 첫 화면이 퀴즈 참가 페이지다(이제 /screen·/admin 짧은 경로도 된다).
 };
 
 export default nextConfig;
