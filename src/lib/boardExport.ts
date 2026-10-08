@@ -9,7 +9,9 @@ import type { BoardAdminSnapshot, BoardAdminSubmission } from './boardTypes';
 const BOM = '﻿';
 
 function cell(v: string | number | boolean | null | undefined): string {
-  const s = v === null || v === undefined ? '' : String(v);
+  let s = v === null || v === undefined ? '' : String(v);
+  // 엑셀 수식 주입 방지 — 참가자 글이 =, +, -, @, 탭으로 시작하면 앞에 ' 를 붙여 글자로만 열리게
+  if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

@@ -96,7 +96,7 @@ export function toCsvRows(
 /** CSV — 엑셀에서 한글이 깨지지 않도록 UTF-8 BOM을 붙인다 */
 export function exportCsv(snapshot: BoardSnapshot): void {
   const rows = toCsvRows(snapshot.keywords, snapshot.placements, snapshot.votes, snapshot.notes);
-  const csv = Papa.unparse(rows, {
+  const csv = Papa.unparse(rows, { escapeFormulae: true,
     columns: [
       'id',
       'text',
@@ -201,7 +201,7 @@ export function toAllCsvRows(
 
 /** 모든 조를 한 CSV로 (UTF-8 BOM) */
 export function exportAllCsv(entries: { teamNo: number | null; snapshot: BoardSnapshot }[]): void {
-  const csv = Papa.unparse(toAllCsvRows(entries), { columns: [...ALL_CSV_COLUMNS] });
+  const csv = Papa.unparse(toAllCsvRows(entries), { escapeFormulae: true, columns: [...ALL_CSV_COLUMNS] });
   saveBlob(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }), allExportName('csv'));
 }
 
@@ -225,7 +225,7 @@ export function exportAllJson(entries: { teamNo: number | null; snapshot: BoardS
 export function exportLinksCsv(rows: { team: number; url: string }[]): void {
   const csv = Papa.unparse(
     rows.map((r) => ({ 조: `${r.team}조`, URL: r.url })),
-    { columns: ['조', 'URL'] },
+    { escapeFormulae: true, columns: ['조', 'URL'] },
   );
   saveBlob(
     new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }),
@@ -246,6 +246,6 @@ export function downloadCsv(
   columns: string[],
   filename: string,
 ): void {
-  const csv = Papa.unparse(rows, { columns });
+  const csv = Papa.unparse(rows, { escapeFormulae: true, columns });
   saveBlob(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }), filename);
 }

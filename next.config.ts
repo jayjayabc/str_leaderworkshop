@@ -17,6 +17,19 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "",
     NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseKey,
   },
+  // 보안 헤더 — 다른 사이트가 운영 화면을 iframe으로 감싸 클릭을 가로채지 못하게 (Sec v1.0)
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
   // 퀴즈·토의보드 전용 주소 처리는 src/proxy.ts 로 옮겼다 (Sites v1.0).
   //   호스트에 'quiz'가 들어간 주소는 예전처럼 첫 화면이 퀴즈 참가 페이지다(이제 /screen·/admin 짧은 경로도 된다).
 };

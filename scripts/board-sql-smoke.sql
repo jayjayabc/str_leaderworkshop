@@ -1,5 +1,5 @@
 -- 토의보드 SQL 스모크 (Board v1.0) — 로컬 Postgres에서 anon 권한으로 함수 동작을 확인한다.
---   전제: quiz_schema.sql · board_v1.0_migration.sql 적용, quiz_config.operator_key = 'k'
+--   전제: quiz_schema.sql · board_v1.0 · sec_v1.0 적용, quiz_config.operator_key = 'kkkkkkkkkkkkkkkk'(16자)
 --   실행: psql -v ON_ERROR_STOP=1 -f scripts/board-sql-smoke.sql   (마지막에 'BOARD SMOKE OK')
 --   ⚠ 운영 DB에서 돌리지 말 것 — 마지막에 전체 초기화를 한다.
 
@@ -13,17 +13,17 @@ declare
   a uuid; b uuid; c uuid; a2 uuid; j json; ok boolean; n int; ts timestamptz;
   procedure_expect_fail text;
 begin
-  perform board_reset('k', 'all');
+  perform board_reset('kkkkkkkkkkkkkkkk', 'all');
 
   -- 직접 접근 차단
   begin perform 1 from board_submissions; raise exception 'FAIL direct read'; exception when insufficient_privilege then null; end;
   begin insert into board_state (id) values (2); raise exception 'FAIL direct write'; exception when insufficient_privilege then null; end;
-  begin perform board_check_key('k'); raise exception 'FAIL check_key callable'; exception when insufficient_privilege then null; end;
+  begin perform board_check_key('kkkkkkkkkkkkkkkk'); raise exception 'FAIL check_key callable'; exception when insufficient_privilege then null; end;
 
   -- 입장
   a := (board_join('12A', '', 'dev-a') ->> 'id')::uuid;
   b := (board_join('12B', '  김기록 ', 'dev-b') ->> 'id')::uuid;
-  c := (board_join('3A', null, null) ->> 'id')::uuid;
+  c := (board_join('3A', null, 'dev-c3') ->> 'id')::uuid;
   a2 := (board_join('12A', '', 'dev-a') ->> 'id')::uuid;
   if a <> a2 then raise exception 'FAIL same device should reuse participant'; end if;
   begin perform board_join('30A', '', 'x'); raise exception 'FAIL unknown team'; exception when others then
@@ -33,10 +33,10 @@ begin
   perform board_join('5B', '', 'dev-c');
   perform board_join('6A', '', 'dev-c');
   if (board_counts() ->> 'joined')::int <> 4 then raise exception 'FAIL ghost team: joined=%', board_counts() ->> 'joined'; end if;
-  perform board_reset('k', 'all');
+  perform board_reset('kkkkkkkkkkkkkkkk', 'all');
   a := (board_join('12A', '', 'dev-a') ->> 'id')::uuid;
   b := (board_join('12B', '  김기록 ', 'dev-b') ->> 'id')::uuid;
-  c := (board_join('3A', null, null) ->> 'id')::uuid;
+  c := (board_join('3A', null, 'dev-c3') ->> 'id')::uuid;
   if (board_my(a) -> 'participant' ->> 'name') <> '기록자' then raise exception 'FAIL default name'; end if;
 
   -- 대기 중 제출 거부
@@ -50,7 +50,7 @@ begin
     if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
 
   -- Q1-1 열기
-  perform board_set_state('k', '{"phase":"item_open","current_item":"Q1-1","item_open":true,"allow_edit":true,"timer_minutes":3}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"phase":"item_open","current_item":"Q1-1","item_open":true,"allow_edit":true,"timer_minutes":3}');
   if (select question from board_state) <> 1 then raise exception 'FAIL question derived'; end if;
   if not exists (select 1 from board_state where 'Q1-1' = any(opened_groups)) then raise exception 'FAIL opened_groups'; end if;
   if (select timer_ends_at from board_state) is null then raise exception 'FAIL timer'; end if;
@@ -83,29 +83,29 @@ begin
   if (board_my(a) -> 'submissions' -> 0 ->> 'edited_count')::int <> 1 then raise exception 'FAIL edited_count'; end if;
 
   -- 수정 허용 끄면 두 번째 제출 거부 (같은 반조의 다른 기기도)
-  perform board_set_state('k', '{"allow_edit":false}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"allow_edit":false}');
   a2 := (board_join('12A', '', 'dev-a-2') ->> 'id')::uuid;
   begin perform board_submit(a2, '{"Q1-1":"또"}'); raise exception 'FAIL duplicate'; exception when others then
     if sqlerrm not like 'BOARD_DUPLICATE%' then raise; end if; end;
   -- 같은 반조의 두 번째 기기는 우리 반조 제출을 본다
   if (board_my(a2) -> 'submissions' -> 0 ->> 'body') <> '수정본' then raise exception 'FAIL team shared view'; end if;
-  perform board_set_state('k', '{"allow_edit":true}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"allow_edit":true}');
 
   -- 닫기 → 제출 거부, 월(지금 그룹)은 계속 읽힌다
-  perform board_set_state('k', '{"item_open":false}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"item_open":false}');
   begin perform board_submit(c, '{"Q1-1":"늦음"}'); raise exception 'FAIL closed'; exception when others then
     if sqlerrm not like 'BOARD_CLOSED%' then raise; end if; end;
   if json_array_length(board_feed(array['Q1-1'])) <> 2 then raise exception 'FAIL feed after close'; end if;
 
   -- Q1-4 (선택) 빈 제출 허용 → 빈 본문 저장, 월에는 안 나옴
-  perform board_set_state('k', '{"current_item":"Q1-4","item_open":true}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"current_item":"Q1-4","item_open":true}');
   perform board_submit(c, '{"Q1-4":""}');
   perform board_submit(b, '{}');
   if json_array_length(board_feed(array['Q1-4'])) <> 0 then raise exception 'FAIL blank in feed'; end if;
   if (board_counts() ->> 'submitted')::int <> 2 then raise exception 'FAIL blank counted as submitted'; end if;
 
   -- Q2-3: 두 칸, a 필수
-  perform board_set_state('k', '{"current_item":"Q2-3","item_open":true}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"current_item":"Q2-3","item_open":true}');
   if (select question from board_state) <> 2 then raise exception 'FAIL question 2'; end if;
   begin perform board_submit(a, '{"Q2-3b":"가이드"}'); raise exception 'FAIL Q2-3a required'; exception when others then
     if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
@@ -113,21 +113,21 @@ begin
   if json_array_length(board_feed(array['Q2-3'])) <> 2 then raise exception 'FAIL Q2-3 two rows'; end if;
 
   -- 숨김 → 월에서 빠짐, 크게 보기 해제 / 하이라이트
-  perform board_set_state('k', jsonb_build_object('phase','wall','focus',
+  perform board_set_state('kkkkkkkkkkkkkkkk', jsonb_build_object('phase','wall','focus',
     jsonb_build_object('team_id','12A','group','Q2-3')));
-  perform board_moderate('k', (select (e ->> 'id')::uuid from json_array_elements(board_feed(array['Q2-3'])) e
+  perform board_moderate('kkkkkkkkkkkkkkkk', (select (e ->> 'id')::uuid from json_array_elements(board_feed(array['Q2-3'])) e
                                where e ->> 'item_id' = 'Q2-3a'), 'hide', '중복');
   if json_array_length(board_feed(array['Q2-3'])) <> 1 then raise exception 'FAIL hide'; end if;
   if (select focus from board_state) is not null then raise exception 'FAIL focus cleared on hide'; end if;
-  begin perform board_moderate('k', gen_random_uuid(), 'boom', null); raise exception 'FAIL bad action'; exception when others then
+  begin perform board_moderate('kkkkkkkkkkkkkkkk', gen_random_uuid(), 'boom', null); raise exception 'FAIL bad action'; exception when others then
     if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
 
   -- 월 공개 → 다른 그룹도 읽힘
-  perform board_set_state('k', '{"wall_public":true}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"wall_public":true}');
   if json_array_length(board_feed(array['Q1-1','Q1-2','Q1-3','Q1-4'])) <> 2 then raise exception 'FAIL wall public'; end if;
 
   -- 운영자 스냅샷: 숨김 카드 포함 전부
-  j := board_admin_snapshot('k');
+  j := board_admin_snapshot('kkkkkkkkkkkkkkkk');
   if json_array_length(j -> 'teams') <> 58 then raise exception 'FAIL snapshot teams'; end if;
   select count(*) into n from json_array_elements(j -> 'submissions') e where (e ->> 'hidden')::boolean;
   if n <> 1 then raise exception 'FAIL snapshot hidden'; end if;
@@ -135,18 +135,18 @@ begin
   if n <> 8 then raise exception 'FAIL exec teams %', n; end if;
 
   -- 휴식 단계로 가면 입력은 자동으로 닫힌다
-  perform board_set_state('k', '{"phase":"break"}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"phase":"break"}');
   if (select item_open from board_state) then raise exception 'FAIL item_open after break'; end if;
   -- 타이머 연장
-  perform board_set_state('k', '{"timer_minutes":0}');
-  perform board_set_state('k', '{"timer_extend_sec":60}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"timer_minutes":0}');
+  perform board_set_state('kkkkkkkkkkkkkkkk', '{"timer_extend_sec":60}');
   if (select timer_ends_at from board_state) < now() + interval '55 seconds' then raise exception 'FAIL extend'; end if;
 
   -- 그룹 초기화 / 전체 초기화
-  perform board_reset('k', 'group', 'Q2-3');
-  if exists (select 1 from json_array_elements(board_admin_snapshot('k') -> 'submissions') e where e ->> 'item_id' like 'Q2-3%') then
+  perform board_reset('kkkkkkkkkkkkkkkk', 'group', 'Q2-3');
+  if exists (select 1 from json_array_elements(board_admin_snapshot('kkkkkkkkkkkkkkkk') -> 'submissions') e where e ->> 'item_id' like 'Q2-3%') then
     raise exception 'FAIL group reset'; end if;
-  perform board_reset('k', 'all');
+  perform board_reset('kkkkkkkkkkkkkkkk', 'all');
   if (board_counts() ->> 'joined')::int <> 0 then raise exception 'FAIL reset all'; end if;
   if board_my(a) is not null then raise exception 'FAIL participant gone'; end if;
   if (select phase from board_state) <> 'waiting' then raise exception 'FAIL phase reset'; end if;
@@ -154,4 +154,20 @@ begin
   raise notice 'BOARD SMOKE OK';
 end $$;
 
+reset role;
+
+-- Sec v1.0 확인: 기기 표식 없는 입장 거부 · 제어/방향 문자 제거 · 반조당 20대 제한
+set role anon;
+do $$
+declare i int;
+begin
+  begin perform board_join('3A', '', null); raise exception 'FAIL no-device'; exception when others then
+    if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
+  for i in 1..20 loop perform board_join('7B', '', 'cap-' || i); end loop;
+  begin perform board_join('7B', '', 'cap-21'); raise exception 'FAIL cap'; exception when others then
+    if sqlerrm not like 'BOARD_FULL%' then raise; end if; end;
+  perform board_join('7B', '', 'cap-5');   -- 이미 들어온 기기의 재입장은 된다
+  perform board_reset('kkkkkkkkkkkkkkkk', 'all');
+  raise notice 'SEC SMOKE OK';
+end $$;
 reset role;
