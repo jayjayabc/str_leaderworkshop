@@ -1,12 +1,12 @@
 'use client';
 
-// 토의보드 클라이언트 훅 (Board v1.0) — 참가자·송출·운영자 세 화면이 함께 쓴다.
+// 토의보드 클라이언트 훅 (Board v1.1) — 참가자·송출·운영자 세 화면이 함께 쓴다.
 
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { getBoardDb } from './boardDb';
-import type { BoardGroupId } from './boardSeed';
-import type { BoardCard, BoardCounts, BoardState } from './boardTypes';
+import type { BoardGroup, BoardGroupId } from './boardSeed';
+import type { BoardCard, BoardCounts, BoardRankRow, BoardState } from './boardTypes';
 
 /** board_state 구독 (Realtime/BroadcastChannel + 3초 폴링). 첫 값 전에는 null */
 export function useBoardState(): BoardState | null {
@@ -77,6 +77,14 @@ export function timerLeft(state: BoardState | null, now: number, offset: number)
   return Math.max(0, new Date(state.timer_ends_at).getTime() - (now + offset));
 }
 
+/** 열린 지 얼마나 됐는지 — '3분 05초' (운영자 참고용) */
+export function fmtElapsed(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}분 ${String(s).padStart(2, '0')}초`;
+}
+
 export function fmtClock(ms: number): string {
   const total = Math.ceil(ms / 1000);
   const m = Math.floor(total / 60);
@@ -85,7 +93,7 @@ export function fmtClock(ms: number): string {
 }
 
 /**
- * 월 카드 — groups가 바뀌거나 stamp(상태 updated_at)가 바뀌면 바로, 그 밖에는 intervalMs마다 읽는다.
+ * 모아보기 카드 — groups가 바뀌거나 stamp(상태 updated_at)가 바뀌면 바로, 그 밖에는 intervalMs마다 읽는다.
  * enabled=false면 읽지 않고 null. 실패하면 마지막 값을 유지한다.
  */
 export function useBoardFeed(groups: BoardGroupId[], enabled: boolean, intervalMs: number, stamp = ''): BoardCard[] | null {
@@ -113,6 +121,32 @@ export function useBoardFeed(groups: BoardGroupId[], enabled: boolean, intervalM
   return res.cards;
 }
 
+/**
+ * 투표 순위 — 순위 공개(vote_reveal) 중일 때만 읽는다. 실패하면(공개 전·대상 아님) 마지막 값을 유지하지 않고 null.
+ */
+export function useBoardRanking(group: BoardGroupId | null, enabled: boolean, intervalMs: number, stamp = ''): BoardRankRow[] | null {
+  const [res, setRes] = useState<{ group: string; rows: BoardRankRow[] } | null>(null);
+  useEffect(() => {
+    if (!enabled || !group) return;
+    let cancelled = false;
+    const pull = () =>
+      getBoardDb()
+        .ranking(group)
+        .then((rows) => {
+          if (!cancelled) setRes({ group, rows });
+        })
+        .catch(() => undefined);
+    void pull();
+    const t = setInterval(() => void pull(), intervalMs);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [group, enabled, intervalMs, stamp]);
+  if (!enabled || !res || res.group !== group) return null;
+  return res.rows;
+}
+
 export function useBoardCounts(intervalMs: number, stamp = ''): BoardCounts | null {
   const [counts, setCounts] = useState<BoardCounts | null>(null);
   useEffect(() => {
@@ -136,10 +170,34 @@ export function useBoardCounts(intervalMs: number, stamp = ''): BoardCounts | nu
 
 export const PHASE_LABEL: Record<BoardState['phase'], string> = {
   waiting: '대기',
-  q1_intro: '질문 ① 소개',
+  q1_intro: '질문 1 소개',
   item_open: '항목',
-  wall: '월 보기',
+  wall: '모아보기',
   break: '휴식',
-  q2_intro: '질문 ② 소개',
+  q2_intro: '질문 2 소개',
   ended: '종료',
 };
+
+/** 카드 키별로 한 장 — Q2-3처럼 두 칸인 그룹은 한 카드에 두 줄 (같은 반조의 2-3a·2-3b 는 같은 card) */
+export interface TeamCard {
+  card: string;
+  updated_at: string;
+  highlighted: boolean;
+  parts: { item_id: string; body: string }[];
+}
+
+export function toTeamCards(cards: BoardCard[], group: BoardGroup): TeamCard[] {
+  const by = new Map<string, TeamCard>();
+  for (const c of cards) {
+    if (!group.items.some((i) => i.id === c.item_id)) continue;
+    const t = by.get(c.card) ?? { card: c.card, updated_at: c.updated_at, highlighted: false, parts: [] };
+    t.parts.push({ item_id: c.item_id, body: c.body });
+    if (c.updated_at > t.updated_at) t.updated_at = c.updated_at;
+    t.highlighted ||= c.highlighted;
+    by.set(c.card, t);
+  }
+  const order = (id: string) => group.items.findIndex((i) => i.id === id);
+  return [...by.values()]
+    .map((t) => ({ ...t, parts: t.parts.sort((a, b) => order(a.item_id) - order(b.item_id)) }))
+    .sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.card.localeCompare(b.card));
+}

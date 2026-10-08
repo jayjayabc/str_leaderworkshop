@@ -1,26 +1,30 @@
 'use client';
 
-// 토의보드 송출 화면 /board/screen (Board v1.0) — 프로젝터 16:9 (1920×1080 기준, 창 크기에 맞춰 축소·확대)
-//   대기: QR + 입장 반조 수 + 그라운드 룰 · 질문 소개 · 항목 열림/월: 흐르는 카드 그리드 + 제출 현황·타이머
-//   크게 보기: 카드 1장을 중앙에 · 휴식 / 종료
-//   월은 board_feed 를 1초마다 읽는다(제출 테이블은 방송하지 않으므로). 이름은 어디에도 없다 — 반조 ID만.
+// 토의보드 송출 화면 /board/screen (Board v1.1) — 프로젝터 16:9 (1920×1080 기준, 창 크기에 맞춰 축소·확대)
+//   대기: QR + 입장 반조 수 + 그라운드 룰 · 질문 소개 · 항목 열림/모아보기: 흐르는 카드 그리드 + 제출 현황
+//   모아보기: 질문별 탭 바(카드 수) · 투표 중이면 배너+QR · 순위 공개면 순위 화면 · 크게 보기: 카드 1장을 중앙에
+//   카드는 board_feed 를 1초마다 읽는다(제출 테이블은 방송하지 않으므로).
+//   반조(작성 조) 정보는 어디에도 없다 — 배지도 이름도 타이머도 없다(card 키만 받는다).
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import QRCode from 'qrcode';
 import clsx from 'clsx';
 
 import { cachedSnapshot, useClientValue } from '@/lib/clientStore';
-import { fmtClock, timerLeft, useBoardCounts, useBoardFeed, useBoardState, useNow, useServerOffset } from '@/lib/boardClient';
+import { toTeamCards, useBoardCounts, useBoardFeed, useBoardRanking, useBoardState, type TeamCard } from '@/lib/boardClient';
 import {
   BOARD_GROUND_RULES,
   BOARD_QUESTIONS,
   BOARD_TEAM_COUNT,
+  BOARD_GROUPS,
   BOARD_TOPIC,
   groupById,
+  groupLabel,
   itemById,
+  questionLabel,
   type BoardGroup,
 } from '@/lib/boardSeed';
-import type { BoardCard, BoardFocus, BoardState } from '@/lib/boardTypes';
+import type { BoardCounts, BoardFocus, BoardRankRow, BoardState } from '@/lib/boardTypes';
 import { NewVersionBanner } from '@/components/quiz/NewVersionBanner';
 
 const W = 1920;
@@ -67,30 +71,6 @@ const THEMES = {
   },
 } as const;
 
-/** 반조별로 한 장 — Q2-3처럼 두 칸인 그룹은 한 카드에 두 줄 */
-export interface TeamCard {
-  team_id: string;
-  updated_at: string;
-  highlighted: boolean;
-  parts: { item_id: string; body: string }[];
-}
-
-export function toTeamCards(cards: BoardCard[], group: BoardGroup): TeamCard[] {
-  const by = new Map<string, TeamCard>();
-  for (const c of cards) {
-    if (!group.items.some((i) => i.id === c.item_id)) continue;
-    const t = by.get(c.team_id) ?? { team_id: c.team_id, updated_at: c.updated_at, highlighted: false, parts: [] };
-    t.parts.push({ item_id: c.item_id, body: c.body });
-    if (c.updated_at > t.updated_at) t.updated_at = c.updated_at;
-    t.highlighted ||= c.highlighted;
-    by.set(c.team_id, t);
-  }
-  const order = (id: string) => group.items.findIndex((i) => i.id === id);
-  return [...by.values()]
-    .map((t) => ({ ...t, parts: t.parts.sort((a, b) => order(a.item_id) - order(b.item_id)) }))
-    .sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.team_id.localeCompare(b.team_id));
-}
-
 function layoutFor(n: number): { cols: number; font: number } {
   if (n <= 4) return { cols: 2, font: 36 };
   if (n <= 9) return { cols: 3, font: 30 };
@@ -99,13 +79,13 @@ function layoutFor(n: number): { cols: number; font: number } {
   return { cols: 5, font: 20 };
 }
 
+
 export function BoardCast() {
   const scale = useSyncExternalStore(subscribeResize, getScale, () => 1);
   const state = useBoardState();
-  const offset = useServerOffset();
-  const now = useNow();
   const url = useClientValue(joinUrl.get, '');
-  const counts = useBoardCounts(2000, state ? `${state.phase}:${state.current_item}` : '');
+  const stamp = state ? `${state.phase}:${state.current_item}:${state.vote_open}` : '';
+  const counts = useBoardCounts(2000, stamp);
   const [qr, setQr] = useState('');
 
   useEffect(() => {
@@ -120,9 +100,12 @@ export function BoardCast() {
   const feed = useBoardFeed(group ? [group.id] : [], onWall, 1000, state?.updated_at ?? '');
   const cards = useMemo(() => (feed && group ? toTeamCards(feed, group) : []), [feed, group]);
   const sound = useChime(state, cards.length);
+  // 투표 대상 그룹이고 순위 공개면 순위 화면
+  const voteTarget = Boolean(state && group && state.vote_items.includes(group.id));
+  const showRanking = Boolean(state && voteTarget && state.vote_reveal && onWall);
+  const ranking = useBoardRanking(group?.id ?? null, showRanking, 1500, state?.updated_at ?? '');
 
   const theme = THEMES[state?.screen_theme ?? 'dark'];
-  const left = timerLeft(state, now, offset);
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black">
@@ -146,11 +129,19 @@ export function BoardCast() {
         ) : state.phase === 'q1_intro' || state.phase === 'q2_intro' ? (
           <Intro no={state.phase === 'q1_intro' ? 1 : 2} />
         ) : state.phase === 'break' ? (
-          <Center title="휴식" sub={left !== null ? `${fmtClock(left)} 뒤 질문 ②` : '16:30 질문 ②로 다시 모입니다'} />
+          <Center title="휴식" sub="잠시 쉬어 갑니다" />
         ) : state.phase === 'ended' ? (
           <Center title="수고하셨습니다" sub={`${counts?.joined ?? 0}개 반조가 함께했습니다 · ${BOARD_TOPIC}`} />
         ) : group ? (
-          <Wall state={state} group={group} cards={cards} loaded={feed !== null} submitted={counts?.submitted ?? 0} left={left} />
+          <Wall
+            state={state}
+            group={group}
+            cards={cards}
+            loaded={feed !== null}
+            counts={counts}
+            qr={qr}
+            ranking={showRanking ? ranking : undefined}
+          />
         ) : (
           <Center title={BOARD_TOPIC} sub="" />
         )}
@@ -200,7 +191,7 @@ function Waiting({ qr, url, joined }: { qr: string; url: string; joined: number 
           <div className="h-[440px] w-[440px] rounded-[28px] bg-white p-5" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="mt-5 text-[30px] font-extrabold tracking-wide">{url.replace(/^https?:\/\//, '')}</p>
           <p className="mt-1 text-[22px]" style={{ color: 'var(--sub)' }}>
-            반조 기록자 1명이 폰으로 입장
+            반조 기록자 1명이 폰으로 입장 (나머지는 관전자로)
           </p>
         </div>
         <div className="flex flex-1 flex-col">
@@ -214,14 +205,14 @@ function Waiting({ qr, url, joined }: { qr: string; url: string; joined: number 
               / {BOARD_TEAM_COUNT}
             </span>
           </p>
-          <ol className="mt-14 flex flex-col gap-5">
-            {BOARD_GROUND_RULES.map((r, i) => (
+          <ul className="mt-14 flex flex-col gap-5">
+            {BOARD_GROUND_RULES.map((r) => (
               <li key={r} className="flex gap-4 text-[32px] font-bold leading-[1.4]">
-                <span style={{ color: 'var(--accent)' }}>{'①②③'[i]}</span>
+                <span style={{ color: 'var(--accent)' }}>●</span>
                 <span>{r}</span>
               </li>
             ))}
-          </ol>
+          </ul>
         </div>
       </div>
     </div>
@@ -235,24 +226,40 @@ function Intro({ no }: { no: 1 | 2 }) {
       <Header />
       <div className="flex flex-1 flex-col justify-center px-[120px] pb-[80px]">
         <p className="qz-fade text-[34px] font-extrabold" style={{ color: 'var(--accent)' }}>
-          질문 {no === 1 ? '①' : '②'} · {q.label}
+          {questionLabel(no)}
         </p>
         <h1 className="qz-fade mt-6 text-[60px] font-black leading-[1.3]" style={{ wordBreak: 'keep-all' }}>
           {q.text}
         </h1>
         <p className="mt-14 text-[26px] font-bold" style={{ color: 'var(--sub)' }}>
-          {no === 1 ? `생각의 틀 — ${q.frameLabel}` : '아젠다 — 하나씩, 6분씩'}
+          {no === 1 ? `생각의 틀 — ${q.frameLabel}` : q.frameLabel}
         </p>
-        <div className={clsx('qz-pop mt-4 grid gap-5', no === 1 ? 'grid-cols-4' : 'grid-cols-3')}>
-          {q.frame.map((f, i) => (
-            <div key={f} className="rounded-[24px] px-8 py-8" style={{ background: 'var(--panel)' }}>
-              <p className="text-[24px] font-bold" style={{ color: 'var(--faint)' }}>
-                {no === 1 ? `영역 ${i + 1}` : `②-${i + 1}`}
-              </p>
-              <p className="mt-2 text-[42px] font-extrabold">{f}</p>
-            </div>
-          ))}
-        </div>
+        {no === 1 ? (
+          // 번호 없는 칩
+          <div className="qz-pop mt-4 grid grid-cols-4 gap-5">
+            {q.frame.map((f) => (
+              <div key={f} className="rounded-[24px] px-8 py-10" style={{ background: 'var(--panel)' }}>
+                <p className="text-[42px] font-extrabold">{f}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // 막힌 것 → 일하는 방식 → 당장 할 것 (화살표 흐름)
+          <div className="qz-pop mt-4 flex items-center gap-5">
+            {q.frame.map((f, i) => (
+              <div key={f} className="contents">
+                {i > 0 ? (
+                  <span className="text-[56px] font-black" style={{ color: 'var(--faint)' }} aria-hidden="true">
+                    →
+                  </span>
+                ) : null}
+                <div className="flex-1 rounded-[24px] px-8 py-10 text-center" style={{ background: 'var(--panel)' }}>
+                  <p className="text-[42px] font-extrabold">{f}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -265,7 +272,7 @@ function Center({ title, sub }: { title: string; sub: string }) {
       <div className="flex flex-1 flex-col items-center justify-center pb-[96px]">
         <p className="qz-fade text-[120px] font-black">{title}</p>
         {sub ? (
-          <p className="mt-6 text-[40px] font-bold tabular-nums" style={{ color: 'var(--sub)' }}>
+          <p className="mt-6 text-[40px] font-bold" style={{ color: 'var(--sub)' }}>
             {sub}
           </p>
         ) : null}
@@ -279,71 +286,126 @@ function Wall({
   group,
   cards,
   loaded,
-  submitted,
-  left,
+  counts,
+  qr,
+  ranking,
 }: {
   state: BoardState;
   group: BoardGroup;
   cards: TeamCard[];
   loaded: boolean;
-  submitted: number;
-  left: number | null;
+  counts: BoardCounts | null;
+  qr: string;
+  /** undefined = 순위 화면이 아님 · null = 읽는 중 */
+  ranking: BoardRankRow[] | null | undefined;
 }) {
   const open = state.phase === 'item_open' && state.item_open;
+  const onWallPhase = state.phase === 'wall';
   const { cols, font } = layoutFor(cards.length);
   const q = BOARD_QUESTIONS[group.question];
-  const scroller = useAutoScroll(state.scroll_speed, cards.length);
+  const voting = state.vote_items.includes(group.id) && state.vote_open && ranking === undefined;
+  const scroller = useAutoScroll(state.scroll_speed, ranking ? ranking.length : cards.length);
+  const tabs = BOARD_GROUPS.filter((g) => g.question === group.question);
 
   return (
     <div className="flex h-full flex-col">
       <Header
         right={
-          <>
-            {left !== null && open ? (
-              <span
-                className={clsx('rounded-2xl px-5 py-1.5 text-[40px] font-black tabular-nums', left <= 60_000 && 'qz-pulse')}
-                style={{ background: left <= 60_000 ? '#FF5A3C' : 'var(--panel)', color: left <= 60_000 ? '#fff' : 'var(--ink)' }}
-              >
-                {fmtClock(left)}
-              </span>
-            ) : null}
-            <span className="rounded-2xl px-5 py-2 text-[30px] font-extrabold tabular-nums" style={{ background: 'var(--panel)' }}>
-              제출 {submitted} <span style={{ color: 'var(--faint)' }}>/ {BOARD_TEAM_COUNT}</span>
-            </span>
-          </>
+          <span className="rounded-2xl px-5 py-2 text-[30px] font-extrabold tabular-nums" style={{ background: 'var(--panel)' }}>
+            제출 {counts?.submitted ?? 0} <span style={{ color: 'var(--faint)' }}>/ {BOARD_TEAM_COUNT}</span>
+          </span>
         }
       />
-      <div className="flex items-end gap-6 px-[72px] pb-6">
+      {/* 질문 상시 노출 — 작은 글씨, 말줄임 없이 최대 2줄 */}
+      <p className="px-[72px] text-[22px] font-semibold leading-[1.4]" style={{ color: 'var(--sub)', wordBreak: 'keep-all' }}>
+        {q.text}
+      </p>
+      <div className="flex items-end gap-6 px-[72px] pb-4 pt-3">
         <div>
           <p className="text-[24px] font-bold" style={{ color: 'var(--sub)' }}>
-            질문 {group.question === 1 ? '①' : '②'} · {q.label} · {group.id}
+            {questionLabel(group.question)} · {groupLabel(group.id)}
             {open ? (
               <span className="ml-3 rounded-md px-2 py-0.5 text-[20px] font-extrabold" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
                 입력 중
               </span>
             ) : (
               <span className="ml-3 rounded-md px-2 py-0.5 text-[20px] font-bold" style={{ background: 'var(--panel)' }}>
-                {state.phase === 'wall' ? '월 보기' : '입력 마감'}
+                {onWallPhase ? '모아보기' : '입력 마감'}
               </span>
             )}
           </p>
-          <h1 className="mt-1 text-[54px] font-black leading-tight">
+          <h1 className="mt-1 text-[48px] font-black leading-tight">
             {group.title}
-            <span className="ml-5 text-[34px] font-bold" style={{ color: 'var(--sub)' }}>
+            <span className="ml-5 text-[30px] font-bold" style={{ color: 'var(--sub)' }}>
               {group.items.map((i) => i.prompt).join(' / ')}
             </span>
           </h1>
         </div>
       </div>
+
+      {onWallPhase ? (
+        <div role="tablist" aria-label="모아보기 탭" className="flex gap-3 px-[72px] pb-4">
+          {tabs.map((g) => {
+            const here = g.id === group.id;
+            const n = here && loaded ? cards.length : (counts?.by_group[g.id] ?? 0);
+            return (
+              <div
+                key={g.id}
+                role="tab"
+                aria-selected={here}
+                className="flex items-center gap-3 rounded-2xl px-6 py-2.5 text-[26px] font-extrabold"
+                style={here ? { background: 'var(--accent)', color: 'var(--accent-ink)' } : { background: 'var(--panel)', color: 'var(--sub)' }}
+              >
+                <span>
+                  {groupLabel(g.id)} {g.title}
+                </span>
+                <span
+                  className="rounded-full px-3 py-0.5 text-[22px] tabular-nums"
+                  style={here ? { background: 'rgba(0,0,0,0.12)' } : { background: 'var(--line)' }}
+                >
+                  {n}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {voting ? (
+        <div className="mx-[72px] mb-4 flex items-center gap-6 rounded-[24px] px-8 py-3" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
+          <span className="text-[44px] leading-none" aria-hidden="true">
+            ♥
+          </span>
+          <p className="flex-1 text-[34px] font-black leading-tight">공감 가는 아이디어에 ♥ (한 사람 3표) — 폰에서 투표</p>
+          <div className="text-center leading-tight">
+            <p className="text-[20px] font-bold">투표한 기기</p>
+            <p className="text-[48px] font-black tabular-nums">{counts?.voters ?? 0}</p>
+          </div>
+          <div className="h-[104px] w-[104px] shrink-0 rounded-xl bg-white p-1.5" dangerouslySetInnerHTML={{ __html: qr }} />
+        </div>
+      ) : null}
+
       <div ref={scroller} className="relative flex-1 overflow-hidden px-[72px] pb-10">
-        {!loaded ? null : cards.length === 0 ? (
-          <p className="pt-24 text-center text-[36px] font-bold" style={{ color: 'var(--faint)' }}>
-            {open ? '반조에서 이야기 나누는 중… 첫 카드를 기다리고 있어요' : '아직 카드가 없어요'}
-          </p>
+        {ranking !== undefined ? (
+          ranking === null ? null : ranking.length === 0 ? (
+            <p className="pt-24 text-center text-[36px] font-bold" style={{ color: 'var(--faint)' }}>
+              아직 카드가 없어요
+            </p>
+          ) : (
+            <RankingView rows={ranking} group={group} />
+          )
+        ) : !loaded ? null : cards.length === 0 ? (
+          state.phase === 'item_open' ? (
+            <ExampleCards group={group} />
+          ) : (
+            <p className="pt-24 text-center text-[36px] font-bold" style={{ color: 'var(--faint)' }}>
+              아직 카드가 없어요
+            </p>
+          )
         ) : (
           <div style={{ columnCount: cols, columnGap: 20 }}>
             {cards.map((c) => (
-              <CardView key={c.team_id} card={c} group={group} font={font} clamp={cards.length > 24} />
+              <CardView key={c.card} card={c} group={group} font={font} clamp={cards.length > 24} />
             ))}
           </div>
         )}
@@ -352,7 +414,40 @@ function Wall({
   );
 }
 
-/** 카드가 많으면(24장 초과) 한 장을 7줄로 자른다 — 전문은 '크게 보기' */
+/** 카드가 하나도 없을 때 — 작성 예시 2장(옅은 점선 카드). 첫 카드가 오면 사라진다 */
+function ExampleCards({ group }: { group: BoardGroup }) {
+  const { font } = layoutFor(2);
+  const sets = [0, 1]
+    .map((i) => group.items.map((it) => ({ item_id: it.id, body: it.examples[i] ?? '' })).filter((p) => p.body))
+    .filter((parts) => parts.length > 0);
+  return (
+    <div data-testid="example-cards" style={{ columnCount: 2, columnGap: 20 }}>
+      {sets.map((parts, i) => (
+        <article
+          key={i}
+          className="mb-5 break-inside-avoid rounded-[20px] p-6"
+          style={{ border: '3px dashed var(--faint)', opacity: 0.55 }}
+        >
+          <span className="inline-block rounded-lg px-3 py-0.5 text-[22px] font-black" style={{ background: 'var(--panel)', color: 'var(--sub)' }}>
+            예시
+          </span>
+          {parts.map((p) => (
+            <p key={p.item_id} className="mt-3 whitespace-pre-wrap break-words font-semibold" style={{ fontSize: font, lineHeight: 1.45, wordBreak: 'keep-all' }}>
+              {group.items.length > 1 ? (
+                <span className="mr-2 font-bold" style={{ color: 'var(--sub)', fontSize: Math.max(20, font - 4) }}>
+                  {itemById(p.item_id)?.title}
+                </span>
+              ) : null}
+              {p.body}
+            </p>
+          ))}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+/** 카드가 많으면(24장 초과) 한 장을 7줄로 자른다 — 전문은 '크게 보기'. 반조 표시는 없다 */
 function CardView({ card, group, font, clamp }: { card: TeamCard; group: BoardGroup; font: number; clamp: boolean }) {
   return (
     <article
@@ -363,13 +458,10 @@ function CardView({ card, group, font, clamp }: { card: TeamCard; group: BoardGr
         border: '1px solid var(--line)',
       }}
     >
-      <span className="inline-block rounded-lg px-3 py-0.5 text-[22px] font-black" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
-        {card.team_id}
-      </span>
-      {card.parts.map((p) => (
+      {card.parts.map((p, idx) => (
         <p
           key={p.item_id}
-          className="mt-3 whitespace-pre-wrap break-words font-semibold"
+          className={clsx('whitespace-pre-wrap break-words font-semibold', idx > 0 ? 'mt-3' : '')}
           style={{
             fontSize: font,
             lineHeight: 1.45,
@@ -389,6 +481,64 @@ function CardView({ card, group, font, clamp }: { card: TeamCard; group: BoardGr
   );
 }
 
+/** 순위 화면 — 상위 5장은 크게(득표수 막대), 나머지는 작게. 반조 표시 없음 */
+function RankingView({ rows, group }: { rows: BoardRankRow[]; group: BoardGroup }) {
+  const top = rows.slice(0, 5);
+  const rest = rows.slice(5);
+  const max = Math.max(1, ...rows.map((r) => r.votes));
+  return (
+    <div data-testid="ranking" className="flex flex-col gap-4">
+      {top.map((r, i) => {
+        const total = r.parts.reduce((n, p) => n + p.body.length, 0);
+        const size = total > 200 ? 24 : total > 120 ? 28 : 34;
+        return (
+          <div key={r.card} className="qz-fade flex items-center gap-6 rounded-[22px] px-7 py-4" style={{ background: 'var(--card)', border: '1px solid var(--line)' }}>
+            <span className="w-[88px] shrink-0 text-center text-[44px] font-black" style={{ color: i === 0 ? 'var(--accent)' : 'var(--sub)' }}>
+              {i + 1}위
+            </span>
+            <div className="min-w-0 flex-1">
+              {r.parts.map((p) => (
+                <p key={p.item_id} className="whitespace-pre-wrap break-words font-bold" style={{ fontSize: size, lineHeight: 1.35, wordBreak: 'keep-all' }}>
+                  {group.items.length > 1 ? (
+                    <span className="mr-2 font-bold" style={{ color: 'var(--sub)', fontSize: Math.max(18, size - 6) }}>
+                      {itemById(p.item_id)?.title}
+                    </span>
+                  ) : null}
+                  {p.body}
+                </p>
+              ))}
+              <div className="mt-2 h-[14px] w-full rounded-full" style={{ background: 'var(--panel)' }}>
+                <div className="h-full rounded-full" style={{ width: `${(r.votes / max) * 100}%`, background: 'var(--accent)' }} />
+              </div>
+            </div>
+            <span className="w-[130px] shrink-0 text-right text-[40px] font-black tabular-nums">
+              ♥ {r.votes}
+              <span className="ml-1 text-[22px] font-bold" style={{ color: 'var(--sub)' }}>
+                표
+              </span>
+            </span>
+          </div>
+        );
+      })}
+      {rest.length ? (
+        <div className="mt-2 grid grid-cols-3 gap-3">
+          {rest.map((r, i) => (
+            <div key={r.card} className="flex gap-3 rounded-2xl px-4 py-3 text-[20px]" style={{ background: 'var(--panel)' }}>
+              <span className="shrink-0 font-black" style={{ color: 'var(--sub)' }}>
+                {i + 6}위
+              </span>
+              <span className="min-w-0 flex-1 font-semibold" style={{ wordBreak: 'keep-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                {r.parts.map((p) => p.body).join(' / ')}
+              </span>
+              <span className="shrink-0 font-black tabular-nums">♥ {r.votes}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function FocusCard({ focus }: { focus: BoardFocus }) {
   const group = groupById(focus.group);
   const total = focus.items.reduce((n, i) => n + i.body.length, 0);
@@ -399,13 +549,8 @@ function FocusCard({ focus }: { focus: BoardFocus }) {
         className="qz-pop w-full max-w-[1500px] overflow-y-auto rounded-[36px] p-[64px]"
         style={{ background: 'var(--card)', boxShadow: '0 0 0 6px var(--accent)', maxHeight: 900 }}
       >
-        <p className="flex items-center gap-4">
-          <span className="rounded-xl px-5 py-1 text-[44px] font-black" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
-            {focus.team_id}
-          </span>
-          <span className="text-[34px] font-bold" style={{ color: 'var(--sub)' }}>
-            {group ? `${group.id} · ${group.title}` : focus.group}
-          </span>
+        <p className="text-[34px] font-bold" style={{ color: 'var(--sub)' }}>
+          {group ? `${groupLabel(group.id)} · ${group.title}` : focus.group}
         </p>
         {focus.items.map((i) =>
           i.body ? (

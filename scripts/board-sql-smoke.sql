@@ -1,5 +1,5 @@
--- 토의보드 SQL 스모크 (Board v1.0) — 로컬 Postgres에서 anon 권한으로 함수 동작을 확인한다.
---   전제: quiz_schema.sql · board_v1.0 · sec_v1.0 적용, quiz_config.operator_key = 'kkkkkkkkkkkkkkkk'(16자)
+-- 토의보드 SQL 스모크 (Board v1.0 + v1.1) — 로컬 Postgres에서 anon 권한으로 함수 동작을 확인한다.
+--   전제: quiz_schema.sql · board_v1.0 · sec_v1.0 · board_v1.1 적용, quiz_config.operator_key = 'kkkkkkkkkkkkkkkk'(16자)
 --   실행: psql -v ON_ERROR_STOP=1 -f scripts/board-sql-smoke.sql   (마지막에 'BOARD SMOKE OK')
 --   ⚠ 운영 DB에서 돌리지 말 것 — 마지막에 전체 초기화를 한다.
 
@@ -11,7 +11,7 @@ create temp table t_ids (k text primary key, v uuid);
 do $$
 declare
   a uuid; b uuid; c uuid; a2 uuid; j json; ok boolean; n int; ts timestamptz;
-  procedure_expect_fail text;
+  card12a text;
 begin
   perform board_reset('kkkkkkkkkkkkkkkk', 'all');
 
@@ -78,8 +78,10 @@ begin
 
   -- 수정 허용: 덮어쓰기 → 1장, edited_count 1
   perform board_submit(a, '{"Q1-1":"수정본"}');
-  select count(*) into n from json_array_elements(board_feed(array['Q1-1'])) e where e ->> 'team_id' = '12A';
-  if n <> 1 then raise exception 'FAIL upsert count %', n; end if;
+  card12a := (select e ->> 'card' from json_array_elements(board_admin_snapshot('kkkkkkkkkkkkkkkk') -> 'submissions') e
+              where e ->> 'team_id' = '12A' and e ->> 'item_id' = 'Q1-1');
+  select count(*) into n from json_array_elements(board_feed(array['Q1-1'])) e where e ->> 'card' = card12a;
+  if n <> 1 or card12a is null then raise exception 'FAIL upsert count %', n; end if;
   if (board_my(a) -> 'submissions' -> 0 ->> 'edited_count')::int <> 1 then raise exception 'FAIL edited_count'; end if;
 
   -- 수정 허용 끄면 두 번째 제출 거부 (같은 반조의 다른 기기도)
@@ -113,8 +115,13 @@ begin
   if json_array_length(board_feed(array['Q2-3'])) <> 2 then raise exception 'FAIL Q2-3 two rows'; end if;
 
   -- 숨김 → 월에서 빠짐, 크게 보기 해제 / 하이라이트
+  card12a := (select e ->> 'card' from json_array_elements(board_admin_snapshot('kkkkkkkkkkkkkkkk') -> 'submissions') e
+              where e ->> 'team_id' = '12A' and e ->> 'item_id' = 'Q2-3a');
   perform board_set_state('kkkkkkkkkkkkkkkk', jsonb_build_object('phase','wall','focus',
-    jsonb_build_object('team_id','12A','group','Q2-3')));
+    jsonb_build_object('card', card12a, 'team_id', '12A', 'group','Q2-3')));
+  -- focus 에는 team_id 가 저장되지 않는다(섞여 와도 지운다)
+  if (select focus ? 'team_id' from board_state) then raise exception 'FAIL focus keeps team_id'; end if;
+  if (select focus ->> 'card' from board_state) <> card12a then raise exception 'FAIL focus card'; end if;
   perform board_moderate('kkkkkkkkkkkkkkkk', (select (e ->> 'id')::uuid from json_array_elements(board_feed(array['Q2-3'])) e
                                where e ->> 'item_id' = 'Q2-3a'), 'hide', '중복');
   if json_array_length(board_feed(array['Q2-3'])) <> 1 then raise exception 'FAIL hide'; end if;
@@ -169,5 +176,202 @@ begin
   perform board_join('7B', '', 'cap-5');   -- 이미 들어온 기기의 재입장은 된다
   perform board_reset('kkkkkkkkkkkkkkkk', 'all');
   raise notice 'SEC SMOKE OK';
+end $$;
+reset role;
+
+-- ─────────────────────────────────────────────────────────────
+-- Board v1.1 확인: 무기명(card) · 관전자 · 투표 · 순위 · 초기화 · 3-인자 board_join 호환 · 권한
+-- ─────────────────────────────────────────────────────────────
+set role anon;
+do $$
+declare
+  K constant text := 'kkkkkkkkkkkkkkkk';
+  a uuid; b uuid; c uuid; d uuid; e uuid; v uuid;
+  j json; n int; r json;
+  ca text; cb text; cc text; cd text; ce text; cb1 text;
+  st board_state;
+begin
+  perform board_reset(K, 'all');
+
+  -- 3-인자 board_join 호환(기본 기록자) · 4-인자 관전자
+  a := (board_join('12A', '', 'dev-a') ->> 'id')::uuid;
+  if (board_join('12A', '', 'dev-a') ->> 'role') <> 'recorder' then raise exception 'FAIL default role'; end if;
+  b := (board_join('12B', '', 'dev-b') ->> 'id')::uuid;
+  c := (board_join('3A', '', 'dev-c') ->> 'id')::uuid;
+  d := (board_join('5A', '', 'dev-d') ->> 'id')::uuid;
+  e := (board_join('6B', '', 'dev-e') ->> 'id')::uuid;
+  v := (board_join('12A', '', 'dev-v', 'viewer') ->> 'id')::uuid;
+  if (board_my(v) -> 'participant' ->> 'role') <> 'viewer' then raise exception 'FAIL viewer role'; end if;
+  if (board_my(v) -> 'participant' ->> 'name') <> '관전자' then raise exception 'FAIL viewer default name'; end if;
+  begin perform board_join('12A', '', 'dev-x', 'boss'); raise exception 'FAIL bad role'; exception when others then
+    if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
+  j := board_counts();
+  if (j ->> 'joined')::int <> 5 or (j ->> 'viewers')::int <> 1 then raise exception 'FAIL counts joined/viewers %', j; end if;
+  -- 같은 기기가 역할을 바꾸면 갱신(관전자만 있던 반조는 joined 에 안 잡힌다)
+  perform board_join('7A', '', 'dev-r', 'viewer');
+  if (board_counts() ->> 'joined')::int <> 5 then raise exception 'FAIL viewer-only team counted'; end if;
+  perform board_join('7A', '', 'dev-r', 'recorder');
+  if (board_counts() ->> 'joined')::int <> 6 or (board_counts() ->> 'viewers')::int <> 1 then raise exception 'FAIL role switch'; end if;
+  perform board_join('7A', '', 'dev-r', 'viewer');
+  if (board_counts() ->> 'viewers')::int <> 2 then raise exception 'FAIL role switch back'; end if;
+
+  -- 2-3 열기 → item_opened_at 기록 · 관전자 제출 거부
+  perform board_set_state(K, '{"phase":"item_open","current_item":"Q2-3","item_open":true}');
+  if (select item_opened_at from board_state) is null then raise exception 'FAIL item_opened_at'; end if;
+  begin perform board_submit(v, '{"Q2-3a":"관전자가 씀"}'); raise exception 'FAIL viewer submit'; exception when others then
+    if sqlerrm not like 'BOARD_NOT_RECORDER%' then raise; end if; end;
+  perform board_submit(a, '{"Q2-3a":"A안 주간보고","Q2-3b":"A안 가이드"}');
+  perform board_submit(b, '{"Q2-3a":"B안 회의록","Q2-3b":"B안 기준"}');
+  perform board_submit(c, '{"Q2-3a":"C안 자동화"}');
+  perform board_submit(d, '{"Q2-3a":"D안 요약"}');
+  perform board_submit(e, '{"Q2-3a":"E안 점검"}');
+
+  -- 무기명: feed 에 team_id 없음 · card 16자 · 같은 반조 2-3a/b 는 같은 card · 반조 5개
+  j := board_feed(array['Q2-3']);
+  if position('team_id' in j::text) > 0 then raise exception 'FAIL team_id in feed'; end if;
+  if length((j -> 0) ->> 'card') <> 16 then raise exception 'FAIL card length'; end if;
+  select count(distinct x ->> 'card') into n from json_array_elements(j) x;
+  if n <> 5 then raise exception 'FAIL distinct cards %', n; end if;
+  select count(*) into n from json_array_elements(j);
+  if n <> 7 then raise exception 'FAIL feed rows %', n; end if;
+  ca := (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '12A' and x ->> 'item_id' = 'Q2-3a');
+  if ca is distinct from (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '12A' and x ->> 'item_id' = 'Q2-3b') then
+    raise exception 'FAIL 2-3a/b card differ'; end if;
+  select count(*) into n from json_array_elements(j) x where x ->> 'card' = ca;
+  if n <> 2 then raise exception 'FAIL 12A rows in feed %', n; end if;
+  cb := (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '12B' and x ->> 'item_id' = 'Q2-3a');
+  cc := (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '3A' and x ->> 'item_id' = 'Q2-3a');
+  cd := (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '5A' and x ->> 'item_id' = 'Q2-3a');
+  ce := (select x ->> 'card' from json_array_elements(board_admin_snapshot(K) -> 'submissions') x where x ->> 'team_id' = '6B' and x ->> 'item_id' = 'Q2-3a');
+  if board_admin_snapshot(K) -> 'submissions' -> 0 ->> 'team_id' is null then raise exception 'FAIL admin team_id'; end if;
+  -- 내 반조 제출에는 우리 card 가 있다(투표 화면에서 우리 카드 표시용)
+  if (board_my(a) -> 'submissions' -> 0 ->> 'card') <> ca then raise exception 'FAIL board_my card'; end if;
+  -- by_group: 보이는 카드를 낸 반조 수
+  if (board_counts() -> 'by_group' ->> 'Q2-3')::int <> 5 then raise exception 'FAIL by_group %', board_counts() -> 'by_group'; end if;
+
+  -- 투표: 마감 중 · 투표 대상 아님
+  perform board_set_state(K, '{"phase":"wall"}');
+  begin perform board_vote(a, 'Q2-3', cb, true); raise exception 'FAIL vote while closed'; exception when others then
+    if sqlerrm not like 'BOARD_CLOSED%' then raise; end if; end;
+  perform board_set_state(K, '{"vote_open":true}');
+  begin perform board_vote(a, 'Q1-1', cb, true); raise exception 'FAIL vote non-target group'; exception when others then
+    if sqlerrm not like 'BOARD_CLOSED%' then raise; end if; end;
+  begin perform board_vote(a, 'Q2-3', 'deadbeefdeadbeef', true); raise exception 'FAIL vote unknown card'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  begin perform board_vote(gen_random_uuid(), 'Q2-3', cb, true); raise exception 'FAIL vote unknown participant'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  -- 자기 반조 카드 거부(관전자 v 도 12A 소속)
+  begin perform board_vote(a, 'Q2-3', ca, true); raise exception 'FAIL own card'; exception when others then
+    if sqlerrm not like 'BOARD_OWN_CARD%' then raise; end if; end;
+  begin perform board_vote(v, 'Q2-3', ca, true); raise exception 'FAIL own card (viewer)'; exception when others then
+    if sqlerrm not like 'BOARD_OWN_CARD%' then raise; end if; end;
+  -- 3표 · 4번째 거부 · 같은 카드 재투표는 표를 더 쓰지 않음
+  r := board_vote(a, 'Q2-3', cb, true);
+  r := board_vote(a, 'Q2-3', cc, true);
+  r := board_vote(a, 'Q2-3', cb, true);
+  if (r ->> 'left')::int <> 1 then raise exception 'FAIL idempotent vote left %', r; end if;
+  r := board_vote(a, 'Q2-3', cd, true);
+  if (r ->> 'left')::int <> 0 or json_array_length(r -> 'my') <> 3 then raise exception 'FAIL left after 3 votes %', r; end if;
+  begin perform board_vote(a, 'Q2-3', ce, true); raise exception 'FAIL 4th vote'; exception when others then
+    if sqlerrm not like 'BOARD_VOTE_LIMIT%' then raise; end if; end;
+  -- 취소 후 재투표
+  r := board_vote(a, 'Q2-3', cc, false);
+  if (r ->> 'left')::int <> 1 or json_array_length(r -> 'my') <> 2 then raise exception 'FAIL cancel %', r; end if;
+  r := board_vote(a, 'Q2-3', ce, true);
+  if (r ->> 'left')::int <> 0 then raise exception 'FAIL revote after cancel %', r; end if;
+  if (board_my_votes(a, 'Q2-3') ->> 'left')::int <> 0 then raise exception 'FAIL my_votes'; end if;
+  if (board_my_votes(v, 'Q2-3') ->> 'left')::int <> 3 then raise exception 'FAIL my_votes (viewer fresh)'; end if;
+  -- 다른 기기(관전자 v)도 3표를 따로 가진다
+  perform board_vote(v, 'Q2-3', cb, true);
+  perform board_vote(v, 'Q2-3', cd, true);
+  -- 집계: 투표 기기 2
+  if (board_counts() ->> 'voters')::int <> 2 then raise exception 'FAIL voters %', board_counts(); end if;
+  j := board_admin_snapshot(K);
+  if (j ->> 'voters')::int <> 2 then raise exception 'FAIL snapshot voters'; end if;
+  if (select (x ->> 'votes')::int from json_array_elements(j -> 'votes') x where x ->> 'group_key' = 'Q2-3' and x ->> 'team_id' = '12B') <> 2 then
+    raise exception 'FAIL snapshot votes 12B'; end if;
+
+  -- 순위: 비공개면 거부 → 공개하면 득표순(12B 2표 · 5A 2표 · …), team_id 없음
+  begin perform board_ranking('Q2-3'); raise exception 'FAIL ranking while hidden'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  perform board_set_state(K, '{"vote_open":false,"vote_reveal":true}');
+  begin perform board_vote(a, 'Q2-3', cc, true); raise exception 'FAIL vote after close'; exception when others then
+    if sqlerrm not like 'BOARD_CLOSED%' then raise; end if; end;
+  r := board_ranking('Q2-3');
+  if position('team_id' in r::text) > 0 then raise exception 'FAIL team_id in ranking'; end if;
+  if json_array_length(r) <> 5 then raise exception 'FAIL ranking rows %', json_array_length(r); end if;
+  if (r -> 0 ->> 'votes')::int <> 2 or (r -> 1 ->> 'votes')::int <> 2 or (r -> 4 ->> 'votes')::int <> 0 then
+    raise exception 'FAIL ranking order %', r; end if;
+  if (r -> 0 ->> 'card') not in (cb, cd) then raise exception 'FAIL ranking top'; end if;
+  select json_array_length(x -> 'parts') into n from json_array_elements(r) x where x ->> 'card' = cb;
+  if n <> 2 then raise exception 'FAIL ranking parts % (12B has 2-3a and 2-3b)', n; end if;
+  begin perform board_ranking('Q1-1'); raise exception 'FAIL ranking non-target'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+
+  -- 숨긴 카드는 순위·내 표에서 빠진다
+  perform board_moderate(K, (select (x ->> 'id')::uuid from json_array_elements(board_admin_snapshot(K) -> 'submissions') x
+                             where x ->> 'team_id' = '5A' and x ->> 'item_id' = 'Q2-3a'), 'hide', '테스트');
+  if json_array_length(board_ranking('Q2-3')) <> 4 then raise exception 'FAIL hidden in ranking'; end if;
+  if (board_my_votes(a, 'Q2-3') ->> 'left')::int <> 1 then raise exception 'FAIL left after hide %', board_my_votes(a, 'Q2-3'); end if;
+
+  -- 투표 대상 설정: 존재하지 않는 그룹 거부 · 비우면 순위 거부
+  begin perform board_set_state(K, '{"vote_items":["Q9-9"]}'); raise exception 'FAIL bad vote_items'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  perform board_set_state(K, '{"vote_items":["Q2-3","Q2-2"]}');
+  if (select cardinality(vote_items) from board_state) <> 2 then raise exception 'FAIL vote_items set'; end if;
+  perform board_set_state(K, '{"vote_items":[]}');
+  begin perform board_ranking('Q2-3'); raise exception 'FAIL ranking after untargeting'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  perform board_set_state(K, '{"vote_items":["Q2-3"]}');
+
+  -- 크게 보기: card 비교로 숨김 시 해제
+  perform board_set_state(K, jsonb_build_object('focus', jsonb_build_object('card', cd, 'team_id', '5A', 'group', 'Q2-3')));
+  if (select focus ? 'team_id' from board_state) then raise exception 'FAIL focus team_id kept'; end if;
+  perform board_moderate(K, (select (x ->> 'id')::uuid from json_array_elements(board_admin_snapshot(K) -> 'submissions') x
+                             where x ->> 'team_id' = '5A' and x ->> 'item_id' = 'Q2-3a'), 'unhide', null);
+  perform board_set_state(K, jsonb_build_object('focus', jsonb_build_object('card', cd, 'group', 'Q2-3')));
+  perform board_moderate(K, (select (x ->> 'id')::uuid from json_array_elements(board_admin_snapshot(K) -> 'submissions') x
+                             where x ->> 'team_id' = '5A' and x ->> 'item_id' = 'Q2-3a'), 'hide', null);
+  if (select focus from board_state) is not null then raise exception 'FAIL focus not cleared by card'; end if;
+  perform board_moderate(K, (select (x ->> 'id')::uuid from json_array_elements(board_admin_snapshot(K) -> 'submissions') x
+                             where x ->> 'team_id' = '5A' and x ->> 'item_id' = 'Q2-3a'), 'unhide', null);
+
+  -- item_opened_at: 닫으면 비고, 다시 열면 새로 찍힌다
+  perform board_set_state(K, '{"phase":"item_open","current_item":"Q2-3","item_open":true}');
+  if (select item_opened_at from board_state) is null then raise exception 'FAIL reopen item_opened_at'; end if;
+  perform board_set_state(K, '{"item_open":false}');
+  if (select item_opened_at from board_state) is not null then raise exception 'FAIL item_opened_at on close'; end if;
+
+  -- 초기화: 그룹 초기화는 그 그룹 투표도 지운다
+  perform board_set_state(K, '{"phase":"wall","vote_reveal":false,"vote_open":true}');
+  perform board_vote(a, 'Q2-3', cb, true);
+  perform board_reset(K, 'group', 'Q2-3');
+  if (select count(*) from json_array_elements(board_admin_snapshot(K) -> 'votes')) <> 0 then raise exception 'FAIL group reset votes'; end if;
+  -- 전체 초기화: 투표·상태 초기화
+  perform board_set_state(K, '{"phase":"item_open","current_item":"Q2-3","item_open":true}');
+  perform board_submit(b, '{"Q2-3a":"다시 B"}');
+  perform board_submit(c, '{"Q2-3a":"다시 C"}');
+  perform board_set_state(K, '{"phase":"wall","vote_open":true}');
+  perform board_vote(a, 'Q2-3', (select x ->> 'card' from json_array_elements(board_feed(array['Q2-3'])) x limit 1), true);
+  perform board_reset(K, 'all');
+  select * into st from board_state;
+  if st.vote_open or st.vote_reveal or st.item_opened_at is not null then raise exception 'FAIL reset all vote flags'; end if;
+  if (select count(*) from json_array_elements(board_admin_snapshot(K) -> 'votes')) <> 0 then raise exception 'FAIL reset all votes'; end if;
+
+  raise notice 'BOARD V1.1 SMOKE OK';
+end $$;
+reset role;
+
+-- v1.1 권한: 새 테이블 직접 접근 차단 · 내부 함수 호출 차단
+set role anon;
+do $$
+begin
+  begin perform 1 from board_secret; raise exception 'FAIL board_secret readable'; exception when insufficient_privilege then null; end;
+  begin perform 1 from board_votes; raise exception 'FAIL board_votes readable'; exception when insufficient_privilege then null; end;
+  begin perform board_card_key('12A', 'Q1-1'); raise exception 'FAIL card_key callable'; exception when insufficient_privilege then null; end;
+  begin perform board_votes_json(gen_random_uuid(), 'Q2-3'); raise exception 'FAIL votes_json callable'; exception when insufficient_privilege then null; end;
+  begin perform board_clean('x'); raise exception 'FAIL clean callable'; exception when insufficient_privilege then null; end;
+  begin insert into board_votes (participant_id, group_key, team_id) values (gen_random_uuid(), 'Q2-3', '12A'); raise exception 'FAIL votes writable'; exception when insufficient_privilege then null; end;
+  raise notice 'BOARD V1.1 PERMISSIONS OK';
 end $$;
 reset role;

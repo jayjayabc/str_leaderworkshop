@@ -555,3 +555,42 @@ EDV 보드는 은퇴 예정이지만 **지우지 않았다**. 퀴즈는 같은 N
 
 - Realtime 방송·RPC 왕복·8초 시간 제한 동작 → 마이그레이션 적용 후 `npm run board:loadtest -- --key <키> --cleanup`으로 확인.
 - Free 플랜 Realtime 200 한도: 참가 60 + 송출·운영 2라 여유. 퀴즈(250명)와 같은 날이라도 시간대가 달라 겹치지 않는다.
+
+
+---
+
+# Board v1.1 — 토의보드 개선 (10/8 팀 논의 반영)
+
+명세: `BOARD_v1.1_SPEC.md`. 적용 순서 **SQL(`supabase/board_v1.1_migration.sql`, 멱등) → 코드 배포**. 퀴즈 코드·테이블, `src/proxy.ts`, `next.config.ts` 는 건드리지 않았다.
+
+## 바뀐 것
+
+| 영역 | 내용 |
+|---|---|
+| 무기명화 | `board_feed` 응답에서 `team_id` 제거 → 불투명 `card` = `hmac(team_id ‖ ':' ‖ group_key, salt, sha256)` 앞 16자. salt 는 `board_secret`(RLS·권한 없음). 같은 반조의 2-3a·2-3b 는 같은 card → 송출에서 한 장. `focus` 도 `card` 저장(서버가 `team_id` 가 섞여 오면 지움). 송출 카드·크게 보기·폰 모아보기에 반조 배지 없음. 운영자 스냅샷·CSV 는 team_id + card. `board_my` 의 제출에도 우리 반조 card(투표 화면 '우리 반조' 표시용) |
+| 타이머 | 송출·폰에서 전부 제거. 운영자 "항목 열 때 자동 시작" 기본 끔, 타이머 패널은 접힌 '고급'. `board_state.item_opened_at`(항목이 열릴 때 now, 닫으면 null) → 운영자 상단 "열린 지 n분 m초" |
+| 작성 예시 | `board_items.examples text[]`(시드는 초안). 폰 입력 카드(예시 말풍선 2개·placeholder "2~3문장이면 충분해요"), 송출은 그룹 카드 0장 + 항목 입력 단계일 때 점선·옅은 '예시' 카드 2장(첫 카드가 오면 사라짐). `boardSeed.ts` 도 같은 값(`example` 필드는 TS 에서 `examples` 로 대체, DB 의 `example` 열은 남김) |
+| 모아보기 | '월 보기/공개' → '모아보기'. 송출 상단 탭 바(그 질문의 그룹, 카드 수, 현재 탭 강조). 운영자 ◀▶ 버튼 + ← → 키(모아보기 단계에서 `current_item` 이동, 끝에서 멈춤). 폰 모아보기도 탭 구조. `board_counts.by_group` 은 이제 **보이는 카드(숨김·빈 본문 제외)** 를 낸 반조 수 |
+| 넘버링 | `groupLabel('Q1-1') = '1-1'`, `questionLabel(1) = '질문 1 · AI for User'`. 원문자(①②) 제거(그라운드 룰·힌트 목록도 점 표시), 질문 1 생각의 틀은 번호 없는 칩, 질문 2 아젠다는 화살표 흐름. DB item id·CSV 열 이름은 그대로 |
+| 질문 상시 노출 | 송출 항목 입력·모아보기 화면 헤더 아래에 대질문 문장(작은 글씨, 최대 2줄) |
+| 투표 | `board_state.vote_items`(기본 `{Q2-3}`)·`vote_open`·`vote_reveal`, 테이블 `board_votes`, RPC `board_vote`(자기 반조 `BOARD_OWN_CARD` · 그룹당 3표 `BOARD_VOTE_LIMIT` · 취소 가능) · `board_my_votes` · `board_ranking`(공개 + 투표 대상일 때만, team_id 없음, 득표순). 송출: 투표 배너+QR+"투표한 기기 n" / 순위 화면(상위 5 크게). 폰: 투표 대상 그룹이 현재 항목이고 투표 중이면 역할과 무관하게 투표 화면, 순위 공개면 순위. 운영자 '투표' 패널(대상 그룹·열기/마감·순위 공개/숨김·득표 순위표). 숨긴 카드의 표는 순위·남은 표 계산에서 제외. 롱 CSV 에 `votes` 열(투표 그룹 행만) |
+| 관전자 | `board_participants.role`(`recorder`/`viewer`), `board_join(p_team, p_name, p_device, p_role default 'recorder')`(3-인자 호출 호환·재입장 시 역할 갱신·반조당 20대 제한 유지). `board_submit` 은 viewer 에게 `BOARD_NOT_RECORDER`. `board_counts`: `joined`(기록자 있는 반조 수)·`viewers`·`voters`. 폰: 조 → A/B → 역할 2버튼 → (기록자만 이름). 관전자 화면은 "기록자가 입력 중이에요" + 우리 반조 제출 읽기. 폰 하단 '반조 바꾸기 · 역할 바꾸기' |
+| 진행 순서 | 대기 → 질문 1 소개 → 1-1…1-4 → 모아보기 1 → 휴식(선택) → 질문 2 소개 → 2-1…2-3 → 모아보기 2 → 종료. Space '다음'은 휴식을 건너뜀. 휴식 화면 "잠시 쉬어 갑니다"(고정 시각 문구 제거) |
+
+## 설계 메모
+
+- **`hmac()` 와 search_path**: Supabase 는 pgcrypto 를 `extensions` 스키마에 둔다. `board_card_key` 만 `search_path = public, extensions`(나머지 함수는 `public`). 이 함수는 내부용 — `revoke execute … from public, anon, authenticated`(`board_check_key`·`board_clean`·`board_touch_state`·`board_votes_json` 도 같다).
+- `board_state` 는 anon 이 읽고 Realtime 으로 방송되므로 거기에는 반조 정보를 싣지 않는다 → focus 는 card. v1.0 에서 남은 focus(team_id 포함)는 마이그레이션이 지운다.
+- 투표 동시성: `board_vote` 는 상태 `for share` → 참가자 행 `for update`(같은 기기 동시 투표 직렬화). `board_reset` 도 상태 행을 먼저 잠가 교착을 피한다.
+- 로컬 어댑터(`boardDb.local.ts`)는 같은 규칙. card 키만 HMAC 대신 간단한 해시(시연용).
+- `scripts/board-loadtest.mjs`: feed 에 team_id 가 없으므로 `--key` 가 있으면 끝난 뒤 `board_admin_snapshot` 으로 반조→card 를 대응시켜 반조별 지연을 잰다(키가 없으면 카드 수만 비교).
+
+## 검증 (로컬)
+
+- PostgreSQL 16: `quiz_schema → board_v1.0 → sec_v1.0 → board_v1.1 → board_v1.1(두 번째)` 적용 후 `scripts/board-sql-smoke.sql`(anon) — `BOARD SMOKE OK` · `SEC SMOKE OK` · `BOARD V1.1 SMOKE OK` · `BOARD V1.1 PERMISSIONS OK`. v1.1 검사: feed 에 team_id 없음·card 16자·2-3a/b 같은 card·viewer 제출 거부·투표 마감/대상 아님 거부·자기 반조 거부·4번째 표 거부·취소 후 재투표·순위 비공개 거부/공개 시 득표순·숨김 카드 제외·focus 의 team_id 제거·reset 시 votes 삭제·3-인자 `board_join` 호환·새 테이블/내부 함수 권한 차단.
+- Playwright E2E(로컬 모드): v1.0 항목 + 무기명·타이머 없음·예시 카드·모아보기 탭(← →·버튼)·관전자·역할 바꾸기·투표(토글·3표 제한·자기 반조·재투표)·순위 공개·롱 CSV votes 열 — **132/132**, 페이지 오류 0. 스크린샷 `screenshots/board-v11-*.png`.
+- `npm run typecheck` · `lint` · `build` 무오류, `npm run test:quiz` 286/286. `npm run board:loadtest -- --local-dry-run`(60명) missing 0.
+
+## 아직 실제 Supabase 에서 확인 안 한 것
+
+- 마이그레이션 적용(특히 `extensions` 스키마의 `hmac`) · 투표 RPC 왕복 · 투표 폭주(250명 동시 ♥) 부하. 적용 후 SQL Editor 에서 `select board_feed(array['Q1-1'])` 가 에러 없이 `card` 를 주는지 먼저 확인.

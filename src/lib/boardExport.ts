@@ -1,10 +1,11 @@
-// 토의보드 내보내기 (Board v1.0) — CSV 2종(와이드·롱) + JSON. 순수 함수(테스트 가능).
+// 토의보드 내보내기 (Board v1.1) — CSV 2종(와이드·롱) + JSON. 순수 함수(테스트 가능).
 //   와이드: 58행 × 12열 (반조, 테이블, 임원, Q1-1 … Q2-3b, 제출시각). 숨김 카드는 비운다.
-//   롱: 제출 1건 = 1행 (반조, 항목, 본문, 제출시각, 숨김여부, 숨김사유, 수정횟수). 숨김 포함.
+//   롱: 제출 1건 = 1행 (반조, 항목, 본문, 제출시각, 숨김여부, 숨김사유, 수정횟수, votes). 숨김 포함.
+//       votes = 그 행의 그룹에서 그 반조가 받은 득표 — 투표 대상 그룹이 아니면 빈칸. 와이드에는 투표 열을 넣지 않는다.
 //   Excel에서 한글이 깨지지 않게 BOM을 붙인다. 시각은 한국 시간(KST).
 
 import { BOARD_ITEMS, BOARD_TEAMS } from './boardSeed';
-import type { BoardAdminSnapshot, BoardAdminSubmission } from './boardTypes';
+import type { BoardAdminSnapshot, BoardAdminSubmission, BoardVoteRow } from './boardTypes';
 
 const BOM = '﻿';
 
@@ -48,13 +49,16 @@ export function wideCsv(subs: BoardAdminSubmission[]): string {
   return BOM + lines.join('\r\n') + '\r\n';
 }
 
-export function longCsv(subs: BoardAdminSubmission[]): string {
+export function longCsv(subs: BoardAdminSubmission[], votes: BoardVoteRow[] = [], voteItems: string[] = []): string {
   const order = (id: string) => BOARD_ITEMS.findIndex((i) => i.id === id);
   const teamOrder = (id: string) => BOARD_TEAMS.findIndex((t) => t.id === id);
   const sorted = [...subs].sort((a, b) => teamOrder(a.team_id) - teamOrder(b.team_id) || order(a.item_id) - order(b.item_id));
-  const lines = [row(['반조', '항목', '본문', '제출시각', 'hidden', '숨김사유', '수정횟수'])];
+  const groupOf = (itemId: string) => BOARD_ITEMS.find((i) => i.id === itemId)?.group ?? '';
+  const lines = [row(['반조', '항목', '본문', '제출시각', 'hidden', '숨김사유', '수정횟수', 'votes'])];
   for (const s of sorted) {
-    lines.push(row([s.team_id, s.item_id, s.body, kst(s.updated_at), s.hidden ? 'true' : 'false', s.hidden_note ?? '', s.edited_count]));
+    const g = groupOf(s.item_id);
+    const v = voteItems.includes(g) ? (votes.find((x) => x.group_key === g && x.team_id === s.team_id)?.votes ?? 0) : '';
+    lines.push(row([s.team_id, s.item_id, s.body, kst(s.updated_at), s.hidden ? 'true' : 'false', s.hidden_note ?? '', s.edited_count, v]));
   }
   return BOM + lines.join('\r\n') + '\r\n';
 }

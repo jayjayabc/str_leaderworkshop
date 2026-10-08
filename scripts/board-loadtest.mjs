@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 토의보드 부하 테스트 (Board v1.0) — Node 22 + @supabase/supabase-js
+// 토의보드 부하 테스트 (Board v1.0 · v1.1 대응) — Node 22 + @supabase/supabase-js
 // (scripts/quiz-loadtest.mjs 와 같은 구조)
 //
 // 가상 참가자 N명(기본 60)이 각각 자기 Supabase 클라이언트(웹소켓 1개)로
@@ -8,6 +8,8 @@
 //   4) --window 초 안의 무작위 시점에 board_submit 을 한 번 부른다(Q2-3 은 a·b 둘 다).
 // 별도의 "월(screen)" 관찰자는 board_feed([group]) 를 1.5초마다 읽어, 각 반조의 제출 성공 시각부터
 // 그 카드가 처음 보일 때까지의 시간("월 갱신 지연")을 잰다.
+// v1.1: board_feed 에는 team_id 가 없고 불투명 card 키만 있다. --key 가 있으면 끝난 뒤 board_admin_snapshot 으로
+//       반조 → card 를 대응시켜 반조별 지연을 재고, 키가 없으면 카드 수(보인 카드 vs 제출 성공 반조)만 비교한다.
 // 보고: 접속 성공률, Realtime 구독 수, 상태 전파 p50/p95, 제출 지연 p50/p95, 코드별 실패,
 //       월 갱신 지연 p50/p95/max, missing(제출 성공했는데 닫힌 뒤 10초 안에 월에 안 뜬 반조 — 반드시 0).
 // 종료 코드: missing > 0 이거나 월 갱신 지연 p95 > 2000ms 이면 1.
@@ -124,6 +126,11 @@ async function realBackend() {
       return {
         setState: async (patch) => unwrap(await c.rpc('board_set_state', { p_key: KEY, p_patch: patch })),
         reset: async (scope) => unwrap(await c.rpc('board_reset', { p_key: KEY, p_scope: scope, p_group: null })),
+        /** 반조 → card (운영자 스냅샷) */
+        cards: async () => {
+          const snap = unwrap(await c.rpc('board_admin_snapshot', { p_key: KEY }));
+          return new Map((snap?.submissions ?? []).filter((x) => x.item_id === ITEMS[0]).map((x) => [x.team_id, x.card]));
+        },
       };
     },
     /** 월 관찰자 */
@@ -213,6 +220,8 @@ function fakeBackend() {
             server.bump();
             return { ...server.state };
           }),
+        cards: async () =>
+          new Map([...server.cards.values()].filter((c) => c.item_id === ITEMS[0]).map((c) => [c.team_id, `c-${c.team_id}`])),
         reset: (scope) =>
           rpc(() => {
             if (scope === 'all') {
@@ -230,7 +239,8 @@ function fakeBackend() {
           rpc(() =>
             [...server.cards.values()]
               .filter((c) => c.body !== '' && groups.some((g) => c.item_id.startsWith(g)))
-              .map((c) => ({ ...c })),
+              // 실서버처럼 team_id 없이 card 키만
+              .map((c) => ({ id: c.id, card: `c-${c.team_id}`, item_id: c.item_id, body: c.body, updated_at: c.updated_at, highlighted: c.highlighted })),
           ),
         close: async () => undefined,
       };
@@ -369,13 +379,13 @@ console.log(
 // ─── 월 관찰자: board_feed([GROUP]) 를 1.5초마다 ───────────
 
 const screen = backend.screen();
-const baseline = new Map(); // `${team}|${item}` → 시작 전 updated_at (이전 실행의 잔여 카드 구분)
+const baseline = new Map(); // `${card}|${item}` → 시작 전 updated_at (이전 실행의 잔여 카드 구분)
 try {
-  for (const c of await withRetry(() => screen.feed([GROUP]))) baseline.set(`${c.team_id}|${c.item_id}`, c.updated_at);
+  for (const c of await withRetry(() => screen.feed([GROUP]))) baseline.set(`${c.card}|${c.item_id}`, c.updated_at);
 } catch {
   /* 닫힌 상태에서 FORBIDDEN 일 수 있음 — 기준선 없이 진행 */
 }
-const firstSeen = new Map(); // team → 첫 출현 시각(Date.now)
+const firstSeen = new Map(); // card → 첫 출현 시각(Date.now)
 let feedStop = false;
 let feedErrors = 0;
 const feedLoop = (async () => {
@@ -384,9 +394,9 @@ const feedLoop = (async () => {
       const cards = await screen.feed([GROUP]);
       const now = Date.now();
       for (const c of cards) {
-        const key = `${c.team_id}|${c.item_id}`;
+        const key = `${c.card}|${c.item_id}`;
         if (baseline.get(key) === c.updated_at) continue; // 이번 실행 이전 카드
-        if (!firstSeen.has(c.team_id)) firstSeen.set(c.team_id, now);
+        if (!firstSeen.has(c.card)) firstSeen.set(c.card, now);
       }
     } catch {
       feedErrors += 1;
@@ -442,9 +452,18 @@ if (operate) {
 }
 
 // 닫힌 뒤 최대 10초, 제출에 성공한 반조가 모두 월에 보일 때까지
-while (Date.now() - closedAt < FEED_GRACE_MS && [...teamFirstOk.keys()].some((t) => !firstSeen.has(t))) await sleep(200);
+while (Date.now() - closedAt < FEED_GRACE_MS && firstSeen.size < teamFirstOk.size) await sleep(200);
 feedStop = true;
 await feedLoop;
+// 반조 → card (정리 전에 읽는다). 키가 없으면 null — 카드 수만 비교
+let cardOf = null;
+if (operate) {
+  try {
+    cardOf = await op.cards();
+  } catch (err) {
+    console.log(`  반조 → card 대응 실패(카드 수만 비교): ${err.message}`);
+  }
+}
 
 if (CLEANUP || DRY) {
   try {
@@ -464,10 +483,15 @@ await screen.close().catch(() => undefined);
 
 const wall = [];
 const missing = [];
-for (const [team, okAt] of teamFirstOk) {
-  const seen = firstSeen.get(team);
-  if (seen === undefined) missing.push(team);
-  else wall.push(Math.max(0, seen - okAt));
+if (cardOf) {
+  for (const [team, okAt] of teamFirstOk) {
+    const seen = firstSeen.get(cardOf.get(team));
+    if (seen === undefined) missing.push(team);
+    else wall.push(Math.max(0, seen - okAt));
+  }
+} else {
+  // card 대응이 없으면 반조별 지연은 못 잰다 — 보인 카드 수만 비교
+  for (let i = firstSeen.size; i < teamFirstOk.size; i += 1) missing.push(`(반조 미상 ${i + 1})`);
 }
 const failTotal = Object.values(results.submitFail).reduce((a, b) => a + b, 0);
 const dup = results.submitFail.BOARD_DUPLICATE ?? 0;

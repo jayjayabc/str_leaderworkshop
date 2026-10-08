@@ -1,5 +1,5 @@
-// 토의보드 시드 (Board v1.0) — 문구는 「리더 토론세션 진행안 v2」 기준. 임의로 바꾸지 말 것.
-//   SQL 시드(supabase/board_v1.0_migration.sql)와 같은 값이다. 바꾸면 두 곳을 함께 고친다.
+// 토의보드 시드 (Board v1.1) — 문구는 「리더 토론세션 진행안 v2」 기준. 임의로 바꾸지 말 것.
+//   SQL 시드(supabase/board_v1.0_migration.sql · board_v1.1_migration.sql 의 examples)와 같은 값이다. 바꾸면 두 곳을 함께 고친다.
 
 export const BOARD_TOPIC = 'AI와 공존하는 시대';
 
@@ -20,7 +20,8 @@ export interface BoardItem {
   title: string;
   /** 안내 문장(입력칸 위) */
   prompt: string;
-  example: string | null;
+  /** 작성 예시 2개(초안 — 팀 확정 전). 폰 입력 카드 · 송출 모아보기의 '예시' 카드에 쓴다 */
+  examples: string[];
   required: boolean;
 }
 
@@ -29,7 +30,7 @@ export interface BoardQuestion {
   label: string;
   text: string;
   hints: string[];
-  /** 질문 ① 생각의 틀 · 질문 ② 아젠다 */
+  /** 질문 1 생각의 틀(번호 없는 칩) · 질문 2 아젠다(화살표 흐름) */
   frame: string[];
   frameLabel: string;
 }
@@ -64,14 +65,14 @@ export const BOARD_QUESTIONS: Record<1 | 2, BoardQuestion> = {
 };
 
 export const BOARD_ITEMS: BoardItem[] = [
-  { id: 'Q1-1', question: 1, order: 1, group: 'Q1-1', title: '나의 변화', prompt: 'AI 에이전트 시대에 나는 금융을 이렇게 쓰게 될 것 같다', example: null, required: true },
-  { id: 'Q1-2', question: 1, order: 2, group: 'Q1-2', title: '남았으면 하는 것', prompt: '그래도 은행에 남았으면 하는 것', example: null, required: true },
-  { id: 'Q1-3', question: 1, order: 3, group: 'Q1-3', title: '바뀌었으면 하는 것', prompt: '바뀌었으면 하는 것', example: null, required: true },
-  { id: 'Q1-4', question: 1, order: 4, group: 'Q1-4', title: '카뱅이 준비할 것', prompt: '그래서 카뱅이 내년에 먼저 준비했으면 하는 것', example: null, required: false },
-  { id: 'Q2-1', question: 2, order: 5, group: 'Q2-1', title: '막힌 것', prompt: '올해 AI를 써 보니 우리는 ___ 때문에 막혔다(어려웠다)', example: '토큰은 많이 쓰는데 정확하게 쓸 줄 몰라 결과가 안 나왔다', required: true },
-  { id: 'Q2-2', question: 2, order: 6, group: 'Q2-2', title: '일하는 방식', prompt: '그래서 앞으로는 ___ 하게 일해야 한다', example: '잘 된 프롬프트·사례를 팀에서 공유하며 일한다', required: true },
-  { id: 'Q2-3a', question: 2, order: 7, group: 'Q2-3', title: '당장 할 것', prompt: '당장 ___ 부터 해 보겠다', example: '다음 주 주간보고를 AI 초안으로 만들어 보겠다', required: true },
-  { id: 'Q2-3b', question: 2, order: 8, group: 'Q2-3', title: '회사가 지원해 줬으면 하는 것', prompt: '회사가 지원해 줬으면 하는 것: ___', example: '회사는 팀별 도구 가이드를 준비해 달라', required: false },
+  { id: 'Q1-1', question: 1, order: 1, group: 'Q1-1', title: '나의 변화', prompt: 'AI 에이전트 시대에 나는 금융을 이렇게 쓰게 될 것 같다', examples: ['월급 들어오면 저축·카드값·용돈으로 알아서 나눠 담아 줬으면', "앱을 여는 대신 에이전트한테 '이번 달 얼마 썼어?'만 물어볼 듯"], required: true },
+  { id: 'Q1-2', question: 1, order: 2, group: 'Q1-2', title: '남았으면 하는 것', prompt: '그래도 은행에 남았으면 하는 것', examples: ['큰돈 움직일 땐 사람한테 한 번 확인받고 싶다', '문제가 생기면 책임지는 곳은 결국 은행'], required: true },
+  { id: 'Q1-3', question: 1, order: 3, group: 'Q1-3', title: '바뀌었으면 하는 것', prompt: '바뀌었으면 하는 것', examples: ['가입할 때 서류·인증 단계가 확 줄었으면', '금리 비교도 갈아타기도 에이전트가 한 번에'], required: true },
+  { id: 'Q1-4', question: 1, order: 4, group: 'Q1-4', title: '카뱅이 준비할 것', prompt: '그래서 카뱅이 내년에 먼저 준비했으면 하는 것', examples: ['에이전트가 우리 상품을 쉽게 쓸 수 있는 연결 통로', '고객 대신 움직여도 안전한 한도·확인 장치'], required: false },
+  { id: 'Q2-1', question: 2, order: 5, group: 'Q2-1', title: '막힌 것', prompt: '올해 AI를 써 보니 우리는 ___ 때문에 막혔다(어려웠다)', examples: ['토큰은 많이 쓰는데 정확하게 쓸 줄 몰라 결과가 안 나왔다', '데이터가 어디 있는지 몰라서 AI한테 줄 수가 없었다'], required: true },
+  { id: 'Q2-2', question: 2, order: 6, group: 'Q2-2', title: '일하는 방식', prompt: '그래서 앞으로는 ___ 하게 일해야 한다', examples: ['잘 된 프롬프트·사례를 팀에서 공유하며 일한다', '초안은 AI, 판단은 사람 — 검토 순서를 정해 두고 일한다'], required: true },
+  { id: 'Q2-3a', question: 2, order: 7, group: 'Q2-3', title: '당장 할 것', prompt: '당장 ___ 부터 해 보겠다', examples: ['다음 주 주간보고를 AI 초안으로 만들어 보겠다', '회의록 정리부터 AI로 바꿔 보겠다'], required: true },
+  { id: 'Q2-3b', question: 2, order: 8, group: 'Q2-3', title: '회사가 지원해 줬으면 하는 것', prompt: '회사가 지원해 줬으면 하는 것: ___', examples: ['팀별 도구 가이드를 준비해 달라', '써도 되는 데이터·도구 기준을 한 장으로 정리해 달라'], required: false },
 ];
 
 export interface BoardGroup {
@@ -90,13 +91,23 @@ export function groupById(id: string | null | undefined): BoardGroup | null {
   return BOARD_GROUPS.find((g) => g.id === id) ?? null;
 }
 
+/** 표시용 그룹 라벨 — 'Q1-1' → '1-1', 'Q2-3a' → '2-3a' (DB id·CSV 열 이름은 그대로) */
+export function groupLabel(id: string): string {
+  return id.replace(/^Q/, '');
+}
+
+/** 표시용 대질문 라벨 — '질문 1 · AI for User' (원문자 ①② 쓰지 않음) */
+export function questionLabel(no: 1 | 2): string {
+  return `질문 ${no} · ${BOARD_QUESTIONS[no].label}`;
+}
+
 export function itemById(id: string): BoardItem | undefined {
   return BOARD_ITEMS.find((i) => i.id === id);
 }
 
 export const BOARD_GROUND_RULES = [
   '현재의 규제·당국 입장·실행 가능성은 잠시 내려놓는다',
-  "질문 ①은 '고객인 나'로 상상하고, 결론은 '우리 조직'과 '회사'가 할 일로 답한다",
+  "질문 1은 '고객인 나'로 상상하고, 결론은 '우리 조직'과 '회사'가 할 일로 답한다",
   '정답은 없다. 의견이 갈리면 둘 다 적어도 된다',
 ];
 

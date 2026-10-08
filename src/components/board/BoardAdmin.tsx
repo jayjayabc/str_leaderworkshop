@@ -1,9 +1,9 @@
 'use client';
 
-// 토의보드 운영자 화면 /board/admin (Board v1.0) — 퀴즈와 같은 운영자 키.
-//   단계 제어(Space 다음 · R 다시 열기 · Esc 크게 보기 해제) · 타이머 · 토글 4종 · 현황표(58 × 7)
-//   카드 목록(크게 보기 / 숨김 / 하이라이트) · CSV 2종 + JSON · 초기화(2단계 확인)
-//   스냅샷은 2초마다 읽는다(제출 테이블은 방송하지 않으므로).
+// 토의보드 운영자 화면 /board/admin (Board v1.1) — 퀴즈와 같은 운영자 키.
+//   단계 제어(Space 다음 · R 다시 열기 · ← → 모아보기 탭 · Esc 크게 보기 해제) · 열린 지 n분(참고용) · 토글 · 현황표(58 × 7)
+//   투표 패널(대상 그룹 · 열기/마감 · 순위 공개 · 득표 순위표) · 카드 목록(크게 보기 / 숨김 / 하이라이트) · CSV 2종 + JSON · 초기화(2단계 확인)
+//   스냅샷은 2초마다 읽는다(제출 테이블은 방송하지 않으므로). 반조(team_id)는 운영자 화면·CSV에만 있다.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
@@ -11,9 +11,9 @@ import { toast } from 'sonner';
 
 import { OPERATOR_KEY, readStoredKey, writeStoredKey } from '@/lib/admin';
 import { getBoardDb } from '@/lib/boardDb';
-import { PHASE_LABEL, fmtClock, timerLeft, useNow } from '@/lib/boardClient';
+import { PHASE_LABEL, fmtClock, fmtElapsed, timerLeft, useNow } from '@/lib/boardClient';
 import { download, fullJson, kst, longCsv, stamp, wideCsv } from '@/lib/boardExport';
-import { BOARD_GROUPS, BOARD_TEAM_COUNT, groupById, itemById, type BoardGroupId } from '@/lib/boardSeed';
+import { BOARD_GROUPS, BOARD_TEAM_COUNT, groupById, groupLabel, itemById, type BoardGroupId } from '@/lib/boardSeed';
 import {
   BoardError,
   boardErrorText,
@@ -37,23 +37,25 @@ interface Step {
 
 const STEPS: Step[] = [
   { id: 'waiting', label: '대기 (QR)', patch: { phase: 'waiting', current_item: null, focus: null, timer_minutes: 0 } },
-  { id: 'q1_intro', label: '질문 ① 소개', patch: { phase: 'q1_intro', current_item: null, focus: null, wall_public: false, timer_minutes: 0 } },
+  { id: 'q1_intro', label: '질문 1 소개', patch: { phase: 'q1_intro', current_item: null, focus: null, wall_public: false, timer_minutes: 0 } },
   ...BOARD_GROUPS.filter((g) => g.question === 1).map((g) => ({
     id: g.id,
-    label: `${g.id} ${g.title}`,
+    label: `${groupLabel(g.id)} ${g.title}`,
     group: g.id,
     patch: { phase: 'item_open' as const, current_item: g.id, item_open: true, focus: null },
   })),
-  { id: 'wall1', label: '월 보기 ①', patch: { phase: 'wall', current_item: 'Q1-1', wall_public: true, focus: null, timer_minutes: 0 } },
-  { id: 'break', label: '휴식', patch: { phase: 'break', focus: null, wall_public: false } },
-  { id: 'q2_intro', label: '질문 ② 소개', patch: { phase: 'q2_intro', current_item: null, focus: null, wall_public: false, timer_minutes: 0 } },
+  // 모아보기는 그 질문의 첫 항목 탭으로 열린다 (탭은 ← → 또는 카드 패널의 그룹 버튼)
+  { id: 'wall1', label: '모아보기 1', patch: { phase: 'wall', current_item: 'Q1-1', wall_public: true, focus: null, timer_minutes: 0 } },
+  // 휴식은 선택 — Space '다음'으로는 들어가지 않고(건너뜀) 이 버튼으로만 들어간다
+  { id: 'break', label: '휴식 (선택)', patch: { phase: 'break', focus: null, wall_public: false } },
+  { id: 'q2_intro', label: '질문 2 소개', patch: { phase: 'q2_intro', current_item: null, focus: null, wall_public: false, timer_minutes: 0 } },
   ...BOARD_GROUPS.filter((g) => g.question === 2).map((g) => ({
     id: g.id,
-    label: `${g.id} ${g.title}`,
+    label: `${groupLabel(g.id)} ${g.title}`,
     group: g.id,
     patch: { phase: 'item_open' as const, current_item: g.id, item_open: true, focus: null },
   })),
-  { id: 'wall2', label: '월 보기 ②', patch: { phase: 'wall', current_item: 'Q2-1', wall_public: true, focus: null, timer_minutes: 0 } },
+  { id: 'wall2', label: '모아보기 2', patch: { phase: 'wall', current_item: 'Q2-1', wall_public: true, focus: null, timer_minutes: 0 } },
   { id: 'ended', label: '종료', patch: { phase: 'ended', focus: null, timer_minutes: 0 } },
 ];
 
@@ -63,7 +65,7 @@ function stepIndex(s: BoardState): number {
   return STEPS.findIndex((x) => x.id === s.phase);
 }
 
-/** 항목을 열 때 기본 타이머(분) — 질문 ① 항목 약 2.5분, 질문 ② 아젠다 6분 */
+/** '항목 열 때 자동 시작'을 켰을 때의 타이머(분) — 질문 1 항목 3분, 질문 2 아젠다 6분 (기본은 끔 · 송출·폰에는 표시되지 않는다) */
 const DEFAULT_MIN: Record<1 | 2, number> = { 1: 3, 2: 6 };
 
 // ─── 키 게이트 ────────────────────────────────────────────────
@@ -135,7 +137,7 @@ function Console({ opKey }: { opKey: string }) {
   const [busy, setBusy] = useState(false);
   // 상태(busy)는 다음 렌더까지 안 바뀌므로, 키를 빠르게 두 번 눌러도 한 번만 가게 동기 잠금을 둔다
   const busyRef = useRef(false);
-  const [autoTimer, setAutoTimer] = useState(true);
+  const [autoTimer, setAutoTimer] = useState(false);
   const [timerMin, setTimerMin] = useState('3');
   const now = useNow();
 
@@ -205,8 +207,24 @@ function Console({ opKey }: { opKey: string }) {
       void apply({ item_open: false, timer_minutes: 0 });
       return;
     }
-    goStep(Math.min(idx + 1, STEPS.length - 1));
+    // 휴식(선택)은 건너뛴다 — 버튼으로만 들어간다
+    let n = Math.min(idx + 1, STEPS.length - 1);
+    if (STEPS[n]?.id === 'break') n = Math.min(n + 1, STEPS.length - 1);
+    goStep(n);
   }, [state, idx, apply, goStep]);
+
+  /** ◀ 이전 탭 / 다음 탭 ▶ (← →) — 모아보기에서 같은 질문의 그룹 탭을 옮긴다 */
+  const moveTab = useCallback(
+    (delta: -1 | 1) => {
+      if (!state || busyRef.current || state.phase !== 'wall') return;
+      const cur = groupById(state.current_item);
+      if (!cur) return;
+      const gs = BOARD_GROUPS.filter((g) => g.question === cur.question);
+      const target = gs[gs.findIndex((g) => g.id === cur.id) + delta];
+      if (target) void apply({ current_item: target.id, focus: null });
+    },
+    [state, apply],
+  );
 
   const reopen = useCallback(() => {
     if (!state?.current_item || busyRef.current) return;
@@ -217,10 +235,10 @@ function Console({ opKey }: { opKey: string }) {
   const clearFocus = useCallback(() => void apply({ focus: null }), [apply]);
 
   // 단축키
-  const keysRef = useRef({ next, reopen, clearFocus });
+  const keysRef = useRef({ next, reopen, clearFocus, moveTab });
   useEffect(() => {
-    keysRef.current = { next, reopen, clearFocus };
-  }, [next, reopen, clearFocus]);
+    keysRef.current = { next, reopen, clearFocus, moveTab };
+  }, [next, reopen, clearFocus, moveTab]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
@@ -236,6 +254,10 @@ function Console({ opKey }: { opKey: string }) {
         keysRef.current.reopen();
       } else if (e.key === 'Escape') {
         keysRef.current.clearFocus();
+      } else if (e.key === 'ArrowLeft') {
+        keysRef.current.moveTab(-1);
+      } else if (e.key === 'ArrowRight') {
+        keysRef.current.moveTab(1);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -252,7 +274,9 @@ function Console({ opKey }: { opKey: string }) {
 
   const left = timerLeft(state, now, offset);
   const group = groupById(state.current_item);
-  const joined = snap.teams.filter((t) => t.devices > 0).length;
+  const joined = snap.teams.filter((t) => t.recorders > 0).length;
+  const viewers = snap.teams.reduce((n, t) => n + t.viewers, 0);
+  const openedFor = state.item_open && state.item_opened_at ? now + offset - new Date(state.item_opened_at).getTime() : null;
   const submittedNow = group
     ? new Set(snap.submissions.filter((s) => group.items.some((i) => i.id === s.item_id)).map((s) => s.team_id)).size
     : 0;
@@ -268,17 +292,23 @@ function Console({ opKey }: { opKey: string }) {
           <h1 className="text-[18px] font-extrabold">토의보드 운영</h1>
           <span className="rounded-md bg-[#1E1E1E] px-2.5 py-1 text-[14px] font-bold text-[#FFE300]">
             {PHASE_LABEL[state.phase]}
-            {group ? ` · ${group.id} ${group.title}` : ''}
+            {group ? ` · ${groupLabel(group.id)} ${group.title}` : ''}
             {state.phase === 'item_open' ? (state.item_open ? ' · 열림' : ' · 닫힘') : ''}
           </span>
           <span className="text-[14px] tabular-nums">
             입장 <b>{joined}</b>/{BOARD_TEAM_COUNT}
+            {viewers ? <span className="text-black/55"> (관전 {viewers})</span> : null}
             {group ? (
               <>
                 {' · '}제출 <b>{submittedNow}</b>/{BOARD_TEAM_COUNT}
               </>
             ) : null}
           </span>
+          {openedFor !== null ? (
+            <span className="text-[13px] tabular-nums text-black/55" data-testid="opened-for">
+              열린 지 {fmtElapsed(openedFor)} <span className="text-black/35">(참고용)</span>
+            </span>
+          ) : null}
           {left !== null ? (
             <span className={clsx('rounded-md px-2 py-0.5 text-[16px] font-extrabold tabular-nums', left <= 60_000 ? 'bg-[#FF5A3C] text-white' : 'bg-black/5')}>
               ⏱ {fmtClock(left)}
@@ -298,7 +328,7 @@ function Console({ opKey }: { opKey: string }) {
       <div className="grid gap-5 p-5 xl:grid-cols-[360px_1fr]">
         {/* 왼쪽: 진행 */}
         <section className="flex flex-col gap-4">
-          <Panel title="진행 순서" hint="Space 다음(열린 항목은 닫기) · R 다시 열기 · Esc 크게 보기 해제">
+          <Panel title="진행 순서" hint="Space 다음(열린 항목은 닫기, 휴식은 건너뜀) · R 다시 열기 · ← → 모아보기 탭 · Esc 크게 보기 해제">
             <ol className="flex flex-col gap-1">
               {STEPS.map((s, i) => {
                 const active = i === idx;
@@ -339,10 +369,33 @@ function Console({ opKey }: { opKey: string }) {
                 다시 열기 (R)
               </button>
             </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={busy || state.phase !== 'wall'}
+                onClick={() => moveTab(-1)}
+                className="h-10 rounded-lg border border-black/20 text-[14px] font-bold disabled:opacity-40"
+              >
+                ◀ 이전 탭
+              </button>
+              <button
+                type="button"
+                disabled={busy || state.phase !== 'wall'}
+                onClick={() => moveTab(1)}
+                className="h-10 rounded-lg border border-black/20 text-[14px] font-bold disabled:opacity-40"
+              >
+                다음 탭 ▶
+              </button>
+            </div>
           </Panel>
 
-          <Panel title="타이머">
-            <div className="flex items-center gap-2">
+          <VotePanel snap={snap} state={state} apply={apply} busy={busy} />
+
+          <details className="rounded-2xl bg-white p-4 shadow-sm">
+            <summary className="cursor-pointer text-[15px] font-extrabold">
+              고급 — 타이머 <span className="text-[12px] font-normal text-black/50">(송출·폰에는 표시되지 않아요)</span>
+            </summary>
+            <div className="mt-3 flex items-center gap-2">
               <input
                 value={timerMin}
                 onChange={(e) => setTimerMin(e.target.value.replace(/[^0-9.]/g, ''))}
@@ -363,18 +416,18 @@ function Console({ opKey }: { opKey: string }) {
             </div>
             <label className="mt-2 flex items-center gap-2 text-[13px] text-black/70">
               <input type="checkbox" checked={autoTimer} onChange={(e) => setAutoTimer(e.target.checked)} />
-              항목을 열 때 자동 시작 (질문 ① {DEFAULT_MIN[1]}분 · 질문 ② {DEFAULT_MIN[2]}분)
+              항목을 열 때 자동 시작 (질문 1 {DEFAULT_MIN[1]}분 · 질문 2 {DEFAULT_MIN[2]}분)
             </label>
-          </Panel>
+          </details>
 
           <Panel title="설정">
             <div className="flex flex-col gap-2">
               <Toggle label="수정 허용" desc="같은 반조의 재제출을 덮어쓰기" on={state.allow_edit} onChange={(v) => void apply({ allow_edit: v })} />
-              <Toggle label="월 공개" desc="참가자 폰에서 다른 반조 카드 읽기" on={state.wall_public} onChange={(v) => void apply({ wall_public: v })} />
+              <Toggle label="모아보기 공개" desc="참가자 폰에서 다른 반조 카드 읽기" on={state.wall_public} onChange={(v) => void apply({ wall_public: v })} />
               <Toggle label="효과음" desc="새 카드가 붙을 때 송출 PC에서 알림음" on={state.sound_on} onChange={(v) => void apply({ sound_on: v })} />
               <Toggle label="밝은 송출" desc="끄면 어두운 배경" on={state.screen_theme === 'light'} onChange={(v) => void apply({ screen_theme: v ? 'light' : 'dark' })} />
               <label className="flex items-center gap-2 text-[14px]">
-                <span className="font-bold">월 자동 스크롤</span>
+                <span className="font-bold">모아보기 자동 스크롤</span>
                 <select
                   value={state.scroll_speed}
                   onChange={(e) => void apply({ scroll_speed: Number(e.target.value) })}
@@ -394,14 +447,14 @@ function Console({ opKey }: { opKey: string }) {
               <button type="button" onClick={() => download(`board_wide_${stamp()}.csv`, wideCsv(snap.submissions), 'text/csv;charset=utf-8')} className="h-10 rounded-lg bg-[#1E1E1E] text-[13px] font-bold text-white">
                 와이드 CSV
               </button>
-              <button type="button" onClick={() => download(`board_long_${stamp()}.csv`, longCsv(snap.submissions), 'text/csv;charset=utf-8')} className="h-10 rounded-lg bg-[#1E1E1E] text-[13px] font-bold text-white">
+              <button type="button" onClick={() => download(`board_long_${stamp()}.csv`, longCsv(snap.submissions, snap.votes, snap.state.vote_items), 'text/csv;charset=utf-8')} className="h-10 rounded-lg bg-[#1E1E1E] text-[13px] font-bold text-white">
                 롱 CSV
               </button>
               <button type="button" onClick={() => download(`board_all_${stamp()}.json`, fullJson(snap), 'application/json')} className="h-10 rounded-lg border border-black/20 text-[13px] font-bold">
                 JSON
               </button>
             </div>
-            <p className="mt-2 text-[12px] text-black/50">와이드 = 반조 58행 × 항목 8칸(숨김 카드는 빈칸) · 롱 = 제출 1건 1행(숨김 포함)</p>
+            <p className="mt-2 text-[12px] text-black/50">와이드 = 반조 58행 × 항목 8칸(숨김 카드는 빈칸) · 롱 = 제출 1건 1행(숨김 포함 · 투표 그룹은 votes 열)</p>
           </Panel>
 
           <ResetPanel opKey={opKey} group={state.current_item} onDone={pull} />
@@ -442,6 +495,122 @@ function Toggle({ label, desc, on, onChange }: { label: string; desc: string; on
   );
 }
 
+// ─── 투표 패널 ────────────────────────────────────────────────
+
+function VotePanel({
+  snap,
+  state,
+  apply,
+  busy,
+}: {
+  snap: BoardAdminSnapshot;
+  state: BoardState;
+  apply: (p: BoardStatePatch, ok?: string) => Promise<void>;
+  busy: boolean;
+}) {
+  const cur = groupById(state.current_item);
+  const isTarget = Boolean(cur && state.vote_items.includes(cur.id));
+  // 현재 그룹 득표 순위표 (운영자에게는 반조 ID 포함)
+  const table = useMemo(() => {
+    if (!cur) return [];
+    const teams = new Map<string, string>();
+    for (const sub of snap.submissions) {
+      if (!cur.items.some((i) => i.id === sub.item_id) || sub.hidden || !sub.body) continue;
+      const t = teams.get(sub.team_id);
+      teams.set(sub.team_id, t ? `${t} / ${sub.body}` : sub.body);
+    }
+    const votes = new Map(snap.votes.filter((v) => v.group_key === cur.id).map((v) => [v.team_id, v.votes]));
+    return [...teams.entries()]
+      .map(([team_id, body]) => ({ team_id, body, votes: votes.get(team_id) ?? 0 }))
+      .sort((a, b) => b.votes - a.votes || a.team_id.localeCompare(b.team_id, 'en', { numeric: true }));
+  }, [snap.submissions, snap.votes, cur]);
+
+  const toggleGroup = (id: BoardGroupId) => {
+    const next = state.vote_items.includes(id) ? state.vote_items.filter((g) => g !== id) : [...state.vote_items, id];
+    void apply({ vote_items: next });
+  };
+
+  return (
+    <Panel title="투표" hint="기본은 2-3만. 투표 대상 그룹이 열려 있을 때 폰에 투표 화면이 뜹니다.">
+      <div className="flex flex-wrap gap-1" role="group" aria-label="투표 대상 그룹">
+        {BOARD_GROUPS.map((g) => {
+          const on = state.vote_items.includes(g.id);
+          return (
+            <button
+              key={g.id}
+              type="button"
+              role="checkbox"
+              aria-checked={on}
+              aria-label={`투표 대상 ${groupLabel(g.id)}`}
+              disabled={busy}
+              onClick={() => toggleGroup(g.id)}
+              className={clsx('rounded-md px-2 py-1 text-[12px] font-bold', on ? 'bg-[#1E1E1E] text-[#FFE300]' : 'bg-black/5 text-black/60')}
+            >
+              {groupLabel(g.id)}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void apply(state.vote_open ? { vote_open: false } : { vote_open: true, vote_reveal: false }, state.vote_open ? '투표를 마감했어요' : '투표를 열었어요')}
+          className={clsx('h-11 rounded-lg text-[14px] font-bold disabled:opacity-40', state.vote_open ? 'bg-[#C23A1E] text-white' : 'bg-[#1E1E1E] text-white')}
+        >
+          {state.vote_open ? '투표 마감' : '투표 열기'}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void apply(state.vote_reveal ? { vote_reveal: false } : { vote_reveal: true, vote_open: false }, state.vote_reveal ? '순위를 숨겼어요' : '순위를 공개했어요')}
+          className={clsx('h-11 rounded-lg border text-[14px] font-bold disabled:opacity-40', state.vote_reveal ? 'border-[#1E1E1E] bg-[#FFE300]' : 'border-black/20')}
+        >
+          {state.vote_reveal ? '순위 숨김' : '순위 공개'}
+        </button>
+      </div>
+      <p className="mt-2 text-[12px] text-black/55">
+        {state.vote_open ? '투표 받는 중' : state.vote_reveal ? '순위 공개 중' : '투표 닫힘'}
+        {cur ? (isTarget ? '' : ` · 지금 항목(${groupLabel(cur.id)})은 투표 대상이 아니에요`) : ''}
+        {' · '}투표한 기기 <b data-testid="admin-voters">{snap.voters}</b>
+      </p>
+      {cur && isTarget ? (
+        <div className="mt-3 max-h-60 overflow-y-auto rounded-lg border border-black/10">
+          <table className="w-full text-[12px]" aria-label="득표 순위">
+            <thead className="sticky top-0 bg-white text-left text-black/50">
+              <tr>
+                <th className="px-2 py-1">순위</th>
+                <th className="px-2 py-1">반조</th>
+                <th className="px-2 py-1 text-right">득표</th>
+                <th className="px-2 py-1">내용</th>
+              </tr>
+            </thead>
+            <tbody>
+              {table.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-2 py-3 text-black/40">
+                    아직 카드가 없어요
+                  </td>
+                </tr>
+              ) : null}
+              {table.map((r, i) => (
+                <tr key={r.team_id} className="border-t border-black/5">
+                  <td className="px-2 py-1 tabular-nums">{i + 1}</td>
+                  <td className="px-2 py-1 font-bold">{r.team_id}</td>
+                  <td className="px-2 py-1 text-right font-bold tabular-nums">{r.votes}</td>
+                  <td className="max-w-[120px] truncate px-2 py-1 text-black/60" title={r.body}>
+                    {r.body}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
 // ─── 카드 목록 ────────────────────────────────────────────────
 
 function CardsPanel({
@@ -473,6 +642,7 @@ function CardsPanel({
     return [...by.entries()]
       .map(([team_id, rows]) => ({
         team_id,
+        card: rows[0].card,
         rows: rows.sort((a, b) => order(a.item_id) - order(b.item_id)),
         updated_at: rows.map((r) => r.updated_at).sort().at(-1)!,
       }))
@@ -483,14 +653,15 @@ function CardsPanel({
   const isExec = (id: string) => snap.teams.find((t) => t.id === id)?.is_exec;
 
   const focus = (team_id: string, rows: BoardAdminSubmission[]) => {
-    const f: BoardFocus = { team_id, group: group.id, items: rows.filter((r) => !r.hidden).map((r) => ({ item_id: r.item_id, body: r.body })) };
+    // 크게 보기에는 반조 ID가 아니라 card 키를 저장한다(송출·폰이 읽는 board_state 에 반조 정보를 싣지 않는다)
+    const f: BoardFocus = { card: rows[0].card, group: group.id, items: rows.filter((r) => !r.hidden).map((r) => ({ item_id: r.item_id, body: r.body })) };
     void apply({ focus: f }, `${team_id} 크게 보기`);
   };
 
   const moderate = async (row: BoardAdminSubmission, action: 'hide' | 'unhide' | 'highlight' | 'unhighlight') => {
     let note: string | undefined;
     if (action === 'hide') {
-      const v = window.prompt(`${row.team_id} ${row.item_id} 카드를 송출·CSV에서 숨깁니다. 사유 메모(선택):`, '');
+      const v = window.prompt(`${row.team_id} ${groupLabel(row.item_id)} 카드를 송출·CSV에서 숨깁니다. 사유 메모(선택):`, '');
       if (v === null) return;
       note = v;
     }
@@ -504,7 +675,7 @@ function CardsPanel({
 
   const selectGroup = (g: BoardGroupId) => {
     setPicked(g);
-    // 월 보기 단계에서는 탭을 고르면 송출 화면도 그 항목으로 바뀐다
+    // 모아보기 단계에서는 탭을 고르면 송출 화면도 그 항목으로 바뀐다
     if (state.phase === 'wall') void apply({ current_item: g, focus: null });
   };
 
@@ -524,7 +695,7 @@ function CardsPanel({
                 g.id === state.current_item && g.id !== groupId && 'ring-1 ring-[#1E1E1E]',
               )}
             >
-              {g.id}
+              {groupLabel(g.id)}
             </button>
           ))}
         </div>
@@ -534,19 +705,19 @@ function CardsPanel({
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="본문 검색" className="h-9 w-40 rounded-lg border border-black/15 px-2 text-[13px]" />
           {state.focus ? (
             <button type="button" onClick={() => void apply({ focus: null })} className="h-9 rounded-lg bg-[#FF5A3C] px-3 text-[13px] font-bold text-white">
-              크게 보기 해제 ({state.focus.team_id})
+              크게 보기 해제 ({groupLabel(state.focus.group)})
             </button>
           ) : null}
         </div>
       </div>
       <p className="mt-1 text-[12px] text-black/50">
-        {group.id} {group.title} · {cards.length}개 반조
+        {groupLabel(group.id)} {group.title} · {cards.length}개 반조
       </p>
       <div className="mt-3 grid max-h-[560px] gap-2 overflow-y-auto pr-1 md:grid-cols-2 2xl:grid-cols-3">
         {cards.length === 0 ? <p className="py-6 text-[13px] text-black/40">아직 카드가 없어요</p> : null}
         {cards.map((c) => {
           const allHidden = c.rows.every((r) => r.hidden);
-          const focused = state.focus?.team_id === c.team_id && state.focus.group === group.id;
+          const focused = state.focus?.card === c.card && state.focus.group === group.id;
           return (
             <article
               key={c.team_id}
@@ -628,7 +799,7 @@ function MatrixPanel({ snap, state }: { snap: BoardAdminSnapshot; state: BoardSt
               <th className="px-1 font-bold">기기</th>
               {BOARD_GROUPS.map((g) => (
                 <th key={g.id} className={clsx('px-1 text-center font-bold', g.id === state.current_item && 'text-[#1E1E1E]')}>
-                  {g.id}
+                  {groupLabel(g.id)}
                 </th>
               ))}
             </tr>
@@ -669,7 +840,7 @@ function ResetPanel({ opKey, group, onDone }: { opKey: string; group: BoardGroup
   const run = async (scope: 'group' | 'all') => {
     try {
       await getBoardDb().reset(opKey, scope, scope === 'group' ? (group ?? undefined) : undefined);
-      toast.success(scope === 'all' ? '전체 초기화 완료 (참가자 포함)' : `${group} 제출을 지웠어요`);
+      toast.success(scope === 'all' ? '전체 초기화 완료 (참가자 포함)' : `${group ? groupLabel(group) : ''} 제출을 지웠어요`);
       setArmed(null);
       await onDone();
     } catch (e) {
@@ -681,7 +852,7 @@ function ResetPanel({ opKey, group, onDone }: { opKey: string; group: BoardGroup
       {armed ? (
         <div className="rounded-lg bg-[#FFE7E1] p-3">
           <p className="text-[13px] font-bold text-[#C23A1E]">
-            {armed === 'all' ? '모든 제출과 참가자를 지우고 대기 상태로 돌아갑니다.' : `${group} 항목의 제출을 모두 지웁니다.`} 정말 초기화할까요?
+            {armed === 'all' ? '모든 제출·참가자·투표를 지우고 대기 상태로 돌아갑니다.' : `${group ? groupLabel(group) : ''} 항목의 제출과 투표를 모두 지웁니다.`} 정말 초기화할까요?
           </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setArmed(null)} className="h-9 rounded-lg border border-black/20 text-[13px] font-bold">
@@ -695,7 +866,7 @@ function ResetPanel({ opKey, group, onDone }: { opKey: string; group: BoardGroup
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <button type="button" disabled={!group} onClick={() => setArmed('group')} className="h-9 rounded-lg border border-[#C23A1E]/40 text-[13px] font-bold text-[#C23A1E] disabled:opacity-30">
-            이 항목만 ({group ?? '—'})
+            이 항목만 ({group ? groupLabel(group) : '—'})
           </button>
           <button type="button" onClick={() => setArmed('all')} className="h-9 rounded-lg border border-[#C23A1E]/40 text-[13px] font-bold text-[#C23A1E]">
             전체 (참가자 포함)

@@ -1,4 +1,4 @@
-// 토의보드 Supabase 어댑터 (Board v1.0) — 스키마는 supabase/board_v1.0_migration.sql.
+// 토의보드 Supabase 어댑터 (Board v1.1) — 스키마는 supabase/board_v1.0_migration.sql · board_v1.1_migration.sql.
 //   - 쓰기·조회는 모두 RPC. 테이블 직접 접근은 board_state 읽기뿐이다.
 //   - 참가자·송출·운영자 모두 board_state만 구독한다(제출 테이블은 방송하지 않는다).
 //     송출 월은 board_feed 를 1초마다, 운영자는 스냅샷을 2초마다 읽는다.
@@ -20,6 +20,9 @@ import {
   type BoardMe,
   type BoardModerateAction,
   type BoardMyView,
+  type BoardMyVotes,
+  type BoardRankRow,
+  type BoardRole,
   type BoardState,
   type BoardStatePatch,
 } from './boardTypes';
@@ -31,6 +34,10 @@ const CODES: BoardErrorCode[] = [
   'BOARD_EMPTY',
   'BOARD_TOO_LONG',
   'BOARD_FORBIDDEN',
+  'BOARD_NOT_RECORDER',
+  'BOARD_OWN_CARD',
+  'BOARD_VOTE_LIMIT',
+  'BOARD_FULL',
 ];
 
 function toBoardError(err: { message?: string } | null | undefined): BoardError {
@@ -44,6 +51,7 @@ export function normalizeBoardState(row: Partial<BoardState> | null | undefined)
     ...EMPTY_BOARD_STATE,
     ...(row ?? {}),
     opened_groups: (row?.opened_groups as BoardState['opened_groups']) ?? [],
+    vote_items: (row?.vote_items as BoardState['vote_items'] | undefined) ?? EMPTY_BOARD_STATE.vote_items,
   };
 }
 
@@ -124,10 +132,13 @@ class SupabaseBoardAdapter implements BoardAdapter {
     };
   }
 
-  async join(teamId: string, name: string, device: string): Promise<BoardMe> {
-    const { data, error } = await withTimeout(sb().rpc('board_join', { p_team: teamId, p_name: name, p_device: device }));
+  async join(teamId: string, name: string, device: string, role: BoardRole = 'recorder'): Promise<BoardMe> {
+    const { data, error } = await withTimeout(
+      sb().rpc('board_join', { p_team: teamId, p_name: name, p_device: device, p_role: role }),
+    );
     if (error || !data) throw toBoardError(error);
-    return data as BoardMe;
+    const me = data as BoardMe;
+    return { ...me, role: me.role ?? 'recorder' };
   }
 
   async my(participantId: string): Promise<BoardMyView | null> {
@@ -154,11 +165,29 @@ class SupabaseBoardAdapter implements BoardAdapter {
     return (data as BoardCard[] | null) ?? [];
   }
 
+  async vote(participantId: string, group: BoardGroupId, card: string, on: boolean): Promise<BoardMyVotes> {
+    const { data, error } = await withTimeout(sb().rpc('board_vote', { p_id: participantId, p_group: group, p_card: card, p_on: on }));
+    if (error || !data) throw toBoardError(error);
+    return data as BoardMyVotes;
+  }
+
+  async myVotes(participantId: string, group: BoardGroupId): Promise<BoardMyVotes> {
+    const { data, error } = await withTimeout(sb().rpc('board_my_votes', { p_id: participantId, p_group: group }));
+    if (error || !data) throw toBoardError(error);
+    return data as BoardMyVotes;
+  }
+
+  async ranking(group: BoardGroupId): Promise<BoardRankRow[]> {
+    const { data, error } = await withTimeout(sb().rpc('board_ranking', { p_group: group }));
+    if (error) throw toBoardError(error);
+    return (data as BoardRankRow[] | null) ?? [];
+  }
+
   async adminSnapshot(key: string): Promise<BoardAdminSnapshot> {
     const { data, error } = await sb().rpc('board_admin_snapshot', { p_key: key });
     if (error || !data) throw toBoardError(error);
     const snap = data as BoardAdminSnapshot;
-    return { ...snap, state: normalizeBoardState(snap.state) };
+    return { ...snap, state: normalizeBoardState(snap.state), votes: snap.votes ?? [], voters: snap.voters ?? 0 };
   }
 
   async setState(key: string, patch: BoardStatePatch): Promise<BoardState> {
