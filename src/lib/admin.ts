@@ -2,8 +2,14 @@
 
 const KEY_STORAGE = 'eb:operator-key';
 
-/** NEXT_PUBLIC_OPERATOR_KEY — 비어 있으면 게이트가 꺼진다(개발 편의) */
-export const OPERATOR_KEY: string = (process.env.NEXT_PUBLIC_OPERATOR_KEY ?? '').trim();
+/**
+ * (Sec v1.0) 예전에는 NEXT_PUBLIC_OPERATOR_KEY 를 여기서 읽었는데, NEXT_PUBLIC_ 값은 공개 JS 에 글자 그대로 실린다.
+ * 그 값이 실제 운영 키와 같아서 누구나 운영 키를 볼 수 있었다 → 더 이상 읽지 않는다(빈 값 고정).
+ * 운영 키 확인은 Supabase 의 quiz_config.operator_key 로만 한다(퀴즈·토의보드 운영 화면).
+ * 영향: 로컬 모드(환경변수 없는 개발)의 게이트가 꺼지고, 퇴역한 코끼리보드 /admin 게이트도 꺼진다
+ *       (그 테이블은 sec_v1.0_migration.sql 로 잠가서 화면이 열려도 아무것도 읽거나 쓸 수 없다).
+ */
+export const OPERATOR_KEY: string = '';
 
 export const GATE_ENABLED = OPERATOR_KEY.length > 0;
 

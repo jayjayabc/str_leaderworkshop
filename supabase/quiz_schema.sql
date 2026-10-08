@@ -7,7 +7,7 @@
 --     insert into quiz_config (id, operator_key) values (1, '여기에-운영자-키')
 --     on conflict (id) do update set operator_key = excluded.operator_key;
 --
---   /quiz/admin에서 입력하는 키(= NEXT_PUBLIC_OPERATOR_KEY)와 같은 값이어야 운영 조작이 된다.
+--   ⚠ NEXT_PUBLIC_OPERATOR_KEY 와 같은 값을 쓰지 말 것 — NEXT_PUBLIC_ 값은 공개 JS 에 실린다(Sec v1.0). 24자 이상 무작위.
 --
 -- 보안 모델
 --   - 모든 퀴즈 테이블에 RLS를 켜고, anon이 직접 읽을 수 있는 것은 quiz_state 한 행뿐이다.
