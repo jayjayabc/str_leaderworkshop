@@ -296,6 +296,8 @@ const MAXV = 1300;
 const WALL_T = 5;
 const E_WALL = 0.5, E_PIN = 0.68, E_BALL = 0.6, FRICTION = 0.015;
 const KICK = 480;
+let CATCH = 1.0;           // extra gravity for the marble furthest behind (0.5 = 50% more)
+const CATCH_RANGE = 1500;  // distance behind the leader at which that full boost applies
 const ROOF = 14;           // half-height of a slider's pitched top          // extra push a bumper adds on every hit
 const MAX_MARBLES = 400;
 const TOP = -400;          // world top used for grids
@@ -511,6 +513,91 @@ const SECTIONS = {
     for (const dy of [140, 300, 460]) for (let x = 100; x <= 900; x += 100) pin(x, y + dy, 5);
     return y + 640;
   },
+  // ---- 뱀길: one long winding corridor ----
+  snake(y, legs = 8, startRight = true, name = '뱀길') {
+    zones.push({ y, name });
+    const hw = 190, dy = 480;
+    const pts = [[500, y + 200]];
+    for (let i = 0; i < legs; i++) pts.push([(i % 2 === 0) === startRight ? 760 : 240, y + 200 + (i + 1) * dy]);
+    pts.push([500, y + 200 + (legs + 1) * dy]);
+    seg(0, y + 20, 500 - hw, y + 200); seg(W, y + 20, 500 + hw, y + 200);
+    rail(pts.map(([x, py]) => [x - hw, py])); rail(pts.map(([x, py]) => [x + hw, py]));
+    // something different in the middle of every leg
+    for (let i = 1; i < pts.length - 1; i++) {
+      const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+      if (i % 3 === 0) bumper(mx, my, 24, 1.2);
+      else if (i % 3 === 1) rotor(mx, my, 80, 2, i % 2 ? 2.6 : -2.6);
+      else { pin(mx - 40, my, 7); pin(mx + 40, my, 7); pin(mx, my - 40, 7); }
+    }
+    return y + 200 + (legs + 1) * dy + 80;
+  },
+  // ---- 파칭코: dense pin board with rails, big bumpers and little spinning tulips ----
+  pachinko(y, rows, variant = 0) {
+    zones.push({ y, name: variant === 1 ? '튤립 보드' : '파칭코' });
+    const rails = [];
+    for (let k = 4; k < rows - 4; k += 9) {
+      const t = y + 40 + k * 44;
+      rails.push([0, t, 110, t + 70], [W, t, 890, t + 70]);
+    }
+    rails.forEach(r => seg(...r));
+    const big = variant === 0
+      ? [[300, y + 300], [700, y + 300], [500, y + 600], [250, y + 900], [750, y + 900]]
+      : [];
+    big.forEach(([x, by]) => bumper(x, by, 34, 1.1));
+    const tulips = variant === 1
+      ? [[250, y + 260], [500, y + 260], [750, y + 260], [375, y + 620], [625, y + 620], [250, y + 980], [500, y + 980], [750, y + 980]]
+      : [];
+    tulips.forEach(([x, ty], i) => rotor(x, ty, 38, 1, i % 2 ? 3.2 : -3.2));
+    const nearRail = (px, py) => rails.some(([ax, ay, bx, by]) => {
+      const dx = bx - ax, dy = by - ay; let u = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy);
+      u = Math.max(0, Math.min(1, u));
+      return Math.hypot(px - ax - u * dx, py - ay - u * dy) < 28;
+    });
+    for (let r = 0; r < rows; r++) {
+      const py = y + 40 + r * 44;
+      for (let x = r % 2 ? 58 : 35; x <= 965; x += 46) {
+        if (nearRail(x, py)) continue;
+        if (big.some(([bx, by]) => Math.hypot(bx - x, by - py) < 34 + 28)) continue;
+        if (tulips.some(([bx, by]) => Math.hypot(bx - x, by - py) < 38 + 30)) continue;
+        pin(x, py, 4);
+      }
+    }
+    return y + 40 + rows * 44 + 40;
+  },
+  // ---- 기계 공장: a giant four-armed wheel ----
+  wheel(y, dir = 1) {
+    zones.push({ y, name: '관람차' });
+    rotor(500, y + 460, 410, 2, 0.9 * dir);
+    return y + 940;
+  },
+  gears(y, rows = 4) {
+    zones.push({ y, name: '톱니 숲' });
+    for (let r = 0; r < rows; r++) {
+      const xs = r % 2 ? [350, 650] : [200, 500, 800];
+      xs.forEach((x, i) => rotor(x, y + 150 + r * 280, 110, 2, (r + i) % 2 ? 2.4 : -2.4));
+    }
+    return y + 150 + (rows - 1) * 280 + 200;
+  },
+  // ---- 빌딩 낙하: tilted floors with holes, counted down like storeys ----
+  floors(y, n, top) {
+    const gap = 340, drop = 220, holeW = 175;
+    for (let k = 0; k < n; k++) {
+      const t = y + 80 + k * gap, right = k % 2 === 0;
+      zones.push({ y: t - 70, name: `${top - k}층` });
+      const fy = x => right ? t + drop * x / W : t + drop * (W - x) / W;
+      // a hole at the low end against the wall, and two part way along
+      const mids = right ? [260, 590] : [410, 740];
+      const cuts = mids.map(m => [m - holeW / 2, m + holeW / 2]);
+      if (right) cuts.push([W - holeW, W]); else cuts.unshift([0, holeW]);
+      let x0 = 0;
+      for (const [a, b] of cuts) { if (a > x0) seg(x0, fy(x0), a, fy(a)); x0 = b; }
+      if (x0 < W) seg(x0, fy(x0), W, fy(W));
+      // a few humps on the floor and a spinner hanging over it
+      for (const fx of right ? [100, 430, 760] : [900, 570, 240]) pin(fx, fy(fx) - 4, 6);
+      rotor(right ? 650 : 350, t + drop / 2 - 120, 60, 2, right ? -2.6 : 2.6);
+    }
+    return y + 80 + n * gap;
+  },
   pinForest2(y) {
     zones.push({ y, name: '핀 숲 2' });
     pinRows(y + 40, 8);
@@ -584,40 +671,41 @@ const SECTIONS = {
   },
 };
 
-const TAIL = [['gate', '최종 대기실', 2, 6, 0.8], ['chaos'], ['gauntlet']];
+const TAIL = [['gate', '최종 대기실', 1.5, 4, 0.85], ['chaos'], ['gauntlet']];
 const MAPS = [
   { name: '클래식 대장정', parts: [
-    ['pinForest'], ['funnel'], ['windmills'], ['gate', '대기실 1', 2, 5, 0.6], ['chevrons'], ['slide', true], ['bowl'],
-    ['bumpers'], ['lanes'], ['gate', '대기실 2', 1.5, 4, 0.5], ['canyon'], ['pinForest2'], ['slant'], ['slide', false], ['bowl'], ['bumpers2'], ...TAIL] },
-  { name: '폭포 협곡', parts: [
-    ['pinForest'], ['twinFunnel'], ['stairs'], ['gate', '대기실 1', 2, 5, 0.6], ['canyon', true], ['ring'],
-    ['bumpers'], ['lanes'], ['gate', '대기실 2', 1.5, 4, 0.5], ['slide', true], ['bowl'], ['slant'], ['stairs'], ['slide', false], ['bowl'], ['bumpers2'], ...TAIL] },
-  { name: '셔틀 공장', parts: [
-    ['pinForest'], ['funnel'], ['shuttle'], ['gate', '대기실 1', 2, 5, 0.6], ['slide', false], ['bowl'], ['windmills'], ['ring'],
-    ['gate', '대기실 2', 1.5, 4, 0.5], ['chevrons'], ['shuttle'], ['canyon'], ['pinForest2'], ['slide', true], ['bowl'], ['bumpers2'], ...TAIL] },
-  { name: '회오리 계곡', parts: [
-    ['pinForest'], ['bowl'], ['chevrons'], ['gate', '대기실 1', 2, 5, 0.6], ['ring'], ['slide', true], ['bowl'], ['bumpers'], ['lanes'],
-    ['gate', '대기실 2', 1.5, 4, 0.5], ['shuttle'], ['canyon', true], ['bowl'], ['slant'], ['slide', false], ['bowl'], ['bumpers2'], ...TAIL] },
-  { name: '핀볼 마스터', parts: [
-    ['pinForest'], ['ring'], ['twinFunnel'], ['windmills'], ['gate', '대기실 1', 2, 5, 0.6], ['slant'], ['stairs'], ['slide', false], ['bowl'],
-    ['bumpers'], ['gate', '대기실 2', 1.5, 4, 0.5], ['chevrons'], ['ring'], ['pinForest2'], ['slide', true], ['bowl'], ['bumpers2'], ...TAIL] },
+    ['pinForest'], ['funnel'], ['windmills'], ['gate', '대기실 1', 1.5, 5, 0.85], ['chevrons'], ['ring'], ['pinForest2'],
+    ['bumpers'], ['lanes'], ['gate', '대기실 2', 1.5, 5, 0.85], ['canyon'], ['bumpers2'], ['gate', '최종 대기실', 1.5, 5, 0.9], ['chaos'], ['gauntlet']] },
+  { name: '뱀길', parts: [
+    ['snake', 12, true], ['gate', '대기실 1', 1.5, 4, 0.7], ['snake', 12, false, '뱀길 2'], ['gate', '대기실 2', 1.5, 4, 0.7], ['snake', 8, true, '뱀길 3'], ['gate', '최종 대기실', 1.5, 4, 0.85], ['snake', 4, false, '마지막 굽이']] },
+  { name: '파칭코', parts: [
+    ['pachinko', 34, 0], ['gate', '대기실 1', 1.5, 4, 0.7], ['pachinko', 34, 1], ['gate', '대기실 2', 1.5, 4, 0.7], ['pachinko', 34, 0], ['gate', '대기실 3', 1.5, 4, 0.7], ['pachinko', 34, 1], ['gate', '최종 대기실', 1.5, 4, 0.85], ['pachinko', 20, 0]] },
+  { name: '기계 공장', parts: [
+    ['gears', 5], ['wheel', 1], ['shuttle'], ['wheel', -1], ['gears', 4], ['gate', '대기실 1', 1.5, 4, 0.7], ['wheel', 1], ['gears', 5], ['shuttle'], ['wheel', -1], ['shuttle'],
+    ['gate', '대기실 2', 1.5, 4, 0.7], ['gears', 5], ['wheel', 1], ['shuttle'], ['wheel', -1], ['gears', 4], ['gate', '대기실 3', 1.5, 4, 0.7], ['wheel', 1], ['shuttle'], ['wheel', -1],
+    ['gate', '최종 대기실', 1.5, 4, 0.85], ['gears', 3], ['wheel', 1]] },
+  { name: '빌딩 낙하', parts: [
+    ['floors', 12, 36], ['gate', '대기실 1', 1.5, 6, 0.9], ['floors', 12, 24], ['gate', '최종 대기실', 1.5, 6, 0.9], ['floors', 10, 12]] },
 ];
 let mapIdx = 0, mapChoice = '0';   // mapChoice is an index, or 'rand' to draw a map at every start
 const MAP_NOTES = [
-  '대각선 활강 2번, 지그재그 협곡, 세 갈래 길이 있는 기본 코스',
-  '계단 폭포 2번과 쌍둥이 깔때기, 거꾸로 꺾이는 협곡',
-  '움직이는 셔틀 막대 2구간, 범퍼 링, 핀 숲 2',
-  '회오리 그릇 4개와 셔틀, 범퍼 링',
-  '범퍼 링 2개, 쌍둥이 깔때기, 계단 폭포',
-];
+  '핀 숲, 풍차, 범퍼 링, 세 갈래 길, 지그재그 협곡을 지나 마지막 관문까지',
+  '좌우로 꺾이는 하나의 긴 통로. 굽이마다 범퍼와 회전 날개',
+  '촘촘한 핀 보드 다섯 판. 큰 범퍼와 작은 튤립 날개, 벽 레일',
+  '거대한 관람차 바퀴와 톱니 숲, 오가는 셔틀 막대',
+  '36층부터 1층까지, 기울어진 층마다 뚫린 구멍으로 떨어지기',
+]
 function pickMap() {
   mapIdx = mapChoice === 'rand' ? Math.floor(Math.random() * MAPS.length) : +mapChoice;
 }
 
 function buildMap() {
   segs.length = circs.length = rotors.length = gates.length = zones.length = sliders.length = 0;
+  WARP_TO = null;
   let y = 300;
   for (const [fn, ...args] of MAPS[mapIdx].parts) y = SECTIONS[fn](y, ...args);
+  // maps without a last gauntlet send warped marbles back to the top of the finish funnel
+  if (WARP_TO === null) WARP_TO = y + 30;
   WORLD_H = SECTIONS.finish(y);
   seg(0, TOP, 0, WORLD_H); seg(W, TOP, W, WORLD_H);
   buildStaticGrid();
@@ -760,9 +848,12 @@ function step() {
   for (const m of marbles) if (!m.done) act.push(m);
   updateGates(act);
 
-  // integrate
+  // integrate; marbles far behind the leader fall a little harder so the pack stays together
+  let leadY = -1e9;
+  for (const m of act) if (m.y > leadY) leadY = m.y;
   for (const m of act) {
-    m.vy += GRAV * DT;
+    const behind = Math.min(1, Math.max(0, (leadY - m.y) / CATCH_RANGE));
+    m.vy += GRAV * (1 + CATCH * behind) * DT;
     m.vx *= 0.9996; m.vy *= 0.9996;
     const s2 = m.vx * m.vx + m.vy * m.vy;
     if (s2 > MAXV * MAXV) { const k = MAXV / Math.sqrt(s2); m.vx *= k; m.vy *= k; }
@@ -861,7 +952,7 @@ function warp(m) {
   m.warps = (m.warps || 0) + 1;
   warpLog.push({ m, rank: m.live });
   // after a few trips back, drop the marble over the goal so one unlucky marble cannot stall the race
-  if (m.warps >= 3) { m.x = 470 + Math.random() * 60; m.y = FLOOR_Y - 120; }
+  if (m.warps >= 2) { m.x = 470 + Math.random() * 60; m.y = FLOOR_Y - 120; }
   else { m.x = 120 + Math.random() * (W - 240); m.y = WARP_TO; }
   m.vx = (Math.random() - 0.5) * 200; m.vy = 0; m.slow = 0;
 }
@@ -1643,7 +1734,7 @@ requestAnimationFrame(frame);
 
 // test-only hook for headless course tuning; inert unless a harness sets the flag before load
 if (window.__ROULETTE_DEBUG) window.__roulette = {
-  step, rerank, buildMap, spawn: () => spawn(names), setMap(i) { mapIdx = i; buildMap(); }, MAPS,
+  step, rerank, buildMap, spawn: () => spawn(names), setMap(i) { mapIdx = i; buildMap(); }, MAPS, setCatch(c) { CATCH = c; },
   run(m, k, n = 1) { mode = m; winK = k; showN = n; state = 'running'; },
   get marbles() { return marbles; }, get finishOrder() { return finishOrder; },
   get simTime() { return simTime; }, gates, zones, get state() { return state; }, get ranked() { return ranked; },
