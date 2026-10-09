@@ -3,12 +3,15 @@
 //   lw2026-board.vercel.app  →  /  = /board  ·  /screen = /board/screen  ·  /admin = /board/admin
 //   그 밖의 주소(elephant-board.vercel.app, 미리보기)는 아무것도 바꾸지 않는다.
 //   짧은 주소에서 다른 행사 경로(/board, /quiz)로 들어오면 그 주소의 첫 화면으로 돌려보낸다.
+//   (Sites v1.1) 짧은 주소에서 긴 경로(/quiz, /quiz/screen, /quiz/admin …)로 들어오면 짧은 경로로 돌려보낸다.
+//   (Sites v1.1) 예전 기본 주소(elephant-board.vercel.app)의 퀴즈·토의보드 화면은 짧은 주소로 보낸다(?key= 등 그대로).
 //   주소를 바꾸려면 Vercel 환경변수 SITE_QUIZ_HOSTS / SITE_BOARD_HOSTS(쉼표로 여러 개) 또는 아래 기본값을 고친다.
 
 import { NextResponse, type NextRequest } from 'next/server';
 
 const DEFAULT_QUIZ_HOSTS = 'lw2026-quiz.vercel.app';
 const DEFAULT_BOARD_HOSTS = 'lw2026-board.vercel.app';
+const DEFAULT_LEGACY_HOSTS = 'elephant-board.vercel.app';
 
 function hosts(v: string | undefined, fallback: string): string[] {
   return (v || fallback)
@@ -34,12 +37,46 @@ const SITES: { base: '/quiz' | '/board'; other: '/quiz' | '/board'; match: (host
 
 const SHORT: Record<string, string> = { '/': '', '/screen': '/screen', '/admin': '/admin' };
 
+/** 긴 경로 → 짧은 경로 (/quiz → /, /quiz/screen → /screen, /quiz/admin → /admin) */
+function shortPath(pathname: string): { base: '/quiz' | '/board'; path: string } | null {
+  const p = pathname.replace(/\/+$/, '') || '/';
+  for (const base of ['/quiz', '/board'] as const) {
+    if (p === base) return { base, path: '/' };
+    if (p === `${base}/screen`) return { base, path: '/screen' };
+    if (p === `${base}/admin`) return { base, path: '/admin' };
+  }
+  return null;
+}
+
+function firstHost(v: string | undefined, fallback: string): string {
+  return hosts(v, fallback)[0];
+}
+
 export function proxy(req: NextRequest) {
   const host = (req.headers.get('host') ?? '').split(':')[0].toLowerCase();
+  const { pathname, search } = req.nextUrl;
+
+  // 예전 기본 주소 → 짧은 주소 (Sites v1.1)
+  if (hosts(process.env.SITE_LEGACY_HOSTS, DEFAULT_LEGACY_HOSTS).includes(host)) {
+    const sp = shortPath(pathname);
+    if (!sp) return NextResponse.next();
+    const target =
+      sp.base === '/quiz'
+        ? firstHost(process.env.SITE_QUIZ_HOSTS, DEFAULT_QUIZ_HOSTS)
+        : firstHost(process.env.SITE_BOARD_HOSTS, DEFAULT_BOARD_HOSTS);
+    return NextResponse.redirect(`https://${target}${sp.path}${search}`, 307);
+  }
+
   const site = SITES.find((s) => s.match(host));
   if (!site) return NextResponse.next();
 
-  const { pathname } = req.nextUrl;
+  // 짧은 주소에서 긴 경로로 들어오면 짧은 경로로 (스크린 QR·운영자 화면 링크가 늘 짧은 주소가 되도록)
+  const sp = shortPath(pathname);
+  if (sp && sp.base === site.base) {
+    const url = req.nextUrl.clone();
+    url.pathname = sp.path;
+    return NextResponse.redirect(url, 307);
+  }
   if (pathname in SHORT) {
     const url = req.nextUrl.clone();
     url.pathname = site.base + SHORT[pathname];
