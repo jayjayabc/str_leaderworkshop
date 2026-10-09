@@ -71,6 +71,7 @@ const DEFAULT_MIN: Record<1 | 2, number> = { 1: 3, 2: 6 };
 // ─── 키 게이트 ────────────────────────────────────────────────
 
 export function BoardAdmin() {
+  useNativeDocumentScroll();
   const [key, setKey] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -129,6 +130,27 @@ export function BoardAdmin() {
 }
 
 // ─── 콘솔 ─────────────────────────────────────────────────────
+
+/**
+ * 회사 PC의 원격 격리 브라우저(Menlo 등)에서 마우스 휠이 안 먹는 문제 (10/9 제보).
+ * 전역 CSS가 html·body 둘 다 overflow-x:hidden + overscroll-behavior:none 이라 body가 따로 스크롤 상자가 되는데,
+ * 일부 브라우저는 휠을 이 상자에 넘기지 못한다. 운영자 화면에서는 퀴즈 운영 화면과 같은 방식으로
+ * 문서 스크롤을 가장 기본 형태(html이 스크롤, body는 그대로)로 되돌린다.
+ */
+function useNativeDocumentScroll() {
+  useEffect(() => {
+    const h = document.documentElement.style;
+    const b = document.body.style;
+    const prev = [h.overflow, h.overscrollBehavior, b.overflow, b.overscrollBehavior];
+    h.overflow = 'auto';
+    h.overscrollBehavior = 'auto';
+    b.overflow = 'visible';
+    b.overscrollBehavior = 'auto';
+    return () => {
+      [h.overflow, h.overscrollBehavior, b.overflow, b.overscrollBehavior] = prev;
+    };
+  }, []);
+}
 
 function Console({ opKey }: { opKey: string }) {
   const [snap, setSnap] = useState<BoardAdminSnapshot | null>(null);
