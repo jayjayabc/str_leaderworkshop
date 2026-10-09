@@ -24,9 +24,9 @@ import {
   useServerOffset,
 } from '@/lib/quizClient';
 import { describeJudge } from '@/lib/quizJudge';
-import { DEFAULT_SPEED_TIERS, awardFor, speedLabel, speedRuleFor } from '@/lib/quizScore';
+import { DEFAULT_SPEED_TIERS, awardFor, defaultSpeedSettings, speedLabel, speedRuleFor } from '@/lib/quizScore';
 import { getSeed, loadQuizKeys } from '@/lib/quizSeedStore';
-import { FIELD_SEP, QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel } from '@/lib/quizQuestions';
+import { FIELD_SEP, QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel, shortLabel } from '@/lib/quizQuestions';
 import {
   SCORE_CSV_COLUMNS,
   SUBMISSION_CSV_COLUMNS,
@@ -49,6 +49,7 @@ import {
 } from '@/lib/quizTypes';
 import { NewVersionBanner } from './NewVersionBanner';
 import { SoundToggle, useQuizSound } from './QuizSoundControl';
+import { RichText } from './QuizText';
 
 const SNAPSHOT_MS = 1500;
 
@@ -237,10 +238,36 @@ function Console({ opKey }: { opKey: string }) {
   }, [snap]);
   const answererCount = [...teamInfo.values()].filter((t) => t.answerer).length;
 
+  // 피버타임 등 문항 기본 선착순 규칙을 DB 설정에 한 번 넣는다(점수판 SQL이 같은 규칙을 쓰도록)
+  const seededSpeed = useRef(false);
+  useEffect(() => {
+    if (seededSpeed.current || !state) return;
+    const add = defaultSpeedSettings(state);
+    seededSpeed.current = true;
+    if (add) void db.control(opKey, { action: 'settings', speed: add }).catch(() => (seededSpeed.current = false));
+  }, [db, opKey, state]);
+
+  // 답변자가 있는 모든 조가 제출하면 남은 시간과 상관없이 자동 마감 (빠른 진행)
+  const [autoClose, setAutoClose] = useState(true);
+  const autoClosedFor = useRef('');
+  useEffect(() => {
+    if (!autoClose || !state || state.status !== 'open' || !snap || QUIZ_QUESTIONS[index]?.practice) return;
+    // 이번에 연 뒤 들어온 제출만 센다(이미 진행한 문제를 다시 열었을 때 바로 마감되지 않게)
+    const since = state.opened_at ?? '';
+    const subs = new Set(
+      snap.submissions.filter((x) => x.question_index === index && x.team_no != null && x.created_at >= since).map((x) => x.team_no),
+    );
+    if (answererCount === 0 || subs.size < answererCount) return;
+    const key = `${index}:${state.opened_at}`;
+    if (autoClosedFor.current === key) return;
+    autoClosedFor.current = key;
+    void run({ action: 'close' }, `모든 조(${subs.size}조)가 제출해 자동 마감했습니다`);
+  }, [autoClose, state, snap, index, answererCount, run]);
+
   // ─── 조작 ───
 
   const open = useCallback(async () => {
-    if (!state) return;
+    if (!state || QUIZ_QUESTIONS[index]?.interlude) return;
     if (
       state.settings.opened?.[String(index)] &&
       !(await ask("이미 진행한 문제입니다. 다시 열면 이미 공개된 문제를 새로 낼 수 있게 됩니다. 그래도 열까요? (보통은 '이 문제 초기화' 후 다시 엽니다)"))
@@ -258,6 +285,7 @@ function Console({ opKey }: { opKey: string }) {
       toast.message('먼저 마감해 주세요');
       return;
     }
+    if (state.status !== 'closed' && state.status !== 'revealed') return;
     // 공개 직전에 최신 제출을 다시 읽어 모든 계산을 그것으로 한다
     let all: QuizAdminSnapshot;
     try {
@@ -317,6 +345,9 @@ function Console({ opKey }: { opKey: string }) {
     if (state.status === 'open' && !(await ask('진행 중인 문제가 있습니다. 넘어갈까요?'))) return;
     if (state.status === 'closed' && !(await ask('아직 정답을 공개하지 않았습니다. 공개하지 않고 넘어갈까요?'))) return;
     const to = Math.min(QUIZ_QUESTIONS.length - 1, index + 1);
+    if (QUIZ_QUESTIONS[to]?.kind === 'reserve' && QUIZ_QUESTIONS[index]?.kind !== 'reserve') {
+      if (!(await ask("본 문제가 끝났습니다. 예비 문제로 넘어갈까요? (보통은 '최종 순위 공개'를 누릅니다)"))) return;
+    }
     if (to === index && state.status !== 'revealed') return;
     void run({ action: 'next', index: to });
   }, [state, index, run, ask]);
@@ -341,7 +372,7 @@ function Console({ opKey }: { opKey: string }) {
   async function guardPlayed(i: number): Promise<boolean> {
     if (!state || !state.settings.opened?.[String(i)]) return true;
     if (i === index && (state.status === 'open' || state.status === 'closed')) return true;
-    return ask(`${questionLabel(i).split(' ')[0]}은(는) 이미 진행한 문제입니다. 바꾸면 점수판 점수가 바로 다시 계산됩니다. 바꿀까요?`);
+    return ask(`${shortLabel(i)}은(는) 이미 진행한 문제입니다. 바꾸면 점수판 점수가 바로 다시 계산됩니다. 바꿀까요?`);
   }
   function afterPlayedChange(i: number) {
     if (state?.status === 'revealed' && i === index) {
@@ -352,13 +383,13 @@ function Console({ opKey }: { opKey: string }) {
   async function setPoints(i: number, value: number) {
     if (!(await guardPlayed(i))) return;
     const v = Math.max(0, Math.min(1000, Math.round(value)));
-    const ok = await run({ action: 'settings', points: { [String(i)]: v } }, `${questionLabel(i).split(' ')[0]} 배점 ${v}점`);
+    const ok = await run({ action: 'settings', points: { [String(i)]: v } }, `${shortLabel(i)} 배점 ${v}점`);
     if (ok) afterPlayedChange(i);
   }
 
   async function setSpeed(i: number, rule: SpeedRule) {
     if (!(await guardPlayed(i))) return;
-    const label = questionLabel(i).split(' ')[0];
+    const label = shortLabel(i);
     const ok = await run(
       { action: 'settings', speed: { [String(i)]: rule } },
       rule.on ? `${label} 선착순 켬 — ${speedLabel(rule)}` : `${label} 선착순 끔`,
@@ -480,7 +511,7 @@ function Console({ opKey }: { opKey: string }) {
             {QUIZ_QUESTIONS.map((item, i) => {
               const done = Boolean(state.settings.opened?.[String(i)]);
               return (
-                <li key={item.no}>
+                <li key={item.id}>
                   <button
                     type="button"
                     onClick={() => void goto(i)}
@@ -489,7 +520,9 @@ function Console({ opKey }: { opKey: string }) {
                       i === index ? 'bg-[#FFE300] font-bold' : 'hover:bg-[#F7F6F1]',
                     )}
                   >
-                    <span className="w-9 shrink-0 font-bold tabular-nums">{item.practice ? '연습' : `Q${item.no}`}</span>
+                    <span className="w-9 shrink-0 whitespace-nowrap font-bold tabular-nums">
+                      {item.kind === 'practice' ? '연습' : item.kind === 'interlude' ? '⚡' : item.kind === 'reserve' ? `예${item.no}` : `Q${item.no}`}
+                    </span>
                     <span className="truncate">{item.keyword}</span>
                     {item.images?.length ? <span title="이미지 문항">🖼</span> : null}
                     {speedRuleFor(state, i) ? <span title="선착순 가산">⚡</span> : null}
@@ -522,7 +555,9 @@ function Console({ opKey }: { opKey: string }) {
                 {state.status === 'open' && left !== null ? ` · ${left === 0 ? '0' : fmtClock(left)}` : ''}
               </span>
             </div>
-            <p className="mt-3 whitespace-pre-line text-[15px] leading-6">{q.prompt}</p>
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-6">
+              <RichText text={q.prompt} mark="admin" />
+            </p>
             {q.choices ? (
               <ol className="mt-2 list-inside list-decimal text-[14px] text-[#3A3A3A]">
                 {q.choices.map((c) => (
@@ -567,8 +602,8 @@ function Console({ opKey }: { opKey: string }) {
 
           <div className="rounded-2xl bg-white p-4">
             <div className="flex flex-wrap gap-2">
-              <Btn tone="primary" onClick={open} disabled={busy || state.status !== 'lobby'} testId="btn-open">
-                열기 ({durationFor(state, index)}초)
+              <Btn tone="primary" onClick={open} disabled={busy || state.status !== 'lobby' || Boolean(q.interlude)} testId="btn-open">
+                {q.interlude ? '간지 화면 (열기 없음)' : `열기 (${durationFor(state, index)}초)`}
               </Btn>
               <Btn onClick={() => void run({ action: 'extend', seconds: 15 }, '+15초')} disabled={busy || state.status !== 'open'} testId="btn-extend">
                 +15초
@@ -584,6 +619,15 @@ function Console({ opKey }: { opKey: string }) {
               </Btn>
             </div>
             <p className="mt-2 text-[12px] text-[#8A8A8A]">순서: 열기 → 마감(시간이 다 되면 제출이 자동으로 막힘) → 채점 확인 → 공개 → 다음.</p>
+            <label className="mt-2 flex items-center gap-2 text-[13px]">
+              <input type="checkbox" checked={autoClose} onChange={(e) => setAutoClose(e.target.checked)} className="h-4 w-4" data-testid="auto-close" />
+              답변자가 있는 모든 조가 내면 자동 마감 ({answererCount}조 기준)
+            </label>
+            {q.interlude ? (
+              <p className="mt-2 rounded-lg bg-[#FFF6B3] px-3 py-2 text-[13px] font-semibold">
+                ⚡ 피버타임 간지 — 송출 화면과 폰에 규칙 안내가 나옵니다. 설명이 끝나면 &apos;다음 →&apos;으로 11번으로 넘어가세요.
+              </p>
+            ) : null}
           </div>
 
           {/* 배점표 — 키보드 없이 버튼으로, 문항 이동 없이 미리 정해 둘 수 있다 */}
@@ -594,20 +638,20 @@ function Console({ opKey }: { opKey: string }) {
             </div>
             <ol className="mt-2 grid gap-1.5 2xl:grid-cols-2">
               {QUIZ_QUESTIONS.map((item, i) =>
-                item.practice ? null : (
+                item.kind !== 'main' && item.kind !== 'reserve' ? null : (
                   <li
-                    key={item.no}
+                    key={item.id}
                     className={clsx('flex flex-wrap items-center gap-2 rounded-lg px-2 py-1', i === index ? 'bg-[#FFF6B3]' : 'bg-[#F7F6F1]')}
                     data-testid={`pts-row-${i}`}
                   >
-                    <span className="w-9 text-[13px] font-bold">Q{item.no}</span>
+                    <span className="w-9 whitespace-nowrap text-[13px] font-bold">{shortLabel(i)}</span>
                     <span className="min-w-0 flex-1 truncate text-[12px] text-[#5B5B5B]">{item.keyword}</span>
                     <button
                       type="button"
                       disabled={busy || pointsFor(state, i) <= 0}
                       onClick={() => void setPoints(i, pointsFor(state, i) - 5)}
                       className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
-                      aria-label={`Q${item.no} 배점 5점 내리기`}
+                      aria-label={`${shortLabel(i)} 배점 5점 내리기`}
                     >
                       −5
                     </button>
@@ -619,14 +663,14 @@ function Console({ opKey }: { opKey: string }) {
                       disabled={busy}
                       onClick={() => void setPoints(i, pointsFor(state, i) + 5)}
                       className="h-8 w-9 rounded-md border border-[#DDD] bg-white text-[13px] font-bold disabled:opacity-30"
-                      aria-label={`Q${item.no} 배점 5점 올리기`}
+                      aria-label={`${shortLabel(i)} 배점 5점 올리기`}
                     >
                       +5
                     </button>
                     <SpeedToggle
-                      rule={state.settings.speed?.[String(i)] ?? null}
+                      rule={speedRuleFor(state, i) ?? state.settings.speed?.[String(i)] ?? null}
                       disabled={busy}
-                      label={`Q${item.no}`}
+                      label={shortLabel(i)}
                       onChange={(r) => void setSpeed(i, r)}
                     />
                     {speedRuleFor(state, i) ? (
@@ -634,7 +678,7 @@ function Console({ opKey }: { opKey: string }) {
                         rule={speedRuleFor(state, i)!}
                         base={pointsFor(state, i)}
                         disabled={busy}
-                        label={`Q${item.no}`}
+                        label={shortLabel(i)}
                         onChange={(r) => void setSpeed(i, r)}
                       />
                     ) : null}

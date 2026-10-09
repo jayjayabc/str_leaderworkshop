@@ -3,6 +3,7 @@
 import { judge, type AutoVerdict } from './quizJudge';
 import { pidHash } from './quizHash';
 import { getSeed } from './quizSeedStore';
+import { shortLabel } from './quizQuestions';
 import type {
   QuizLeaderRow,
   QuizParticipant,
@@ -195,7 +196,7 @@ export function submissionsCsvRows(
       const opened = openedAt(state, s.question_index);
       const p = byId.get(s.participant_id);
       return {
-        no: getSeed()[s.question_index]?.no ?? s.question_index,
+        no: shortLabel(s.question_index) || s.question_index,
         조: s.team_no ?? p?.table_no ?? '',
         제출자: p?.name ?? '',
         답: s.answer,
@@ -228,7 +229,7 @@ export function winnersCsvRows(
       const p = byId.get(w.participant_id);
       const opened = openedAt(state, w.question_index);
       return {
-        no: getSeed()[w.question_index]?.no ?? w.question_index,
+        no: shortLabel(w.question_index) || w.question_index,
         이름: p?.name ?? '',
         테이블: p?.table_no ?? '',
         답: s?.answer ?? '',

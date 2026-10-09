@@ -1,13 +1,14 @@
 'use client';
 
 // 중앙 효과음 제어 (Quiz v2.2) — 송출 화면·운영자 화면이 함께 쓴다. 둘 중 한 곳에서만 켠다.
-//   맨 처음 대기 = lobby 음악 · 문제 시작 = open · 진행 중 = thinking(째깍) · 마감 = timeup · 공개 = reveal
+//   맨 처음 대기 = lobby 음악 · 문제 시작 = open · 진행 중 = thinking(째깍) · 마감 = timeup · 공개 = reveal · 최종 순위 = 박수 + final BGM
 
 import { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 
 import { playCue, setLoop, stopAllSound, unlockSound } from '@/lib/quizSound';
 import type { QuizState } from '@/lib/quizTypes';
+import { QUIZ_QUESTIONS } from '@/lib/quizQuestions';
 
 export function useQuizSound(state: QuizState | null, leftMs: number | null) {
   const [on, setOn] = useState(false);
@@ -16,11 +17,11 @@ export function useQuizSound(state: QuizState | null, leftMs: number | null) {
 
   const anyOpened = Boolean(state?.settings.opened && Object.keys(state.settings.opened).length > 0);
   const running = state?.status === 'open' && leftMs !== null && leftMs > 0;
-  const wantLoop = !on || !state ? null : state.status === 'lobby' && !anyOpened ? 'lobby' : running ? 'thinking' : null;
+  const wantLoop = !on || !state ? null : state.status === 'final' ? 'final' : state.status === 'lobby' && !anyOpened ? 'lobby' : running ? 'thinking' : null;
 
   // 반복 음원: 처음 대기 화면 → lobby, 문제 진행 중 → thinking(문제 시작 효과음 뒤에 들어옴)
   useEffect(() => {
-    setLoop(wantLoop, wantLoop === 'thinking' ? { delay: 1.5, fadeIn: 1.0 } : { fadeIn: 1.5 });
+    setLoop(wantLoop, wantLoop === 'thinking' ? { delay: 1.5, fadeIn: 1.0 } : wantLoop === 'final' ? { delay: 0.5, fadeIn: 2.5 } : { fadeIn: 1.5 });
   }, [wantLoop]);
 
   // 한 번 울리는 효과음: 문제 시작 · 마감 · 정답 공개
@@ -40,6 +41,9 @@ export function useQuizSound(state: QuizState | null, leftMs: number | null) {
       playCue('timeup');
     }
     if (changed && state.status === 'revealed') playCue('reveal');
+    // 피버타임 간지에 들어서면 정답 공개 효과음으로 분위기 전환
+    if (changed && state.status === 'lobby' && QUIZ_QUESTIONS[state.current_index]?.interlude) playCue('reveal');
+    if (changed && state.status === 'final') playCue('applause');
   }, [state, leftMs, on]);
 
   useEffect(() => () => stopAllSound(), []);

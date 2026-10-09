@@ -28,30 +28,35 @@ const { judge, parseKoreanNumber, normalizeText, correctRank } = await import(pa
 const { QUIZ_SEED } = await import(pathToFileURL(join(out, 'quizSeed.mjs')).href);
 rmSync(out, { recursive: true, force: true });
 
-/** no → { correct: [...], wrong: [...] } */
+/** id → { correct: [...], wrong: [...] } */
 const CASES = {
-  0: { correct: ['뱅크런', '뱅크 런', 'Bank run'], wrong: ['펀드런', '은행런'] },
-  1: { correct: ['3.00', '3', '3.0%', '3.00%'], wrong: ['2.75', '3.25', '0.3'] },
-  2: { correct: ['머니무브', '머니 무브', 'Money move'], wrong: ['뱅크런', '디레버리징'] },
-  3: { correct: ['24', '24년', '24 년'], wrong: ['25', '23년', '2001'] },
-  4: { correct: ['0', '0개', '2,763만', '2763만 개', '27,630,000', '없음', '하나도 없어요'], wrong: ['1', '100', '1개'] },
-  5: { correct: ['1', '1번', '카카오뱅크 K패스 체크카드', 'K패스'], wrong: ['2', '3', '기후동행카드'] },
-  6: { correct: ['600', '600만', '600만 명', '6,000,000', '6백만', '육백만'], wrong: ['580', '620', '60'] },
-  7: { correct: ['2', '2번', '13', '13%'], wrong: ['1', '3', '16%', '4'] },
-  8: { correct: ['마스턴캐피탈', '마스턴 캐피탈', '마스턴캐피털', 'Mastern Capital'], wrong: ['롯데캐피탈', '현대캐피탈', '캐피탈'] },
-  9: { correct: ['1', '1번', '①', 'A>B>C', 'A > B > C', '1. A>B>C', 'ABC'], wrong: ['2', '3', '6번', 'B>A>C', 'C>B>A', 'A>C>B', '12', '1, 2'] },
-  10: {
-    correct: ['AIR | ChatGPT | 시그널', 'air | chatgpt | signal', 'AIR | 챗GPT | 시그날', 'AIR | 챗지피티 | 시그널', 'Air | GPT | 시그널', 'AIR | ChatGPT | 씨그널'],
+  p: { correct: ['노랑', '노란색', 'Yellow', '노란 색'], wrong: ['파랑', '검정'] },
+  q1: { correct: ['1', '1번', '카카오뱅크 K패스 체크카드', 'K패스'], wrong: ['2', '3', '기후동행카드'] },
+  q2: { correct: ['2794', '2,794만', '2794만 개', '27,937,843', '2600', '3000', '고객수', '3천만', '3천만 개', '2천8백만', '2천 8백만 개', '2.8천만', '2천7백9십만'], wrong: ['0', '2500', '3100', '1개', '2천만', '3천5백만'] },
+  q3: { correct: ['600', '600만', '600만 명', '6,000,000', '6백만', '육백만', '6백만 명'], wrong: ['580', '601', '599', '60', '5백만'] },
+  q4: { correct: ['3.00', '3', '3.0%', '3.00%'], wrong: ['2.75', '3.25', '0.3'] },
+  q5: { correct: ['2', '2번', '11', '11%'], wrong: ['1', '3', '13', '4'] },
+  q6: { correct: ['마스턴캐피탈', '마스턴 캐피탈', '마스턴캐피털', 'Mastern Capital'], wrong: ['롯데캐피탈', '현대캐피탈', '캐피탈'] },
+  q7: { correct: ['머니무브', '머니 무브', 'Money move'], wrong: ['뱅크런', '디레버리징'] },
+  q8: { correct: ['2', '2번', '②'], wrong: ['1', '3', '4', '12'] },
+  q9: {
+    correct: ['AIR | ChatGPT | 시그널', 'air | chatgpt | signal', 'AIR | 챗GPT | 시그날', 'AIR | 챗지피티 | 시그널', 'Air | GPT | 시그널', 'AIR | OpenAI | 시그널', 'AIR | 오픈AI | 시그널'],
     wrong: ['AIR | ChatGPT | ', ' | ChatGPT | 시그널', 'AIR | 로빈후드 | 시그널', 'Revolut | Gemini | 시그널'],
   },
-  11: { correct: ['123', '123점', ' 123 '], wrong: ['120', '124', '3'] },
-  12: { correct: ['14.2', '14.2%', '14.1', '14.3', '683억, 14.2%'], wrong: ['14.4', '1.42', '14', '683억, 14.4%'] },
-  13: { correct: ['18.5', '18.5%', '18.0', '19'], wrong: ['17.9', '19.1', '14.4'] },
-  14: {
-    correct: ['인도네시아 | 태국 | 몽골', '몽골 | 인도네시아 | 태국', 'Indonesia | Thailand | Mongolia', '인니 | 타이 | 몽골', '인도네시아 | 태국 | 몽고', '인도네시아 | 타일랜드 | 몽골'],
-    wrong: ['인도네시아 | 태국 | 일본', '인도네시아 | 태국 | ', '베트남 | 태국 | 몽골', '인도네시아 | 타이완 | 몽골', '인도네시아 | 대만 | 몽골'],
+  q10: { correct: ['3', '3번', '18.5', '18.5%'], wrong: ['1', '2', '4', '15.5'] },
+  q11: {
+    correct: ['인도네시아 | 태국 | 몽골', '몽골 | 인도네시아 | 태국', 'Indonesia | Thailand | Mongolia', '인니 | 타이 | 몽골', '인도네시아 | 태국 | 몽고'],
+    wrong: ['인도네시아 | 태국 | 일본', '인도네시아 | 태국 | ', '베트남 | 태국 | 몽골', '인도네시아 | 타이완 | 몽골'],
   },
-  15: { correct: ['5400', '5,400', '0.1×18000×3=5400', '5,400원'], wrong: ['54000', '540', '5,401'] },
+  q12: { correct: ['뱅크런', '뱅크 런', 'Bank run'], wrong: ['펀드런', '은행런'] },
+  q13: { correct: ['4', '4번', '14.2', '14.2%'], wrong: ['1', '2', '3', '13.2'] },
+  q14: { correct: ['3', '3번', '③'], wrong: ['1', '2', '4'] },
+  q15: {
+    correct: ['0.1 | 18000 | 3', '0.1% | 18,000원 | 3개', '0.1 % | 18000 원 | 3 개', '0.10 | 1만8천 | 3'],
+    wrong: ['0.1 | 18000 | 2', '1 | 18000 | 3', '0.1 | 1800 | 3', '0.1 | 18000 | '],
+  },
+  r1: { correct: ['123', '123점', ' 123 '], wrong: ['120', '124', '3'] },
+  r2: { correct: ['24', '24년', '24 년'], wrong: ['25', '23년', '2001'] },
 };
 
 let pass = 0;
@@ -59,7 +64,7 @@ let fail = 0;
 const rows = [];
 
 function check(no, answer, expected) {
-  const q = QUIZ_SEED.find((x) => x.no === no);
+  const q = QUIZ_SEED.find((x) => x.id === no);
   const got = judge(q.judge, answer);
   const ok = got === expected;
   if (ok) pass += 1;
@@ -70,32 +75,33 @@ function check(no, answer, expected) {
 }
 
 for (const q of QUIZ_SEED) {
-  const c = CASES[q.no];
+  if (q.interlude) continue;
+  const c = CASES[q.id];
   if (q.judge.type === 'manual') {
-    check(q.no, '아무 답', 'review');
-    check(q.no, '인도네시아 슈퍼뱅크', 'review');
-    rows.push([q.no, 'manual', '—', 1, 1]);
+    check(q.id, '아무 답', 'review');
+    check(q.id, '인도네시아 슈퍼뱅크', 'review');
+    rows.push([q.id, 'manual', '—', 1, 1]);
     continue;
   }
   if (!c) {
-    console.log(`  ✗ Q${q.no}: 테스트 케이스 없음`);
+    console.log(`  ✗ ${q.id}: 테스트 케이스 없음`);
     fail += 1;
     continue;
   }
   if (c.correct.length < 3 || c.wrong.length < 2) {
-    console.log(`  ✗ Q${q.no}: 정답 변형 ≥3, 오답 ≥2 필요`);
+    console.log(`  ✗ ${q.id}: 정답 변형 ≥3, 오답 ≥2 필요`);
     fail += 1;
   }
-  c.correct.forEach((a) => check(q.no, a, 'correct'));
-  c.wrong.forEach((a) => check(q.no, a, 'wrong'));
+  c.correct.forEach((a) => check(q.id, a, 'correct'));
+  c.wrong.forEach((a) => check(q.id, a, 'wrong'));
   // 아이폰·맥 입력처럼 한글이 자모 분해형(NFD)으로 와도 같은 판정이어야 한다
-  c.correct.forEach((a) => check(q.no, a.normalize('NFD'), 'correct'));
-  c.wrong.forEach((a) => check(q.no, a.normalize('NFD'), 'wrong'));
+  c.correct.forEach((a) => check(q.id, a.normalize('NFD'), 'correct'));
+  c.wrong.forEach((a) => check(q.id, a.normalize('NFD'), 'wrong'));
   // 빈 답은 항상 오답
-  check(q.no, '   ', 'wrong');
+  check(q.id, '   ', 'wrong');
   const j = q.judge;
-  const range = j.type === 'numeric' ? `${j.min}~${j.max}${j.unit ?? ''}` : j.type === 'text' ? `${j.accept.length} variants` : `${j.all.length} parts`;
-  rows.push([q.no, j.type, range, c.correct.length, c.wrong.length]);
+  const range = j.type === 'numeric' ? `${j.min}~${j.max}${j.unit ?? ''}` : j.type === 'text' ? `${j.accept.length} variants` : j.type === 'fields' ? `${j.parts.length} fields` : `${j.all.length} parts`;
+  rows.push([q.id, j.type, range, c.correct.length, c.wrong.length]);
 }
 
 // N번째 정답 계산

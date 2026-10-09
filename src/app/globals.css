@@ -182,3 +182,17 @@ body {
     radial-gradient(1000px 800px at -10% 110%, rgba(90, 120, 255, 0.12), transparent 60%),
     #0e0f13;
 }
+
+/* v2.3 한국어 줄바꿈 — 단어 중간에서 끊기지 않게(어절 단위), 긴 영문만 예외적으로 끊음 */
+html {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.qz-text,
+.qz-balance {
+  text-wrap: pretty;
+}
+h1,
+h2 {
+  text-wrap: balance;
+}

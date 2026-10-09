@@ -24,7 +24,7 @@ import {
   useScoreboard,
   useServerOffset,
 } from '@/lib/quizClient';
-import { FIELD_SEP, QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel, type QuizQuestionPublic } from '@/lib/quizQuestions';
+import { FIELD_SEP, QUIZ_QUESTIONS, QUIZ_TEAMS, questionLabel, shortLabel, type QuizQuestionPublic } from '@/lib/quizQuestions';
 import {
   QUIZ_ERROR_TEXT,
   QuizError,
@@ -35,6 +35,8 @@ import {
 } from '@/lib/quizTypes';
 import { useNewVersion } from './NewVersionBanner';
 import { PhoneImages } from './QuizImages';
+import { speedRows } from '@/lib/quizScore';
+import { RichText } from './QuizText';
 
 /**
  * 참가 정보 키. 주소에 ?as=라벨 이 있으면 그 라벨로 구분한다 — 한 브라우저에서 여러 참가자 탭을 띄우는
@@ -459,14 +461,15 @@ function Lobby({
 }) {
   const q = QUIZ_QUESTIONS[state.current_index];
   const speed = q && !q.practice ? speedRuleFor(state, state.current_index) : null;
-  usePreloadImages(q?.images);
+  usePreloadImages(q?.images ?? QUIZ_QUESTIONS[state.current_index + 1]?.images);
+  if (q?.interlude) return <FeverCard state={state} />;
   return (
     <Center>
       <div className="w-full text-center">
         <p className="text-[44px]" aria-hidden>
           ⏳
         </p>
-        <p className="mt-3 text-[22px] font-extrabold">곧 {q?.practice ? '연습 문제가' : `${questionLabel(state.current_index).split(' ')[0]}가`} 시작됩니다</p>
+        <p className="mt-3 text-[22px] font-extrabold">곧 {q?.practice ? '연습 문제가' : `${shortLabel(state.current_index)}가`} 시작됩니다</p>
         <p className="mt-2 text-[14px] text-white/60">
           {me.role === 'answerer' ? '답변자는 조원과 상의해 답을 입력합니다' : '앞 화면과 내 폰에 문제가 함께 나와요'}
         </p>
@@ -477,6 +480,38 @@ function Lobby({
         ) : null}
         {team ? <p className="mt-4 text-[13px] text-white/50">우리 조 입장 {team.members}명</p> : null}
         {team && !team.answerer ? <NoAnswererWarning onBecomeAnswerer={onBecomeAnswerer} /> : null}
+      </div>
+    </Center>
+  );
+}
+
+function FeverCard({ state }: { state: QuizState }) {
+  const next = state.current_index + 1;
+  const rule = speedRuleFor(state, next);
+  const base = pointsFor(state, next);
+  const rows = speedRows(rule, base);
+  return (
+    <Center>
+      <div className="w-full text-center" data-testid="fever-card">
+        <p className="text-[44px]" aria-hidden>
+          ⚡
+        </p>
+        <p className="mt-1 text-[34px] font-black tracking-tight text-[#FFE300]">FEVER TIME</p>
+        <p className="mt-2 text-[16px] font-bold">이제부터 먼저 맞힐수록 점수가 커집니다</p>
+        <ul className="mx-auto mt-5 max-w-[320px] space-y-2 text-left">
+          {rows.map((r) => (
+            <li key={r.range} className="flex items-center justify-between rounded-xl bg-white/10 px-4 py-2.5">
+              <span className="whitespace-nowrap text-[17px] font-extrabold">{r.range}</span>
+              <span className="whitespace-nowrap text-[17px] font-extrabold text-[#FFE300]">
+                {r.pts}점 <span className="text-[13px] text-white/60">({r.mult})</span>
+              </span>
+            </li>
+          ))}
+          <li className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-2.5 text-white/70">
+            <span className="whitespace-nowrap text-[16px] font-bold">그 밖의 정답</span>
+            <span className="whitespace-nowrap text-[16px] font-bold">{base}점</span>
+          </li>
+        </ul>
       </div>
     </Center>
   );
@@ -516,13 +551,13 @@ function QuestionStage({
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-2 pt-2">
-        <span className="rounded-lg bg-white px-2.5 py-1 text-[15px] font-extrabold text-[#1E1E1E]">{questionLabel(index)}</span>
-        <span className="rounded-lg bg-white/10 px-2 py-1 text-[13px] font-semibold">{q.category}</span>
-        {!q.practice ? <span className="text-[13px] font-bold text-[#FFE300]">{points}점</span> : null}
-        {speed ? <span className="rounded-md bg-[#FFE300] px-1.5 py-0.5 text-[12px] font-black text-[#1E1E1E]">⚡ 선착순</span> : null}
+        <span className="shrink-0 whitespace-nowrap rounded-lg bg-white px-2.5 py-1 text-[15px] font-extrabold text-[#1E1E1E]">{questionLabel(index)}</span>
+        <span className="min-w-0 truncate rounded-lg bg-white/10 px-2 py-1 text-[13px] font-semibold">{q.category}</span>
+        {!q.practice ? <span className="shrink-0 whitespace-nowrap text-[13px] font-bold text-[#FFE300]">{points}점</span> : null}
+        {speed ? <span className="shrink-0 whitespace-nowrap rounded-md bg-[#FFE300] px-1.5 py-0.5 text-[12px] font-black text-[#1E1E1E]">⚡ 선착순</span> : null}
         <span
           className={clsx(
-            'ml-auto min-w-[64px] rounded-lg px-2.5 py-1 text-center text-[20px] font-extrabold tabular-nums',
+            'ml-auto min-w-[64px] shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-center text-[20px] font-extrabold tabular-nums',
             !open ? 'bg-white/10 text-white/50' : left !== null && left <= 10_000 ? 'bg-[#FF5A3C] text-white' : 'bg-[#FFE300] text-[#1E1E1E]',
           )}
           role="timer"
@@ -538,10 +573,18 @@ function QuestionStage({
         <>
           {speed && open ? (
             <p className="mt-2 rounded-xl bg-[#FFE300] px-3 py-2 text-center text-[14px] font-extrabold text-[#1E1E1E]" data-testid="speed-banner">
-              ⚡ 선착순 문제 — 정답 조 중 {speedLabel(speed)}
+              ⚡ <span className="whitespace-nowrap">선착순 문제</span> — 정답 조 중{' '}
+              {speedLabel(speed)
+                .split(' · ')
+                .map((t, i) => (
+                  <span key={t} className="whitespace-nowrap">
+                    {i ? ' · ' : ''}
+                    {t}
+                  </span>
+                ))}
             </p>
           ) : null}
-          <QuestionCard state={state} q={q} />
+          <QuestionCard state={state} q={q} hideChoices={me.role === 'answerer' && open && (!submission || state.allow_edit)} />
           {team && !team.answerer && open ? <NoAnswererWarning onBecomeAnswerer={onBecomeAnswerer} /> : null}
           {me.role === 'answerer' && open && (!submission || state.allow_edit) ? (
             <AnswerForm
@@ -563,7 +606,7 @@ function QuestionStage({
   );
 }
 
-function QuestionCard({ state, q }: { state: QuizState; q: QuizQuestionPublic }) {
+function QuestionCard({ state, q, hideChoices }: { state: QuizState; q: QuizQuestionPublic; hideChoices?: boolean }) {
   const keyword = state.display_mode === 'keyword';
   return (
     <div className="mt-3 overflow-hidden rounded-2xl bg-white text-[#1E1E1E]">
@@ -574,13 +617,15 @@ function QuestionCard({ state, q }: { state: QuizState; q: QuizQuestionPublic })
         </div>
       ) : (
         <div className="p-4">
-          <p className="whitespace-pre-line text-[16px] leading-7">{q.prompt}</p>
-          {q.choices ? (
-            <ol className="mt-3 space-y-1.5">
+          <p className="whitespace-pre-line text-[16px] leading-7">
+            <RichText text={q.prompt} mark="phone" />
+          </p>
+          {/* 보기는 답변자의 선택 버튼에만 — 본문에는 눌리는 것처럼 보이지 않게 글자로만 */}
+          {q.choices && !hideChoices ? (
+            <ol className="mt-2 space-y-0.5 text-[15px] text-[#3A3A3A]">
               {q.choices.map((c, i) => (
-                <li key={c} className="flex gap-2 rounded-lg bg-[#F4F3EE] px-3 py-2 text-[15px]">
-                  <span className="font-extrabold">{i + 1}.</span>
-                  <span>{c}</span>
+                <li key={c}>
+                  {i + 1}. {c}
                 </li>
               ))}
             </ol>

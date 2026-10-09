@@ -1,6 +1,7 @@
 // 점수 계산 (Quiz v2.1) — 배점 + 선착순 가산. 의존성 없는 순수 함수(로컬 어댑터·운영자 화면·테스트 공용).
 // ⚠ SQL quiz_scoreboard(supabase/quiz_v2.1_migration.sql)와 규칙이 같아야 한다.
 
+import { QUIZ_QUESTIONS } from './quizQuestions';
 import type { QuizScoreRow, QuizState, QuizSubmission, SpeedRule, SpeedTier } from './quizTypes';
 
 
@@ -12,7 +13,11 @@ export const DEFAULT_SPEED_TIERS: SpeedTier[] = [
 
 /** 이 문항의 선착순 규칙 — 꺼져 있으면 null */
 export function speedRuleFor(state: Pick<QuizState, 'settings'> | null, index: number): SpeedRule | null {
-  const r = state?.settings.speed?.[String(index)];
+  const set = state?.settings.speed;
+  // 운영자가 한 번도 건드리지 않은 문항은 문항 정의의 기본 규칙(피버타임)을 쓴다.
+  // (운영자 화면이 열리면 이 기본값을 DB 설정에도 넣어 점수판 SQL과 맞춘다 — defaultSpeedSettings)
+  const fallback = QUIZ_QUESTIONS[index]?.defaultSpeed;
+  const r = set && String(index) in set ? set[String(index)] : fallback ? { on: true, tiers: fallback } : null;
   if (!r || !r.on || !Array.isArray(r.tiers) || !r.tiers.length) return null;
   return { on: true, tiers: [...r.tiers].sort((a, b) => a.upto - b.upto) };
 }
@@ -80,4 +85,27 @@ export function scoreTeams(
     rows.push({ team_no: t, score: Math.round(score.get(t) ?? 0), correct: correct.get(t) ?? 0, members: members.get(t) ?? 0 });
   }
   return rows;
+}
+
+/** 아직 DB 설정에 없는 문항별 기본 선착순 규칙 — 운영자 화면이 열릴 때 한 번 넣는다 */
+export function defaultSpeedSettings(state: Pick<QuizState, 'settings'> | null): Record<string, SpeedRule> | null {
+  if (!state) return null;
+  const set = state.settings.speed ?? {};
+  const add: Record<string, SpeedRule> = {};
+  QUIZ_QUESTIONS.forEach((q, i) => {
+    if (q.defaultSpeed && !(String(i) in set)) add[String(i)] = { on: true, tiers: q.defaultSpeed };
+  });
+  return Object.keys(add).length ? add : null;
+}
+
+/** 선착순 구간 안내용 — [{ range: '2·3등', mult: '×3', pts: 30 }] */
+export function speedRows(rule: SpeedRule | null, base: number): { range: string; mult: string; pts: number }[] {
+  const out: { range: string; mult: string; pts: number }[] = [];
+  let from = 1;
+  for (const t of [...(rule?.tiers ?? [])].sort((a, b) => a.upto - b.upto)) {
+    const range = t.upto <= from ? `${t.upto}등` : t.upto - from === 1 ? `${from}·${t.upto}등` : `${from}~${t.upto}등`;
+    from = t.upto + 1;
+    out.push({ range, mult: t.mode === 'x' ? `×${t.v}` : `+${t.v}`, pts: Math.round(t.mode === 'x' ? base * t.v : base + t.v) });
+  }
+  return out;
 }

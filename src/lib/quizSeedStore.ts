@@ -8,8 +8,8 @@ let seed: QuizQuestion[] = [];
 
 export function setQuizKeys(keys: QuizAnswerKey[]): void {
   seed = QUIZ_QUESTIONS.map((q) => {
-    const key = keys.find((k) => k.no === q.no);
-    if (!key) throw new Error(`정답 키 없음: ${q.no}`);
+    const key = keys.find((k) => k.id === q.id);
+    if (!key) throw new Error(`정답 키 없음: ${q.id}`);
     return { ...q, ...key };
   });
 }

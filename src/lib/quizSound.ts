@@ -9,17 +9,18 @@
 //
 // 음원: public/quiz/sfx/{lobby,open,thinking,timeup,reveal}.mp3 — Mixkit 무료 효과음(Mixkit Sound Effects Free License)
 //   lobby = Game show intro(943) · open = Movie impact intro presentation(2902) · thinking = Wall clock tick tock(1060, 정확히 22박으로 자름)
-//   timeup = Ice hockey sports buzzer(941) · reveal = Musical reveal(961). 앞 무음 제거 + 라우드니스 맞춤.
+//   timeup = Ice hockey sports buzzer(941) · reveal = Musical reveal(961)
+//   final(최종 순위 BGM, 반복) = Game show uplifting(944) · applause(최종 순위 첫 박수) = Auditorium applause(502). 앞 무음 제거 + 라우드니스 맞춤.
 // 파일이 없으면 그 효과음은 조용히 건너뛴다(대신 합성음을 내지 않는다).
 // 반복 음원은 끝과 처음을 0.6초 겹쳐(크로스페이드) 이어 붙이므로 아무 길이의 파일이어도 끊김 없이 돈다.
 
-export type QuizCue = 'open' | 'timeup' | 'reveal';
-export type QuizLoop = 'lobby' | 'thinking';
-const FILES = ['lobby', 'open', 'thinking', 'timeup', 'reveal'] as const;
+export type QuizCue = 'open' | 'timeup' | 'reveal' | 'applause';
+export type QuizLoop = 'lobby' | 'thinking' | 'final';
+const FILES = ['lobby', 'open', 'thinking', 'timeup', 'reveal', 'final', 'applause'] as const;
 type FileKey = (typeof FILES)[number];
 
 /** 음량 — 반복 음원은 진행자 목소리를 덮지 않게 낮게 */
-const GAIN: Record<FileKey, number> = { lobby: 0.6, open: 0.95, thinking: 0.55, timeup: 0.95, reveal: 1 };
+const GAIN: Record<FileKey, number> = { lobby: 0.6, open: 0.95, thinking: 0.55, timeup: 0.95, reveal: 1, final: 0.7, applause: 0.9 };
 const XFADE = 0.6;
 
 let ctx: AudioContext | null = null;

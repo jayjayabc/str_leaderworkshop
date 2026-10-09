@@ -60,7 +60,14 @@ export interface ManualJudge {
   why?: string;
 }
 
-export type JudgeSpec = NumericJudge | TextJudge | KeywordsJudge | ManualJudge;
+/** 여러 칸 답 — 칸마다 따로 판정해 모두 맞아야 정답 (칸 구분은 ' | ') */
+export interface FieldsJudge {
+  type: 'fields';
+  parts: JudgeSpec[];
+  why?: string;
+}
+
+export type JudgeSpec = NumericJudge | TextJudge | KeywordsJudge | ManualJudge | FieldsJudge;
 
 // ─── 정규화 ─────────────────────────────────────────────────
 
@@ -98,29 +105,43 @@ export function normalizeLight(input: string): string {
  */
 export function parseKoreanNumber(input: string): { value: number; hadMultiplier: boolean } | null {
   const s = toHalfWidth(input).replace(/,/g, '').replace(/\s+/g, '');
-  const re = /(-?\d+(?:\.\d+)?)(조|억|만|천)?/g;
+  // 숫자와 한국어 자릿수(십·백·천 / 만·억·조)를 차례로 읽는다 — "3천만", "2천8백만", "1만8천", "1억 2000"
+  const SMALL: Record<string, number> = { 십: 10, 백: 100, 천: 1000 };
+  const re = /(-?\d+(?:\.\d+)?)|(조|억|만|천|백|십)/g;
   let total = 0;
+  let small = 0;
+  let pending: number | null = null;
   let found = false;
   let hadMultiplier = false;
   let m: RegExpExecArray | null;
   while ((m = re.exec(s)) !== null) {
-    const n = Number(m[1]);
-    if (!Number.isFinite(n)) continue;
-    const unit = m[2];
-    if (unit) {
-      hadMultiplier = true;
-      total += n * MULTIPLIER[unit];
-    } else if (!found) {
-      total += n;
-    } else if (hadMultiplier) {
-      // "1억 2000" 같은 꼬리 숫자는 더한다
-      total += n;
-    } else {
-      // 숫자가 두 개 이상 따로 있으면(예: "3 4") 모호 — 첫 숫자만 쓴다
-      break;
+    if (m[1] !== undefined) {
+      const n = Number(m[1]);
+      if (!Number.isFinite(n)) continue;
+      if (pending !== null) {
+        // 단위 없이 숫자가 두 개 이어지면(예: "3 4") 모호 — 앞 숫자까지만
+        if (!hadMultiplier && small === 0) break;
+        small += pending;
+      }
+      pending = n;
+      found = true;
+    } else if (found || m[2] in SMALL) {
+      const u = m[2];
+      if (u in SMALL) {
+        small += (pending ?? 1) * SMALL[u];
+        pending = null;
+        hadMultiplier = true;
+        found = true;
+      } else {
+        const section = small + (pending ?? 0) || 1;
+        total += section * MULTIPLIER[u];
+        small = 0;
+        pending = null;
+        hadMultiplier = true;
+      }
     }
-    found = true;
   }
+  total += small + (pending ?? 0);
   return found ? { value: total, hadMultiplier } : null;
 }
 
@@ -164,6 +185,17 @@ export function judge(spec: JudgeSpec, answer: string): AutoVerdict {
   switch (spec.type) {
     case 'manual':
       return 'review';
+
+    case 'fields': {
+      const parts = raw.split('|').map((x) => x.trim());
+      let review = false;
+      for (let i = 0; i < spec.parts.length; i += 1) {
+        const v = judge(spec.parts[i], parts[i] ?? '');
+        if (v === 'wrong') return 'wrong';
+        if (v === 'review') review = true;
+      }
+      return review ? 'review' : 'correct';
+    }
 
     case 'text': {
       const n = normalizeText(raw);
@@ -220,6 +252,8 @@ export function describeJudge(spec: JudgeSpec): string {
       return `키워드 ${spec.all.length}개 모두${spec.none?.length ? ' · 금지어 있음' : ''}`;
     case 'manual':
       return '수동 채점';
+    case 'fields':
+      return `칸별 판정 — ${spec.parts.map((p, i) => `${i + 1}) ${describeJudge(p)}`).join(' · ')}`;
     default:
       return '';
   }
