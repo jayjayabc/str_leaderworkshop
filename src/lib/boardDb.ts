@@ -1,4 +1,4 @@
-// 토의보드 어댑터 단일 진입점 (Board v1.1)
+// 토의보드 어댑터 단일 진입점 (Board v1.2)
 //   Supabase 환경변수가 있으면 RPC + Realtime(board_state) + 3초 폴링,
 //   없으면 localStorage + BroadcastChannel(같은 브라우저 탭끼리) — 퀴즈와 같은 패턴.
 
@@ -6,6 +6,7 @@ import { hasSupabaseEnv } from './supabaseClient';
 import { createLocalBoardAdapter } from './boardDb.local';
 import { createSupabaseBoardAdapter } from './boardDb.supabase';
 import type { BoardGroupId } from './boardSeed';
+import type { BoardSummary } from './boardSummary';
 import type {
   BoardAdminSnapshot,
   BoardCard,
@@ -48,6 +49,14 @@ export interface BoardAdapter {
   setState(key: string, patch: BoardStatePatch): Promise<BoardState>;
   moderate(key: string, submissionId: string, action: BoardModerateAction, note?: string): Promise<void>;
   reset(key: string, scope: 'group' | 'all', group?: BoardGroupId): Promise<void>;
+
+  // AI 갈무리 (v1.2)
+  /** 저장된 갈무리 리포트 전부 (그룹당 하나) */
+  summaries(key: string): Promise<BoardSummary[]>;
+  /** 그 그룹의 보이는 답을 AI 로 묶어 저장 — 10~30초. 실패하면 BOARD_NO_AI_KEY / BOARD_AI_FAILED / BOARD_EMPTY / BOARD_FORBIDDEN */
+  summarize(key: string, group: BoardGroupId): Promise<BoardSummary>;
+  /** 송출(group) / 내리기(null). 반환 = 바뀐 상태 */
+  showSummary(key: string, group: BoardGroupId | null): Promise<BoardState>;
 }
 
 let cached: BoardAdapter | null = null;

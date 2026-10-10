@@ -1,8 +1,8 @@
 'use client';
 
-// 토의보드 운영자 화면 /board/admin (Board v1.1) — 퀴즈와 같은 운영자 키.
+// 토의보드 운영자 화면 /board/admin (Board v1.2) — 퀴즈와 같은 운영자 키.
 //   단계 제어(Space 다음 · R 다시 열기 · ← → 모아보기 탭 · Esc 크게 보기 해제) · 열린 지 n분(참고용) · 토글 · 현황표(58 × 7)
-//   투표 패널(대상 그룹 · 열기/마감 · 순위 공개 · 득표 순위표) · 카드 목록(크게 보기 / 숨김 / 하이라이트) · CSV 2종 + JSON · 초기화(2단계 확인)
+//   투표 패널(대상 그룹 · 열기/마감 · 순위 공개 · 득표 순위표) · AI 갈무리 패널(모아보기 단계 · 만들기 → 미리보기 → 스크린에 띄우기/내리기) · 카드 목록(크게 보기 / 숨김 / 하이라이트) · CSV 2종 + JSON · 초기화(2단계 확인)
 //   스냅샷은 2초마다 읽는다(제출 테이블은 방송하지 않으므로). 반조(team_id)는 운영자 화면·CSV에만 있다.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +14,7 @@ import { getBoardDb } from '@/lib/boardDb';
 import { PHASE_LABEL, fmtClock, fmtElapsed, timerLeft, useNow } from '@/lib/boardClient';
 import { download, fullJson, kst, longCsv, stamp, wideCsv } from '@/lib/boardExport';
 import { BOARD_GROUPS, BOARD_TEAM_COUNT, groupById, groupLabel, itemById, type BoardGroupId } from '@/lib/boardSeed';
+import type { BoardSummary } from '@/lib/boardSummary';
 import {
   BoardError,
   boardErrorText,
@@ -24,6 +25,7 @@ import {
   type BoardStatePatch,
 } from '@/lib/boardTypes';
 import { NewVersionBanner } from '@/components/quiz/NewVersionBanner';
+import { SummaryPreview } from './SummaryReport';
 
 // ─── 진행 순서 ────────────────────────────────────────────────
 
@@ -484,6 +486,8 @@ function Console({ opKey }: { opKey: string }) {
 
         {/* 오른쪽: 카드 · 현황 */}
         <section className="flex min-w-0 flex-col gap-5">
+          {/* AI 갈무리 — 모아보기 단계에서, 지금 선택된 탭(current_item) 기준 */}
+          {state.phase === 'wall' && group ? <SummaryPanel opKey={opKey} snap={snap} state={state} group={group} onChanged={pull} /> : null}
           {/* 단계·항목이 바뀌면 고른 탭을 비운다(예전 탭의 카드를 크게 보기로 보내지 않게) */}
           <CardsPanel key={`${state.phase}:${state.current_item}`} opKey={opKey} snap={snap} state={state} apply={apply} onChanged={pull} />
           <MatrixPanel snap={snap} state={state} />
@@ -630,6 +634,158 @@ function VotePanel({
         </div>
       ) : null}
     </Panel>
+  );
+}
+
+// ─── AI 갈무리 패널 ───────────────────────────────────────────
+
+/**
+ * 모아보기 단계 · 지금 탭의 답 전체를 AI 가 묶은 1장짜리 리포트를 만들어 확인하고, 송출 화면에 띄운다.
+ * 만들기는 서버 라우트(운영자 키 확인 → Claude → 검증 → 저장)가 하고 10~30초 걸린다. 실패해도 진행은 카드 읽기로 계속할 수 있다.
+ * 다른 탭으로 넘기면 띄워 둔 리포트는 서버가 자동으로 내린다.
+ */
+function SummaryPanel({
+  opKey,
+  snap,
+  state,
+  group,
+  onChanged,
+}: {
+  opKey: string;
+  snap: BoardAdminSnapshot;
+  state: BoardState;
+  group: NonNullable<ReturnType<typeof groupById>>;
+  onChanged: () => Promise<void>;
+}) {
+  const [cache, setCache] = useState<Record<string, BoardSummary>>({});
+  const [gen, setGen] = useState<{ group: BoardGroupId; at: number } | null>(null);
+  const [errs, setErrs] = useState<Record<string, string>>({});
+  const [showBusy, setShowBusy] = useState(false);
+  // 버튼을 빠르게 두 번 눌러도 한 번만 가게 동기 잠금(기존 busyRef 관례)
+  const genRef = useRef(false);
+  const showRef = useRef(false);
+  const now = useNow();
+
+  // 진입 시 · 탭이 바뀔 때 · 상태가 바뀔 때(초기화 포함) 저장본을 다시 읽는다
+  useEffect(() => {
+    let cancelled = false;
+    void getBoardDb()
+      .summaries(opKey)
+      .then((list) => {
+        if (!cancelled) setCache(Object.fromEntries(list.map((x) => [x.group, x])));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [opKey, group.id, state.updated_at]);
+
+  const saved = cache[group.id] ?? null;
+  const onAir = state.summary?.group === group.id;
+  const visibleCount = snap.submissions.filter((s) => group.items.some((i) => i.id === s.item_id) && !s.hidden && s.body.trim() !== '').length;
+  const stale = Boolean(saved) && saved!.source_count !== visibleCount;
+  const making = gen !== null;
+  const makingHere = gen?.group === group.id;
+  const err = errs[group.id] ?? '';
+
+  const make = async () => {
+    if (genRef.current) return;
+    genRef.current = true;
+    const g = group.id;
+    setGen({ group: g, at: Date.now() });
+    setErrs((e) => ({ ...e, [g]: '' }));
+    try {
+      const out = await getBoardDb().summarize(opKey, g);
+      setCache((c) => ({ ...c, [g]: out }));
+      toast.success(`${groupLabel(g)} AI 갈무리를 만들었어요`);
+      await onChanged();
+    } catch (e) {
+      const msg = e instanceof BoardError && e.code === 'BOARD_EMPTY' ? '이 탭에 보이는 답이 아직 없어요.' : boardErrorText(e);
+      setErrs((x) => ({ ...x, [g]: msg }));
+    } finally {
+      genRef.current = false;
+      setGen(null);
+    }
+  };
+
+  const toggleShow = async () => {
+    if (showRef.current) return;
+    showRef.current = true;
+    setShowBusy(true);
+    try {
+      await getBoardDb().showSummary(opKey, onAir ? null : group.id);
+      toast.success(onAir ? '스크린에서 내렸어요' : '스크린에 띄웠어요');
+      await onChanged();
+    } catch (e) {
+      toast.error(boardErrorText(e));
+    } finally {
+      showRef.current = false;
+      setShowBusy(false);
+    }
+  };
+
+  const secs = gen ? Math.max(0, Math.floor((now - gen.at) / 1000)) : 0;
+
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm" data-testid="summary-panel">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-[15px] font-extrabold">
+          AI 갈무리 <span className="font-bold text-black/50">· {groupLabel(group.id)} {group.title}</span>
+        </h2>
+        {onAir ? <span className="rounded-md bg-[#FF5A3C] px-2 py-0.5 text-[12px] font-extrabold text-white">송출 중</span> : null}
+        <div className="ml-auto flex gap-2">
+          <button
+            type="button"
+            data-testid="summary-make"
+            disabled={making}
+            onClick={() => void make()}
+            className="h-10 rounded-lg bg-[#1E1E1E] px-4 text-[14px] font-bold text-white disabled:opacity-40"
+          >
+            {making ? '만드는 중…' : saved ? '다시 만들기' : 'AI 갈무리 만들기'}
+          </button>
+          <button
+            type="button"
+            data-testid="summary-show"
+            disabled={!saved || showBusy}
+            onClick={() => void toggleShow()}
+            className={clsx('h-10 rounded-lg border px-4 text-[14px] font-bold disabled:opacity-40', onAir ? 'border-[#C23A1E] bg-[#C23A1E] text-white' : 'border-[#1E1E1E] bg-[#FFE300]')}
+          >
+            {onAir ? '스크린에서 내리기' : '스크린에 띄우기'}
+          </button>
+        </div>
+      </div>
+
+      <p className="mt-2 text-[13px]" data-testid="summary-status" aria-live="polite">
+        {making ? (
+          <span className="font-bold text-[#1E1E1E]">
+            {makingHere ? '' : `${groupLabel(gen!.group)} `}만드는 중… {secs}초 <span className="font-normal text-black/50">(보통 10~30초)</span>
+          </span>
+        ) : saved ? (
+          <span className="text-black/65">
+            {kst(saved.created_at).slice(11, 16)} 생성 · 답 {saved.source_count}건 · {saved.model || '모델 미상'}
+            {saved.data.fake ? <span className="ml-1.5 rounded bg-[#FF5A3C] px-1.5 py-0.5 text-[11px] font-extrabold text-white">예시</span> : null}
+          </span>
+        ) : (
+          <span className="text-black/50">아직 만들지 않았어요 · 이 탭의 보이는 답 {visibleCount}건</span>
+        )}
+      </p>
+      {err ? (
+        <p className="mt-1 text-[13px] font-bold text-[#C23A1E]" role="alert" data-testid="summary-error">
+          {err}
+        </p>
+      ) : null}
+      {stale && !making ? (
+        <p className="mt-1 text-[13px] font-bold text-[#B36200]" data-testid="summary-stale">
+          그 뒤 답이 바뀌었어요 — 다시 만들기 권장 <span className="font-normal text-black/50">(지금 보이는 답 {visibleCount}건)</span>
+        </p>
+      ) : null}
+
+      {saved ? (
+        <div className="mt-3 max-w-[720px]">
+          <SummaryPreview summary={saved} theme={state.screen_theme} />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

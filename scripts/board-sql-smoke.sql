@@ -375,3 +375,137 @@ begin
   raise notice 'BOARD V1.1 PERMISSIONS OK';
 end $$;
 reset role;
+
+-- ─────────────────────────────────────────────────────────────
+-- v1.2 SUMMARY — AI 갈무리 (board_v1.2_migration.sql 적용 필요)
+-- ─────────────────────────────────────────────────────────────
+set role anon;
+do $$
+declare
+  K constant text := 'kkkkkkkkkkkkkkkk';
+  a uuid; b uuid; c uuid;
+  src jsonb; sv jsonb; st board_state; n int; sid uuid;
+begin
+  perform board_reset(K, 'all');
+  a := (board_join('12A', '', 'sum-a') ->> 'id')::uuid;
+  b := (board_join('12B', '', 'sum-b') ->> 'id')::uuid;
+  c := (board_join('3A', '', 'sum-c') ->> 'id')::uuid;
+  perform board_set_state(K, '{"phase":"item_open","current_item":"Q2-3","item_open":true}');
+  perform board_submit(a, '{"Q2-3a":"A조 해 보겠다 회의록","Q2-3b":"A조 가이드"}');
+  perform board_submit(b, '{"Q2-3a":"B조 주간보고 초안","Q2-3b":""}');
+  perform board_submit(c, '{"Q2-3a":"C조 숨길 답","Q2-3b":"C조 지원"}');
+  perform board_set_state(K, '{"phase":"wall"}');
+  -- C조 Q2-3a 숨김
+  perform board_moderate(K, (select (x ->> 'id')::uuid from json_array_elements(board_admin_snapshot(K) -> 'submissions') x
+                             where x ->> 'team_id' = '3A' and x ->> 'item_id' = 'Q2-3a'), 'hide', null);
+
+  -- 원문: 키 필수 · 그룹 검증
+  begin perform board_summary_source('wrong-key-xxxxxxx', 'Q2-3'); raise exception 'FAIL source bad key'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  begin perform board_summary_source(null, 'Q2-3'); raise exception 'FAIL source null key'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  begin perform board_summary_source(K, 'Q9-9'); raise exception 'FAIL source unknown group'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  src := board_summary_source(K, 'Q2-3');
+  if jsonb_array_length(src -> 'items') <> 2 then raise exception 'FAIL source items'; end if;
+  if (src -> 'items' -> 0 ->> 'item_id') <> 'Q2-3a' then raise exception 'FAIL source item order'; end if;
+  -- 보이는 답만: A 2건 + B 1건(빈 b 제외) + C 1건(숨김 제외) = 4
+  if jsonb_array_length(src -> 'answers') <> 4 then raise exception 'FAIL source answers=%', jsonb_array_length(src -> 'answers'); end if;
+  if src::text like '%숨길 답%' then raise exception 'FAIL source leaks hidden'; end if;
+  if src::text like '%team_id%' or src::text like '%"card"%' or src::text ~ '"?(12|3)[AB]"?' then raise exception 'FAIL source leaks team/card: %', src; end if;
+  if exists (select 1 from jsonb_array_elements(src -> 'answers') x where jsonb_typeof(x) <> 'object' or (select count(*) from jsonb_object_keys(x)) <> 2) then
+    raise exception 'FAIL source answer keys';
+  end if;
+
+  -- 저장: 키·그룹·형식 검증
+  begin perform board_summary_save('wrong-key-xxxxxxx', 'Q2-3', '{"headline":"x"}', 'm', 4); raise exception 'FAIL save bad key'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  begin perform board_summary_save(K, 'Q9-9', '{"headline":"x"}', 'm', 4); raise exception 'FAIL save unknown group'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  begin perform board_summary_save(K, 'Q2-3', '[1]'::jsonb, 'm', 4); raise exception 'FAIL save non-object'; exception when others then
+    if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
+  begin perform board_summary_save(K, 'Q2-3', null, 'm', 4); raise exception 'FAIL save null'; exception when others then
+    if sqlerrm not like 'BOARD_EMPTY%' then raise; end if; end;
+  begin perform board_summary_save(K, 'Q2-3', jsonb_build_object('headline', repeat('가', 30000)), 'm', 4); raise exception 'FAIL save too long'; exception when others then
+    if sqlerrm not like 'BOARD_TOO_LONG%' then raise; end if; end;
+  sv := board_summary_save(K, 'Q2-3', '{"headline":"첫 번째","takeaway":"t","sections":[]}', 'fake', 4);
+  if sv ->> 'group' <> 'Q2-3' or (sv -> 'data' ->> 'headline') <> '첫 번째' or (sv ->> 'source_count')::int <> 4 or sv ->> 'model' <> 'fake' then
+    raise exception 'FAIL save result %', sv;
+  end if;
+  -- 덮어쓰기(upsert)
+  perform board_summary_save(K, 'Q2-3', '{"headline":"두 번째","takeaway":"t","sections":[]}', 'fake', 4);
+  if (select count(*) from jsonb_array_elements(board_summary_list(K))) <> 1 then raise exception 'FAIL list count after upsert'; end if;
+  if (board_summary_list(K) -> 0 -> 'data' ->> 'headline') <> '두 번째' then raise exception 'FAIL upsert value'; end if;
+  begin perform board_summary_list('wrong-key-xxxxxxx'); raise exception 'FAIL list bad key'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+
+  -- 직접 접근 차단
+  begin perform 1 from board_summaries; raise exception 'FAIL board_summaries readable'; exception when insufficient_privilege then null; end;
+  begin insert into board_summaries (group_key, data) values ('Q1-1', '{}'); raise exception 'FAIL board_summaries writable'; exception when insufficient_privilege then null; end;
+  begin update board_state set summary = '{"x":1}'::jsonb where id = 1; raise exception 'FAIL state.summary writable'; exception when insufficient_privilege then null; end;
+
+  -- 송출: 키 필요 · 없는 저장본 거부 · state.summary 에 실림
+  begin perform board_summary_show('wrong-key-xxxxxxx', 'Q2-3'); raise exception 'FAIL show bad key'; exception when others then
+    if sqlerrm not like 'BOARD_FORBIDDEN%' then raise; end if; end;
+  begin perform board_summary_show(K, 'Q1-1'); raise exception 'FAIL show missing'; exception when others then
+    if sqlerrm not like 'BOARD_UNKNOWN%' then raise; end if; end;
+  st := board_summary_show(K, 'Q2-3');
+  if st.summary is null or st.summary ->> 'group' <> 'Q2-3' then raise exception 'FAIL show result'; end if;
+  -- anon 이 board_state 를 직접 읽어도 summary 가 보인다(송출 화면용) — 그리고 반조 정보는 없다
+  if (select summary ->> 'group' from board_state where id = 1) <> 'Q2-3' then raise exception 'FAIL state read summary'; end if;
+  if (select summary::text from board_state where id = 1) ~ '(team_id|"card")' then raise exception 'FAIL summary leaks team'; end if;
+
+  -- 송출 중에 다시 저장하면 송출본도 갱신
+  perform board_summary_save(K, 'Q2-3', '{"headline":"세 번째","takeaway":"t","sections":[]}', 'fake', 4);
+  if (select summary -> 'data' ->> 'headline' from board_state where id = 1) <> '세 번째' then raise exception 'FAIL on-air refresh'; end if;
+  -- 송출 중이 아닌 그룹 저장은 송출본을 안 건드린다
+  perform board_summary_save(K, 'Q1-1', '{"headline":"딴 그룹","takeaway":"t","sections":[]}', 'fake', 1);
+  if (select summary ->> 'group' from board_state where id = 1) <> 'Q2-3' then raise exception 'FAIL other group touched on-air'; end if;
+
+  -- 내리기
+  st := board_summary_show(K, null);
+  if st.summary is not null then raise exception 'FAIL show null'; end if;
+  perform board_summary_show(K, 'Q2-3');
+  st := board_summary_show(K, '');
+  if st.summary is not null then raise exception 'FAIL show empty'; end if;
+
+  -- 자동 해제: 탭(current_item) 변경
+  perform board_summary_show(K, 'Q2-3');
+  perform board_set_state(K, '{"screen_theme":"light"}');   -- 다른 키 변경은 유지
+  if (select summary from board_state) is null then raise exception 'FAIL summary dropped by unrelated patch'; end if;
+  perform board_set_state(K, '{"current_item":"Q2-3"}');      -- 같은 탭으로 다시 지정해도 유지
+  if (select summary from board_state) is null then raise exception 'FAIL summary dropped by same item'; end if;
+  perform board_set_state(K, '{"current_item":"Q2-2"}');
+  if (select summary from board_state) is not null then raise exception 'FAIL summary kept after tab change'; end if;
+  perform board_set_state(K, '{"screen_theme":"dark"}');
+  -- 자동 해제: phase 변경
+  perform board_set_state(K, '{"current_item":"Q2-3"}');
+  perform board_summary_show(K, 'Q2-3');
+  perform board_set_state(K, '{"phase":"break"}');
+  if (select summary from board_state) is not null then raise exception 'FAIL summary kept after phase change'; end if;
+  perform board_set_state(K, '{"phase":"wall"}');
+  -- 저장본은 자동 해제와 무관하게 남는다
+  if (select count(*) from jsonb_array_elements(board_summary_list(K))) <> 2 then raise exception 'FAIL saved lost after auto-clear'; end if;
+
+  -- 관리자 스냅샷에 summary 가 실린다
+  perform board_summary_show(K, 'Q2-3');
+  if (board_admin_snapshot(K) -> 'state' -> 'summary' ->> 'group') <> 'Q2-3' then raise exception 'FAIL snapshot summary'; end if;
+
+  -- 초기화: 그룹
+  perform board_reset(K, 'group', 'Q1-1');
+  if (select count(*) from jsonb_array_elements(board_summary_list(K))) <> 1 then raise exception 'FAIL reset group deletes summary'; end if;
+  if (select summary from board_state) is null then raise exception 'FAIL reset other group cleared on-air'; end if;
+  perform board_reset(K, 'group', 'Q2-3');
+  if (select count(*) from jsonb_array_elements(board_summary_list(K))) <> 0 then raise exception 'FAIL reset group Q2-3 summary'; end if;
+  if (select summary from board_state) is not null then raise exception 'FAIL reset group on-air summary'; end if;
+  -- 초기화: 전체
+  perform board_summary_save(K, 'Q1-1', '{"headline":"a"}', 'm', 1);
+  perform board_summary_save(K, 'Q2-1', '{"headline":"b"}', 'm', 1);
+  perform board_summary_show(K, 'Q2-1');
+  perform board_reset(K, 'all');
+  if (select count(*) from jsonb_array_elements(board_summary_list(K))) <> 0 then raise exception 'FAIL reset all summaries'; end if;
+  if (select summary from board_state) is not null then raise exception 'FAIL reset all on-air'; end if;
+
+  raise notice 'SUMMARY OK';
+end $$;
+reset role;

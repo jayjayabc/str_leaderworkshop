@@ -1,6 +1,7 @@
-// 토의보드 타입 (Board v1.1) — supabase/board_v1.0_migration.sql · board_v1.1_migration.sql 의 행·함수 반환값과 같은 모양.
+// 토의보드 타입 (Board v1.2) — supabase/board_v1.0_migration.sql · board_v1.1_migration.sql · board_v1.2_migration.sql 의 행·함수 반환값과 같은 모양.
 
 import type { BoardGroupId, BoardItemId } from './boardSeed';
+import type { BoardSummary } from './boardSummary';
 
 export type BoardPhase = 'waiting' | 'q1_intro' | 'item_open' | 'wall' | 'break' | 'q2_intro' | 'ended';
 
@@ -32,6 +33,8 @@ export interface BoardState {
   vote_open: boolean;
   /** 순위 공개 */
   vote_reveal: boolean;
+  /** 송출 중인 AI 갈무리 리포트 (없으면 null). 모아보기 단계에서만 송출 화면이 전체 화면으로 띄운다 */
+  summary: BoardSummary | null;
   updated_at: string;
 }
 
@@ -52,6 +55,7 @@ export const EMPTY_BOARD_STATE: BoardState = {
   vote_items: ['Q2-3'],
   vote_open: false,
   vote_reveal: false,
+  summary: null,
   updated_at: '',
 };
 
@@ -191,6 +195,8 @@ export type BoardErrorCode =
   | 'BOARD_OWN_CARD'
   | 'BOARD_VOTE_LIMIT'
   | 'BOARD_FULL'
+  | 'BOARD_NO_AI_KEY'
+  | 'BOARD_AI_FAILED'
   | 'BOARD_NETWORK';
 
 export class BoardError extends Error {
@@ -226,6 +232,10 @@ export function boardErrorText(err: unknown): string {
       return '3표를 모두 썼어요. 다른 표를 취소하면 다시 쓸 수 있어요.';
     case 'BOARD_FULL':
       return '이 반조에 입장한 기기가 너무 많아요. 진행요원에게 알려 주세요.';
+    case 'BOARD_NO_AI_KEY':
+      return 'AI 키가 아직 설정되지 않았어요. (Vercel 환경변수 ANTHROPIC_API_KEY)';
+    case 'BOARD_AI_FAILED':
+      return 'AI 갈무리를 만들지 못했어요. 잠시 후 다시 시도하거나 카드 읽기로 진행하세요.';
     default:
       return '연결이 불안정해요. 잠시 후 다시 보내 주세요.';
   }

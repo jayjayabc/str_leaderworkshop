@@ -1,0 +1,3250 @@
+[
+  {
+    "team_id": "1A",
+    "item_id": "Q1-1",
+    "body": "적금·예금 만기 알림 대신 만기 전에 최고금리 상품으로 재가입까지 해 주는 형태가 되지 않을까",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:11+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q1-2",
+    "body": "내 거래 기록을 오래 안전하게 보관해 주는 것. 나중에 분쟁이 생기면 에이전트가 한 일도 다 확인할 수 있어야 한다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:40+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q1-3",
+    "body": "계좌 개설이나 대출 신청 때 매번 같은 서류와 정보를 다시 내야 하는 게 불편하다. 이미 은행이 아는 정보는 다시 묻지 않았으면 하고, 한 번 인증한 건 다른 상품 가입할 때도 이어서 쓸 수 있었으면 좋겠다",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:08:00+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q1-4",
+    "body": "에이전트 금융에 대한 규제 방향을 먼저 파악하고 당국과 소통 채널을 만들어 둘 것",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:10:55+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q2-1",
+    "body": "같은 질문을 해도 사람마다 결과 차이가 커서 쓸 만한 수준이 안 나왔다. 잘 쓰는 사람만 효과를 보고 나머지는 한두 번 해 보고 접음. 결국 쓰는 사람 따로 안 쓰는 사람 따로인 상태가 됐다",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:33:28+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q2-2",
+    "body": "일단 한 장으로 줄여서 결재받는 방식부터",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:38:59+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q2-3a",
+    "body": "계약서나 약정서 검토할 때 위험 조항을 AI로 먼저 표시하게 해 보겠다. 최종 판단은 당연히 사람이 하고 놓친 곳만 잡는 용도",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:46:07+09:00"
+  },
+  {
+    "team_id": "1A",
+    "item_id": "Q2-3b",
+    "body": "직무별로 실습 위주의 AI 교육 과정을 열어 줬으면 한다. 이론 강의는 듣고 나면 잊어버리니까 직접 해 보는 걸로",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:46:07+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q1-1",
+    "body": "앱 안 열고 말로 물어볼 듯함",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:01:38+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q1-2",
+    "body": "은행 앱 열었을 때 느껴지는 안정감",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:36+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q1-3",
+    "body": "수수료 구조 알기 쉽게요",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:08:11+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q1-4",
+    "body": "금융당국과의 사전 논의를 통해 AI 에이전트 거래의 법적 책임 범위를 명확히 해야 한다",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:10:15+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q2-1",
+    "body": "실패에 대한 부담이 크고 새로운 시도에 관대하지 않은 조직 분위기가 영향을 주었다",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:34:06+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q2-2",
+    "body": "잘 된 프롬프트는 슬랙에 바로 올리는 식으로",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:40:53+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q2-3a",
+    "body": "팀 AI 스터디 시작.",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:46:05+09:00"
+  },
+  {
+    "team_id": "1B",
+    "item_id": "Q2-3b",
+    "body": "보안성 검토 절차의 신속 처리 및 사전 승인 도구 목록 운영",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:46:05+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q1-1",
+    "body": "조회와 간단한 지시는 음성·대화로 대체될 것이며, 앱 실행 빈도는 크게 줄 것으로 예상한다",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:02:53+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q1-2",
+    "body": "이체 전에 내가 눌러야 하는 최종 확인",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:06:58+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q1-3",
+    "body": "영업시간과 무관하게 모든 금융 거래가 실시간으로 처리되는 구조로 전환되어야 한다. 에이전트는 밤낮 없이 움직이는데 은행만 시간표가 있으면 곤란하고, 점검 시간이나 정산 시간 때문에 거래가 막히는 일이 없어야 함",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:07:22+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q1-4",
+    "body": "이상 거래 막는 장치",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:39+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q2-1",
+    "body": "검증이 병목",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:34:02+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q2-2",
+    "body": "AI는 보조, 결정은 사람",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:38:47+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q2-3a",
+    "body": "주간 업무 보고서 초안을 AI로 작성하는 것부터 시범 적용하겠다. 팀원 한두 명이 먼저 해 보고 후기를 공유",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:47:43+09:00"
+  },
+  {
+    "team_id": "2A",
+    "item_id": "Q2-3b",
+    "body": "전 직원 대상 생성형 AI 활용 역량 강화 교육 프로그램. 직급과 직무에 따라 수준별 과정으로 나눠서 운영",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:47:43+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q1-1",
+    "body": "적금 풍차 돌리던 거 이제 시키면 될 듯",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:03:46+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q1-2",
+    "body": "카뱅이라서 믿고 맡기는 거지 에이전트 때문이 아님",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:06:21+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q1-3",
+    "body": "나한테 맞는 상품만 보여 줬으면",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:07:35+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q1-4",
+    "body": "API 개방.",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:02+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q2-1",
+    "body": "좋은 모델은 못 쓰게 막혀 있고 쓸 수 있는 건 느리고 답답해서 결국 안 쓰게 됨",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:37:20+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q2-2",
+    "body": "팀마다 AI 담당자를 한 명씩 두기",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:41:31+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q2-3a",
+    "body": "고객 데이터 분석 요청을 AI가 1차로 받게",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:44:34+09:00"
+  },
+  {
+    "team_id": "2B",
+    "item_id": "Q2-3b",
+    "body": "토큰 비용 걱정 안 하고 쓸 수 있게 한도 늘려 주기",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:44:34+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q1-1",
+    "body": "송금할 때 계좌번호 입력 안 해도 됐으면",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:02:22+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q1-2",
+    "body": "비밀번호나 인증은 계속 철저하게",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:06:25+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q1-3",
+    "body": "나만을 위한 적금",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:07:15+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q1-4",
+    "body": "고객이 직접 위임 한도 정하는 기능",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:11:20+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q2-1",
+    "body": "어디까지 넣어도 되는지 몰라서 아예 안 넣게 됨",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:12+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q2-2",
+    "body": "서로 사례 많이 공유하면서 일하기",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:38:59+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q2-3a",
+    "body": "규정 검토 AI로",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:48:32+09:00"
+  },
+  {
+    "team_id": "3A",
+    "item_id": "Q2-3b",
+    "body": "계정 넉넉히",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:48:32+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q1-1",
+    "body": "결국 중요한 결정은 직접 한다. 에이전트는 조회와 알림 정도만 맡길 것 같고, 돈이 움직이는 단계는 내가 쥐고 있을 듯",
+    "label": "keep_manual",
+    "submitted_at": "2026-10-14T16:02:48+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q1-2",
+    "body": "일정 금액 넘으면 본인이 직접 승인하는 단계는 그대로 두었으면 한다. 편해지는 건 좋지만 마지막 확인은 필요하다고 생각",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:06:07+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q1-3",
+    "body": "내 조건으로 받을 수 있는 최저 금리를 바로 보여 주는 비교 화면. 조회하면 신용점수 떨어질까 걱정되는 것도 해결되면 좋겠다",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:08:41+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q1-4",
+    "body": "에이전트 전용 인증 토큰을 발급해서 외부 서비스가 권한 범위 안에서 접근하게 하는 구조",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:52+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q2-1",
+    "body": "망분리 때문이라는 쪽과 우리 숙련도 탓이라는 쪽이 반반이었다",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:36:59+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q2-2",
+    "body": "1차 작성은 에이전트가, 2차 검증은 다른 에이전트와 사람이 맡는 식으로 단계를 나눠 일해야 한다. 한 번에 다 맡기지 말고 단계마다 사람이 끼는 지점을 정해 두면 속도와 안전을 같이 챙길 수 있을 듯",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:41:56+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q2-3a",
+    "body": "대시보드 보고 인사이트 뽑는 것부터 시킬 것",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:49:43+09:00"
+  },
+  {
+    "team_id": "3B",
+    "item_id": "Q2-3b",
+    "body": "사례 중심의 가이드. 이렇게 하면 된다는 예시가 있었으면 한다. 규정 문서보다 사례가 훨씬 빨리 이해됨",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:49:43+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q1-1",
+    "body": "잔액·이체·내역 확인 같은 건 대화창이나 음성으로 처리하게 될 것 같다. 앱 메뉴를 찾아다니는 일이 사라질 듯",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:02:28+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q1-2",
+    "body": "에이전트가 잘못 이체했을 때 원상복구해 주는 체계. 누가 잘못했는지 따지기 전에 일단 돈부터 돌려받을 수 있어야 한다",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:04:29+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q1-3",
+    "body": "금리가 조금만 달라도 갈아탈 때 서류와 수수료 때문에 포기하게 된다. 이동 비용이 이득보다 크면 아무도 안 옮김",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:08:48+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q1-4",
+    "body": "사내에 흩어진 데이터를 한 곳에서 찾을 수 있게 하는 작업",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:10:20+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q2-1",
+    "body": "이거 써도 되는지 규정이 불명확함",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:32:23+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q2-2",
+    "body": "팀 회의 때 5분이라도 AI로 해 본 것 하나씩 공유하는 습관을 들인다. 거창한 발표 말고 해 보니 되더라 정도의 가벼운 공유",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:12+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q2-3a",
+    "body": "월말 실적 집계 작업을 자동화해서 숫자 확인 시간을 줄여 보겠다. 매달 3일씩 걸리던 작업이라 효과가 클 것 같다",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:44:49+09:00"
+  },
+  {
+    "team_id": "4A",
+    "item_id": "Q2-3b",
+    "body": "이론 말고 우리 업무 사례로 같이 해 보는 워크숍",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:44:49+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q1-1",
+    "body": "가계부 안 써도 됨",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:02:36+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q1-2",
+    "body": "상담원 연결 버튼",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:39+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q1-3",
+    "body": "이체 한도 올려주세요",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:07:21+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q1-4",
+    "body": "상품 정보 데이터 먼저 정리하기",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:11:07+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q2-1",
+    "body": "망분리",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:37:57+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q2-2",
+    "body": "프롬프트 돌려 쓰기",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:14+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q2-3a",
+    "body": "주간보고 AI 초안부터",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:47:52+09:00"
+  },
+  {
+    "team_id": "4B",
+    "item_id": "Q2-3b",
+    "body": "데이터 연결",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:47:52+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q1-1",
+    "body": "투자는 맡기고 싶다는 사람도 있고 절대 못 맡긴다는 사람도 있었다",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:02:14+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q1-2",
+    "body": "AI한테 털리면 누가 물어 주냐",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:04:04+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q1-3",
+    "body": "인증 절차는 더 줄이자는 쪽과 큰 거래는 오히려 더 엄격해져야 한다는 쪽이 있었다. 금액에 따라 차등 적용하자로 정리",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:09:07+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q1-4",
+    "body": "외부 에이전트 연결을 먼저 열자는 의견도 있고 자체 에이전트가 먼저라는 의견도 있었다",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:25+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q2-1",
+    "body": "나만 못 쓰는 것 같아서 물어보기가 민망",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:32:43+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q2-2",
+    "body": "초안은 AI가 쓰자는 쪽과 처음 구조는 사람이 잡아야 한다는 쪽이 있었다. 일의 성격에 따라 다르게 가자는 정도로 정리했음",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:50+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q2-3a",
+    "body": "엑셀 매크로 짜는 것부터 시켜 보기",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:46:56+09:00"
+  },
+  {
+    "team_id": "5A",
+    "item_id": "Q2-3b",
+    "body": "교육을 먼저 해 달라는 의견과 계정·예산이 먼저라는 의견이 같이 나옴. 우리 조는 교육과 계정을 한 세트로 달라는 쪽",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:46:56+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q1-1",
+    "body": "채팅으로 은행 일 다 보기",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:02:37+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q1-2",
+    "body": "금융 교육이나 설명해주는 콘텐츠",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:15+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q1-3",
+    "body": "가입 절차 간소화",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:09:16+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q1-4",
+    "body": "AI가 잘못 보낸 돈 되돌리는 방법부터",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:28+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q2-1",
+    "body": "위에서 쓰라고만 하고 사고 나면 우리 책임",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:34:59+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q2-2",
+    "body": "검토 순서 다시 짜기",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:38:02+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q2-3a",
+    "body": "VOC 분류부터",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:46:51+09:00"
+  },
+  {
+    "team_id": "5B",
+    "item_id": "Q2-3b",
+    "body": "금지만 나열하지 말고 해도 되는 걸 알려 줘",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:46:51+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q1-1",
+    "body": "대출 갈아타기 자동으로",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:13+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q1-2",
+    "body": "오래 검증된 은행이라는 안심감",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:05:48+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q1-3",
+    "body": "광고 같은 추천 말고 진짜 필요한 걸 알려 줬으면",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:08:52+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q1-4",
+    "body": "UX 쪽에서는 대화형 인터페이스 먼저 실험해 보면 좋겠다",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:10:13+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q2-1",
+    "body": "써 보긴 했는데 어떻게 더 잘 쓰는지 배운 적이 없다. 유튜브 보고 따라 하다가 시간만 씀",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:35:30+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q2-2",
+    "body": "다른 팀이 어떻게 쓰는지 보면서 따라 하게",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:42:06+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q2-3a",
+    "body": "팀원들 같이 써 보는 시간부터 만들기",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:48:21+09:00"
+  },
+  {
+    "team_id": "6A",
+    "item_id": "Q2-3b",
+    "body": "프롬프트 교육",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:48:21+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q1-1",
+    "body": "급여가 들어오면 생활비·저축·투자를 비율대로 알아서 나누고, 월말에 결과만 보고받는 식으로 쓰게 될 것 같다. 내가 하던 계산을 에이전트가 하고 나는 설정만 가끔 바꾸는 정도로",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:01:56+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q1-2",
+    "body": "고객센터에서 일하는 입장이라 더 그런데, 사람 목소리로 풀리는 문제가 아직 많다. 화난 고객은 AI보다 사람이 받아야 가라앉는 경우가 대부분이고, 감정이 섞인 상담은 시스템이 판단하기 어렵다",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:25+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q1-3",
+    "body": "24시간 언제든 대출 실행됐으면",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:07:41+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q1-4",
+    "body": "우리가 에이전트 만들어서 고객 데이터 안 빠져나가게. 외부에 맡기면 접점도 데이터도 다 넘어감",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:11:01+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q2-1",
+    "body": "내부 시스템과 AI를 연결하려면 보안 심의를 건건이 받아야 해서 PoC 단계에서 멈춰 있다",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:33:29+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q2-2",
+    "body": "프롬프트 템플릿을 팀 공용 저장소에 쌓고 업무마다 꺼내 쓰는 식으로. 이름만 보고 찾을 수 있게 분류도 같이 해 두면 좋겠다",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:41:48+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q2-3a",
+    "body": "AI로 뭘 할 수 있는지 팀원 의견부터 모아 보겠다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:45:07+09:00"
+  },
+  {
+    "team_id": "6B",
+    "item_id": "Q2-3b",
+    "body": "고객 정보는 가리고 쓸 수 있는 분석용 데이터 환경을 팀마다 제공해 줬으면 한다. 샘플이라도 진짜 같은 데이터로",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:45:07+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q1-1",
+    "body": "여유 자금은 알아서 굴리게 맡기고, 손실 한도만 정해 둘 듯",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:01:21+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q1-2",
+    "body": "복잡한 상황은 사람이 맥락을 보고 풀어 주는 상담 기능이 있었으면 좋겠다. 규정에 딱 안 맞는 예외 사정도 들어 줄 사람",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:52+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q1-3",
+    "body": "한도나 금리가 왜 그렇게 나왔는지 이유를 설명해 줬으면 좋겠다. 거절당해도 이유라도 알면 납득이 됨",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:09:19+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q1-4",
+    "body": "임직원이 먼저 에이전트를 써 보는 체험 프로그램부터 해야 한다고 생각",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:10:34+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q2-1",
+    "body": "사내에서 허용된 모델이 성능이 낮아 외부 서비스 대비 만족도가 떨어졌다. 비교해 보면 답답해서 손이 안 감",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:35:11+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q2-2",
+    "body": "자료 정리와 초안 작성은 AI에 맡기고 최종 판단과 책임은 사람이 지는 구조로 일한다. 누가 최종 확인자인지는 항상 명시해 두기",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:45+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q2-3a",
+    "body": "팀 휴가 일정 겹치는 거 정리하는 것부터",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:47:45+09:00"
+  },
+  {
+    "team_id": "7A",
+    "item_id": "Q2-3b",
+    "body": "팀 단위로 쓸 수 있는 AI 도구 라이선스 예산",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:47:45+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q1-1",
+    "body": "소액 적립식 투자 자동",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:01:03+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q1-2",
+    "body": "사람 상담 창구는 꼭 남겨 주세요",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:13+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q1-3",
+    "body": "상품 비교하다 지쳐서 포기함",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:09:54+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q1-4",
+    "body": "사고 나면 누가 책임지는지 먼저 정리해야 함. 고객이냐 은행이냐 에이전트 업체냐. 이게 안 정해지면 출시를 못 함",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:11:18+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q2-1",
+    "body": "틀린 거 찾아내는 게 더 일",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:33:00+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q2-2",
+    "body": "잘 쓰는 사람 화면 공유 보면서 배우게",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:42:07+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q2-3a",
+    "body": "일단 우리 팀 업무 목록부터 정리",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:44:37+09:00"
+  },
+  {
+    "team_id": "7B",
+    "item_id": "Q2-3b",
+    "body": "이거 써도 되는지 물어볼 곳 하나",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:44:37+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q1-1",
+    "body": "금리 비교와 이동이 자동화되면 고객 충성도보다 조건이 곧 선택 기준이 되어, 상품 경쟁이 훨씬 노골적으로 바뀔 것으로 본다. 은행은 브랜드보다 숫자로 평가받게 될 것",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:27+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q1-2",
+    "body": "에이전트가 제안해도 실행 전에 사람이 확인하도록 한 단계는 필요하다고 본다. 자동 실행 후 알림만 오는 건 불안",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:04:56+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q1-3",
+    "body": "AI 때문에 일자리 줄어드는 건 어떻게 될지",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:09:29+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q1-4",
+    "body": "상품 조건이 문서마다 달라서 하나로 정리부터 해야 함. 이거 안 하면 에이전트가 잘못 읽을 듯",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:10:25+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q2-1",
+    "body": "도구의 한계라기보다 업무를 AI가 풀 수 있는 형태로 분해하는 역량의 문제였다",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:33:42+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q2-2",
+    "body": "AI는 정보 수집과 대안 도출에, 사람은 판단과 책임에 집중하는 역할 분담으로 업무를 재편해야 한다. 어디까지가 AI의 몫이고 어디부터가 사람의 몫인지 업무별로 기준을 먼저 세워 두는 것이 출발점",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:32+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q2-3a",
+    "body": "임원 보고용 한 장 요약을 AI로 먼저 만들고 사람이 다듬는 흐름부터 시도. 목차와 핵심 메시지 잡는 데 시간이 가장 많이 듦",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:47:33+09:00"
+  },
+  {
+    "team_id": "8A",
+    "item_id": "Q2-3b",
+    "body": "사내 문서·규정·상품 정보를 AI가 검색할 수 있는 환경이 있었으면 한다. 지금은 자료 찾는 데만 반나절",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:47:33+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q1-1",
+    "body": "금융 앱의 화면 구조는 의미가 줄고, 대화 중심의 접점으로 이용이 옮겨 갈 것. 홈 화면 점유를 두고 하던 경쟁이 에이전트 호출 경쟁으로 바뀔 수 있다",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:03:18+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q1-2",
+    "body": "고객이 이의를 제기할 수 있는 인간 접점과 최종 책임자가 명확히 존재하는 것. 자동화가 아무리 진전돼도 사람이 답하는 창구가 신뢰의 마지막 보루라고 본다. 효율 때문에 이걸 없애는 순간 브랜드가 흔들릴 수 있음",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:55+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q1-3",
+    "body": "고객이 금융을 시작하기까지의 마찰이 지금처럼 크면 위임형 서비스도 의미가 없다. 가입·인증 구조의 근본 정리가 필요하다고 본다. 에이전트가 대신 가입해 주려면 인증부터 대리 가능한 구조로 바뀌어야 함",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:09:20+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q1-4",
+    "body": "에이전트가 한도 넘는 거래를 시도하면 바로 막고 고객에게 알리는 구조. 이상 징후 시 에이전트 권한을 자동 정지하는 것도",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:12+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q2-1",
+    "body": "실험을 장려하면서도 실수에는 엄격한 이중 메시지가 구성원을 움츠러들게 했다. 시도하라고 하면서 사고 나면 문책하니 아무도 안 나섬",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:36:42+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q2-2",
+    "body": "개인의 숙련이 조직의 자산이 되도록 노하우를 공유·축적하는 방식으로 일해야 한다. 잘하는 사람 머릿속에만 있으면 사람이 바뀔 때 사라지므로 기록하고 재사용하는 습관이 일의 기본이 되어야 함",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:24+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q2-3a",
+    "body": "반복적인 코딩과 테스트 자동화 영역에서 생산성 효과를 먼저 검증해 보겠다. 효과가 확인되면 다른 직군으로 확대",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:46:54+09:00"
+  },
+  {
+    "team_id": "8B",
+    "item_id": "Q2-3b",
+    "body": "AI 활용 실험을 위한 소규모 예산을 팀 단위로 위임해 주는 것. 건건이 품의를 올리면 실험 속도가 안 나므로, 일정 한도 안에서는 팀장 재량으로 도구와 계정을 쓸 수 있게 해 주면 훨씬 빨리 배울 것",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:46:54+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q1-1",
+    "body": "가계부 안 써도 됨.",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:02:09+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q1-2",
+    "body": "금융 교육이나 설명해 주는 콘텐츠",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:33+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q1-3",
+    "body": "새벽에 점검이라고 막아 놓는 시간",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:08:21+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q1-4",
+    "body": "퇴직연금 서비스 강화",
+    "label": "offtopic_service",
+    "submitted_at": "2026-10-14T16:11:24+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q2-1",
+    "body": "일단 AI 말고 엑셀부터 제대로 써야 하는데",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:34:57+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q2-2",
+    "body": "효과를 숫자로 확인하면서 일하기",
+    "label": "measure",
+    "submitted_at": "2026-10-14T16:40:39+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q2-3a",
+    "body": "내규 찾는 걸 AI로 해 보기",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:47:43+09:00"
+  },
+  {
+    "team_id": "9A",
+    "item_id": "Q2-3b",
+    "body": "개발자들이 좋은 모델 쓸 수 있게 비용 지원",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:47:43+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q1-1",
+    "body": "파킹통장 금리 1% 차이 나면 바로 옮기는 에이전트 하나 돌려 둘 것 같다",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:01:09+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q1-2",
+    "body": "자동으로 처리되더라도 30만원 넘는 거래는 승인 알림이 오고 내가 5초 안에 취소할 수 있는 시간 정도는 있었으면 좋겠다",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:05:41+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q1-3",
+    "body": "가입절차 간소화",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:07:00+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q1-4",
+    "body": "위임 거래에 대한 본인 확인 절차와 사고 시 책임 배분 기준을 사전에 마련해야 한다",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:11:19+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q2-1",
+    "body": "구성원 대다수가 생성형 AI 활용 경험이 부족해 기대한 수준의 산출물을 얻지 못했다",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:37:58+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q2-2",
+    "body": "성공 및 실패 사례를 조직 내에서 투명하게 공유하며 학습하는 방식으로 일해야 한다",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:48+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q2-3a",
+    "body": "앱 리뷰 불만 키워드 뽑아서 정리",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:44:51+09:00"
+  },
+  {
+    "team_id": "9B",
+    "item_id": "Q2-3b",
+    "body": "AI 도구 도입을 위한 별도 예산 편성 및 계정 지원",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:44:51+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q1-1",
+    "body": "주담대 금리 계속 지켜보다가 알려 줬으면",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:01:10+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q1-2",
+    "body": "사내 AI 도구 제한이 풀렸으면 좋겠다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:01+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q1-3",
+    "body": "회식 문화는 이제 좀 바뀌었으면",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:08:14+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q1-4",
+    "body": "말로 하면 되는 카뱅 앱 만들기",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:11:24+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q2-1",
+    "body": "쓸 수 있는 AI 도구가 몇 개 없어서",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:34:21+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q2-2",
+    "body": "AI는 보조 결정은 사람",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:43:07+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q2-3a",
+    "body": "테스트 코드 생성",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:45:46+09:00"
+  },
+  {
+    "team_id": "10A",
+    "item_id": "Q2-3b",
+    "body": "유료 AI 계정 지원",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:45:46+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q1-1",
+    "body": "앱 안 열고 말로 하자는 의견도 있고, 화면으로 확인해야 안심된다는 의견도 있었다",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:02:06+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q1-2",
+    "body": "노인이나 디지털에 약한 분들을 위한 대면·전화 창구는 계속 있어야 한다. 부모님 세대는 에이전트에게 맡기는 걸 더 불안해할 듯",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:06:22+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q1-3",
+    "body": "대출 심사가 영업일 기준으로만 돌아가는 건 바뀌었으면 한다. 주말에 급하게 필요한 사람도 있으니까",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:08:38+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q1-4",
+    "body": "에이전트 인증 방식. 사람인지 에이전트인지 구분하고 권한을 따로 관리해야 한다. 같은 계정으로 섞여 쓰면 사고 추적이 안 됨",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:13+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q2-1",
+    "body": "이거 써도 되는지 규정이 불명확",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:37:03+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q2-2",
+    "body": "초안은 AI가 쓰고 사람이 고치는 식으로",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:40:23+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q2-3a",
+    "body": "매주 월요일 팀 회의록을 AI로 정리해서 액션아이템까지 뽑아 보겠다. 담당자와 기한이 빠지지 않는지부터 확인",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:46:02+09:00"
+  },
+  {
+    "team_id": "10B",
+    "item_id": "Q2-3b",
+    "body": "보안 검토 빨리",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:46:02+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q1-1",
+    "body": "내 소비 패턴 보고 한 달 예산을 에이전트가 먼저 제안하고, 나는 승인만 누르는 구조로 갈 듯",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:03:17+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q1-2",
+    "body": "사람과 직접 상담할 수 있는 창구는 어떤 경우에도 유지되어야 한다고 생각한다. 접근성 차원에서도 필수",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:06:01+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q1-3",
+    "body": "금리 우대 조건 숨겨 놓은 것 같아서 싫음",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:08:41+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q1-4",
+    "body": "준법 쪽에서 에이전트 거래가 어디까지 되는지 지침부터 잡아야 할 듯",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:10:40+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q2-1",
+    "body": "프롬프트 숙련도 부족.",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:36:45+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q2-2",
+    "body": "쓴다고 다 좋은 게 아니라 업무별로 시간이 줄었는지 따져 보면서 쓴다. 효과 없는 건 과감히 접는 것도 일하는 방식의 일부",
+    "label": "measure",
+    "submitted_at": "2026-10-14T16:38:10+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q2-3a",
+    "body": "규정 개정 시 영향받는 문서를 AI로 식별하는 작업부터 검토해 보겠다. 개정할 때마다 관련 문서 찾는 게 가장 큰 일",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:48:12+09:00"
+  },
+  {
+    "team_id": "11A",
+    "item_id": "Q2-3b",
+    "body": "생성형 AI 활용 허용 범위에 대한 사내 표준 지침 제정",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:48:12+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q1-1",
+    "body": "월급 들어오고 3분 안에 한 달 계획이 끝나 있으면 좋겠다. 매달 하던 엑셀 정리를 에이전트가 하게 되면 가계부 앱은 거의 안 열게 될 것 같고, 나는 결과 알림만 확인하는 식으로",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:02:55+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q1-2",
+    "body": "전화 상담은 없어지면 안 됨",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:12+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q1-3",
+    "body": "대기 번호 같은 거 없어졌으면",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:07:33+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q1-4",
+    "body": "카뱅 앱에서 대화로 조회부터 이체까지 되는 자체 에이전트를 먼저 내놓는 것. 처음엔 조회만 하고 점차 넓혀 가는 식으로",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:10:16+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q2-1",
+    "body": "필요한 데이터가 여러 시스템에 흩어져 있어 하나로 모으는 데만 일주일 걸렸다. 위치를 아는 사람도 따로 있었음",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:03+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q2-2",
+    "body": "반복 작업은 AI에 넘기고 사람은 사람만 할 수 있는 판단과 설득에 시간을 쓰게 된다. 그러려면 일의 단위를 잘게 나눠서 어떤 건 맡기고 어떤 건 쥘지 팀 단위로 같이 정해 두고 일해야 한다고 생각",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:40:15+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q2-3a",
+    "body": "고객 문의를 유형별로 분류하고 답변 초안을 만들어 주는 것",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:47:12+09:00"
+  },
+  {
+    "team_id": "11B",
+    "item_id": "Q2-3b",
+    "body": "보안 검토를 요청하면 언제까지 답이 오는지 기한을 정해 줬으면 한다. 기한이 없으니 일정을 못 잡음",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:47:12+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q1-1",
+    "body": "오늘 얼마까지 써도 되는지 알려 주는 정도만 돼도 좋겠다",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:01:55+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q1-2",
+    "body": "AI가 못 푸는 건 결국 사람 상담원이 받아 줬으면 좋겠다. 챗봇 돌려막기 당하는 건 싫음",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:51+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q1-3",
+    "body": "앱 비번 간편 인증 하나로 통일",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:08:16+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q1-4",
+    "body": "내부 인력 재교육 계획 세우기",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:11:23+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q2-1",
+    "body": "실수하면 누가 책임지나 싶어서 눈치가 보임",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:35:30+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q2-2",
+    "body": "검토 순서 다시 짜기",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:39:54+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q2-3a",
+    "body": "일단 점심 메뉴 정하는 것부터 AI한테 시키겠다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:48:20+09:00"
+  },
+  {
+    "team_id": "12A",
+    "item_id": "Q2-3b",
+    "body": "휴게 공간을 좀 더 늘려 주세요",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:48:20+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q1-1",
+    "body": "메뉴 찾아 들어가는 대신 필요한 걸 말로 지시하고 결과만 받아 보는 식으로 이용하게 될 듯",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:01:44+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q1-2",
+    "body": "AI가 추천해도 결국 이름 있는 은행 상품을 고르게 될 것 같다. 모르는 곳에 돈 넣는 건 에이전트가 시켜도 찜찜함",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:05:36+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q1-3",
+    "body": "인증 단계를 위험 정도에 따라 다르게 적용해서 소액은 간편하게 하고, 큰 금액일 때만 강하게 확인하는 식으로",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:07:10+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q1-4",
+    "body": "앱 안에 대화형 금융 비서 넣기",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:11:02+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q2-1",
+    "body": "도구 도입 승인에 몇 달 걸려서 그 사이 트렌드가 바뀌었다",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:36:24+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q2-2",
+    "body": "AI 초안 → 사람 검토 → 결정 순서로",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:04+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q2-3a",
+    "body": "레거시 코드 설명 문서를 AI로 만들어서 인수인계에 쓰겠다. 담당자가 바뀔 때마다 문서가 없어서 힘들었으니까",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:46:29+09:00"
+  },
+  {
+    "team_id": "12B",
+    "item_id": "Q2-3b",
+    "body": "처음 쓰는 사람도 따라 할 수 있는 매뉴얼",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:46:29+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q1-1",
+    "body": "자산관리 영역은 에이전트 위임이 가장 먼저 확산될 것으로 본다. 은행은 상품 공급자에서 위임을 받는 파트너로 위상이 달라질 수 있음",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:01:10+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q1-2",
+    "body": "위임의 범위가 커질수록 고객이 최종 승인하는 지점을 설계에 남겨 두어야 한다. 얼마나 맡길지는 고객이 정하는 구조여야 하고, 한도를 넘는 거래는 반드시 사람이 확인하는 단계를 거치게 해야 함",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:06:00+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q1-3",
+    "body": "대출 신청할 때 재직증명서·소득서류 내라고 하는 걸 에이전트가 알아서 모아 줬으면 한다",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:07:25+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q1-4",
+    "body": "에이전트가 비교·선택하는 시대에 노출되지 않으면 선택받을 수 없다. 에이전트 접점 선점이 최우선이다. 앱 다운로드 경쟁이 아니라 에이전트 후보 목록 안에 드는 경쟁이 시작될 것 같음",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:56+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q2-1",
+    "body": "고객 데이터가 들어간 자료는 외부 AI에 입력할 수 없어서 결국 샘플 데이터로만 테스트하게 됐다. 실제 업무에 붙여 보면 달라질 텐데 거기까지는 못 갔고, 그러다 보니 데모 수준에서 매번 끝나고 다들 흥미를 잃었다",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:32:37+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q2-2",
+    "body": "AI 활용의 성과를 정량 지표로 관리하고, 효과가 확인된 영역에 자원을 집중 배분",
+    "label": "measure",
+    "submitted_at": "2026-10-14T16:38:43+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q2-3a",
+    "body": "반복 문의 상위 20개에 대한 답변 가이드를 AI로 정리해 보겠다. 상담사가 같은 설명을 매번 새로 쓰지 않도록",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:44:15+09:00"
+  },
+  {
+    "team_id": "13A",
+    "item_id": "Q2-3b",
+    "body": "쓸 수 있는 데이터 풀 하나 만들기",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:44:15+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q1-1",
+    "body": "소액·반복 결제는 위임이 일반화되고, 고객이 직접 결제하는 순간은 예외 상황으로 남을 것",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:01:24+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q1-2",
+    "body": "에이전트가 개입된 거래에서 사고가 났을 때의 보상 기준과 책임 소재가 명문화된 안전망. 위임이 늘수록 이 부분이 은행 선택의 첫 번째 기준이 될 것이고, 사고 대응이 느리면 아무리 편해도 고객은 떠난다",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:56+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q1-3",
+    "body": "고객이 이해하지 못하는 조건으로 체결되는 계약이 위임 시대에는 더 큰 문제가 된다. 조건 공개 방식 자체가 바뀌어야 한다. 에이전트가 대신 계약해도 고객이 나중에 납득할 수 있게 설명이 남아야 함",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:08:00+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q1-4",
+    "body": "외부 에이전트에 종속되지 않도록 카뱅의 대화형 금융 에이전트를 자체 보유해야 한다. 고객과의 대화 맥락이 곧 자산이고, 이걸 외부에 넘기면 우리는 상품만 대 주는 하청이 될 수 있음",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:10:42+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q2-1",
+    "body": "도구 선정과 예산 배정의 의사결정이 늦어 현업의 시도가 조기에 소진되었다. 기대하던 팀도 기다리다 식어 버렸다",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:33:03+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q2-2",
+    "body": "확산을 위한 거점 인력을 팀 단위로 육성하고 활동을 공식 업무로 인정하는 방식으로 일한다. 열정 있는 개인에게만 맡기면 오래 못 가므로 평가와 시간 배정에서 챔피언 역할을 분명히 해 줘야 한다",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:42:00+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q2-3a",
+    "body": "샘플 데이터로 먼저 분석 자동화를 시험해 보고 효과 있으면 확대",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:48:14+09:00"
+  },
+  {
+    "team_id": "13B",
+    "item_id": "Q2-3b",
+    "body": "도구별 허용 기준과 책임 범위를 조직 전체 차원에서 선언해 주는 것. 현업이 눈치 보지 않고 쓸 수 있는 기준선이 필요",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:48:14+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q1-1",
+    "body": "금융 의사결정의 책임이 고객에게 남는 한, 핵심 거래는 직접 확인하는 행태가 유지될 가능성이 높다. 위임은 소액·반복 영역에 머물 것으로 본다",
+    "label": "keep_manual",
+    "submitted_at": "2026-10-14T16:03:14+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q1-2",
+    "body": "AI가 판단하더라도 손실이 나면 은행이 먼저 책임진다는 원칙. 그게 안 되면 맡길 이유가 없다",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:44+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q1-3",
+    "body": "상품 간 이동 비용이 낮아져야 고객 편익이 실제로 커진다고 본다. 비교의 표준화와 이동의 간소화가 함께 이뤄지지 않으면 에이전트도 별 도움이 안 될 것이고, 결국 은행들이 이동 장벽을 스스로 낮춰야 하는 시대",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:08:26+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q1-4",
+    "body": "에이전트의 판단 품질은 결국 데이터 품질이다. 상품·고객 데이터 체계의 근본 정비가 선행되어야 한다. 화려한 에이전트 얹기 전에 우리 상품 정보부터 기계가 읽을 수 있게 정리해 두는 게 먼저",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:10:58+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q2-1",
+    "body": "산출물이 늘어난 만큼 검토 인력과 기준이 따라가지 못해 의사결정이 더 느려지는 역설이 있었다. 보고서는 쏟아지는데 검토할 사람은 그대로라 윗선에서 쌓이고, 결국 병목이 결재 쪽으로 이동했다",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:33:38+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q2-2",
+    "body": "AI가 만든 문서는 검토 기준을 미리 정해서 검토 시간을 줄이는 식으로 순서를 바꿔야 한다. 지금은 사람이 처음부터 끝까지 다 읽는데, 체크리스트를 먼저 AI가 돌리고 사람은 예외만 보는 순서로 가면 좋겠다",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:43:05+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q2-3a",
+    "body": "긴 PDF 문서 읽고 요약하는 것부터",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:47:00+09:00"
+  },
+  {
+    "team_id": "14A",
+    "item_id": "Q2-3b",
+    "body": "AI 활용 가이드라인과 금지 사항을 업무 유형별로 안내해 줬으면 한다. 막연히 조심하라는 말보다 구체적인 예시가 필요",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:47:00+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q1-1",
+    "body": "자산 배분과 저축은 에이전트가 관리하고, 고객은 목표 설정과 사후 점검에만 관여하는 모습",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:02:19+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q1-2",
+    "body": "이상거래 탐지로 평소와 다른 움직임은 한 번 걸러 주는 기능",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:49+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q1-3",
+    "body": "리스크 관점에선 어렵겠지만 고객마다 한도·금리가 다르게 나오는 개인 맞춤 상품이 더 늘어났으면 좋겠다",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:07:05+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q1-4",
+    "body": "외부 에이전트가 고객을 대신해 카뱅 상품을 탐색하고 계약할 수 있는 개방형 연동 구조를 선제 구축해야 한다. 늦으면 에이전트 후보 목록에서 빠질 수 있고, 한 번 빠지면 다시 들어가기가 훨씬 어려울 것",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:46+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q2-1",
+    "body": "데이터 활용 범위에 대한 기준이 모호하여 현업이 AI에 투입 가능한 자료를 스스로 판단하기 어려웠다. 결과적으로 안전한 쪽으로만 선택하다 보니 활용 범위가 매우 좁아졌다",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:43+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q2-2",
+    "body": "실패를 비용이 아닌 학습으로 간주하는 실험 중심의 업무 방식을 정착시켜야 한다. 실패한 시도를 기록하면 오히려 인정받는 분위기가 필요",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:38:58+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q2-3a",
+    "body": "데이터 쪽이라 SQL 쿼리 짜는 거 먼저 시켜 볼 것",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:46:58+09:00"
+  },
+  {
+    "team_id": "14B",
+    "item_id": "Q2-3b",
+    "body": "전사적 AI 확산을 총괄하는 컨트롤타워 조직",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:46:58+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q1-1",
+    "body": "예산 넘길 것 같으면 미리 알려 주고 다음 달 예산까지 짜 주는 용도로 쓸 듯. 지금 가계부 앱이 하는 일을 대신 하는 느낌",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:01:36+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q1-2",
+    "body": "연말정산 서류는 자동으로 국세청에 제출되면 좋겠다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:05:12+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q1-3",
+    "body": "본인인증이 너무 여러 번 나옴",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:07:23+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q1-4",
+    "body": "오픈 API 범위를 넓혀서 다른 AI 서비스가 카뱅 계좌와 상품을 연결해 쓸 수 있게 하는 것",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:07+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q2-1",
+    "body": "팀 간 업무 경계가 불분명해서 AI 이전에 역할 정리가 필요했다. 누가 맡을지부터 정해야 시도가 시작되는 상황이라",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:32:10+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q2-2",
+    "body": "작은 실험을 자주 돌리고 실패는 공유하는 문화로 일해야 한다. 큰 프로젝트 한 방보다 일주일짜리 시도 여러 개가 낫다고 봄",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:42:02+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q2-3a",
+    "body": "마케팅 성과 엑셀 분석을 AI로 해 보기",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:45:35+09:00"
+  },
+  {
+    "team_id": "15A",
+    "item_id": "Q2-3b",
+    "body": "전 직원에게 기본 AI 계정을 제공하고 추가 도구는 신청제로 해 줬으면 한다. 기본 도구는 모두가 쓰게 해야 격차가 안 벌어짐",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:45:35+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q1-1",
+    "body": "공과금·구독료 알아서 내 줬으면",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:01:09+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q1-2",
+    "body": "그래도 망 안 할 것 같은 은행이라는 믿음",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:05:41+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q1-3",
+    "body": "수수료 구조 알기 쉽게",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:09:13+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q1-4",
+    "body": "제휴 에이전트 연결 표준 마련",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:10+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q2-1",
+    "body": "프롬프트 숙련도 부족",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:37:26+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q2-2",
+    "body": "서로 팁 주고받으면서 일하기",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:42:05+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q2-3a",
+    "body": "팀 AI 스터디 시작",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:46:41+09:00"
+  },
+  {
+    "team_id": "15B",
+    "item_id": "Q2-3b",
+    "body": "유료 AI 계정 지원.",
+    "label": "budget_license",
+    "submitted_at": "2026-10-14T16:46:41+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q1-1",
+    "body": "정기결제 안 쓰는 건 자동 해지",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:02:15+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q1-2",
+    "body": "AI가 다 해 준다고 해도 억울한 일 생겼을 때 하소연할 사람은 필요하다. 시스템이 틀렸다고 말할 수 있는 상대가 있어야 함",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:06:09+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q1-3",
+    "body": "송금 한도 때문에 큰 거래할 때 은행 가야 함",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:08:34+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q1-4",
+    "body": "고객 교육 콘텐츠도 같이 준비",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:10:14+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q2-1",
+    "body": "검증이 병목",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:35:34+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q2-2",
+    "body": "결재 단계부터 절반으로 줄여야 함",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:40:06+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q2-3a",
+    "body": "회의록 요약",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:46:14+09:00"
+  },
+  {
+    "team_id": "16A",
+    "item_id": "Q2-3b",
+    "body": "AI 헬프데스크",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:46:14+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q1-1",
+    "body": "공과금·구독료 알아서 내줬으면",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:01:33+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q1-2",
+    "body": "큰 거래 확인 단계는 있어야 한다는 쪽과 불편하니 없애자는 쪽이 갈렸다",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:04:09+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q1-3",
+    "body": "약관이 너무 길어서 읽는 사람이 없다. 핵심만 요약해서 보여 줬으면 한다. 중요한 제한 사항은 맨 위에",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:09:22+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q1-4",
+    "body": "MCP 같은 표준 방식으로 계좌 조회·이체·상품 가입을 열어 두는 준비. 표준을 먼저 따라가는 것도 방법이라고 생각",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:41+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q2-1",
+    "body": "프롬프트 문제가 아니라 맥락을 충분히 못 줘서 일반론만 나왔다. 맥락 설계 숙련도가 부족했다",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:33:13+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q2-2",
+    "body": "틀려도 괜찮은 분위기",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:41:09+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q2-3a",
+    "body": "신규 기능 개발할 때 단위 테스트 작성을 AI에게 맡겨 보겠다. 커버리지가 얼마나 올라가는지부터 숫자로 확인할 것",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:49:02+09:00"
+  },
+  {
+    "team_id": "16B",
+    "item_id": "Q2-3b",
+    "body": "모델·도구별로 입력 가능한 정보 등급을 표로 정리해서 배포해 줬으면 한다. 한눈에 보고 판단할 수 있게",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:49:02+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q1-1",
+    "body": "투자는 알아서 굴려 주는 걸로 맡기고 싶다",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:03:09+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q1-2",
+    "body": "큰 금액은 한번 더 물어보기",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:04:54+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q1-3",
+    "body": "여러 은행 조건 한눈에 보게 해 줬으면",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:09:14+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q1-4",
+    "body": "망분리 규제 완화 건의 준비",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:11:07+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q2-1",
+    "body": "생성형 AI 활용 시 개인정보보호법 및 금융 규제 해석이 불확실해 도입 속도가 늦어졌다",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:37:49+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q2-2",
+    "body": "프롬프트 돌려쓰기",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:42:04+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q2-3a",
+    "body": "데이터 조회를 자연어로 바꾸기",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:44:44+09:00"
+  },
+  {
+    "team_id": "17A",
+    "item_id": "Q2-3b",
+    "body": "업무 시스템과 생성형 AI 간의 안전한 데이터 연계 환경 구축",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:44:44+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q1-1",
+    "body": "운전하다가 \"엄마한테 10만원 보내 줘\" 하면 되는 세상",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:02:36+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q1-2",
+    "body": "요즘 AI가 추천하는 곳은 어디든 믿기 어려운데, 오래 쓴 은행 브랜드는 기준점이 될 듯",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:05:04+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q1-3",
+    "body": "여신 서류 반려 사유를 한 번에 알려줬으면 좋겠다. 보완 요청이 두세 번씩 오는 게 불편함",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:09:25+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q1-4",
+    "body": "에이전트별로 쓸 수 있는 금액·기간 제한 걸어 두는 권한 관리. 한 번 열어 준 권한이 영원히 가면 안 되니까 만료도 있어야 하고, 고객이 언제든 한 번에 회수할 수 있는 버튼도 필요함",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:10+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q2-1",
+    "body": "라이선스 부족",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:35:41+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q2-2",
+    "body": "여신 심사는 예전 순서 그대로인데, 단계 자체를 다시 짜야 AI 효과가 남을 듯",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:41:43+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q2-3a",
+    "body": "준법 쪽 점검 체크리스트를 AI로 만들어 보기",
+    "label": "doc_review",
+    "submitted_at": "2026-10-14T16:49:24+09:00"
+  },
+  {
+    "team_id": "17B",
+    "item_id": "Q2-3b",
+    "body": "프롬프트 교육",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:49:24+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q1-1",
+    "body": "여신 일 하다 보면 금리 때문에 옮기는 분들을 많이 보는데, 에이전트가 시점 알려 주고 갈아타기까지 해 주면 나도 바로 쓸 것 같다",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:02:45+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q1-2",
+    "body": "금융에서 마지막 순간 의지할 수 있는 얼굴 있는 접점. 효율과는 별개로 남겨야 할 자산이라고 생각한다",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:04+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q1-3",
+    "body": "획일적인 상품 라인업에서 벗어나 개인별 조건이 실시간으로 달라지는 상품 구조로 가야 한다. 같은 상품을 모두에게 파는 방식은 에이전트 시대와 안 맞고, 고객마다 맞춤으로 조립되는 상품이 기본이 되어야 함",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:07:58+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q1-4",
+    "body": "실패했을 때 빠르게 복구하는 조직 역량. 신기술 대응은 기술보다 운영 체계가 관건이다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:10:16+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q2-1",
+    "body": "AI 활용에 대한 내부 지침이 없어 준법 쪽 판단을 매번 기다려야 했다. 건건이 문의하다 보니 답 올 때쯤엔 이미 일정이 지남",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:36:05+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q2-2",
+    "body": "물어볼 사람이 팀에 있으면 좋겠다",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:42:00+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q2-3a",
+    "body": "경영 지표 조회와 이상치 탐지를 자동화하여 의사결정 지원 속도를 높이는 것부터 착수하겠다. 매주 같은 숫자를 사람이 뽑아 정리하는 일을 줄이고, 그 시간에 해석과 시사점 도출에 더 쓸 수 있게 하려 함",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:45:01+09:00"
+  },
+  {
+    "team_id": "18A",
+    "item_id": "Q2-3b",
+    "body": "사내 위키랑 문서함을 검색 가능한 형태로 정리",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:45:01+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q1-1",
+    "body": "소득·지출 패턴을 읽고 개인별 현금흐름을 설계해 주는 쪽으로 이용 방식이 바뀔 것으로 본다. 고객은 목표만 정하고 실행은 위임하는 형태가 일반화되면 앱 체류 시간은 오히려 줄 것",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:03:14+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q1-2",
+    "body": "에이전트가 상품을 걸러 주는 시대일수록 공신력 있는 브랜드가 선택의 기준으로 남는다고 본다. 비교가 자동화될수록 신뢰가 마지막 차별점이 되고, 이름 없는 상품은 후보에 오르기도 어려울 것",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:05:26+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q1-3",
+    "body": "수신 상품 조건이 문서마다 달라서 에이전트가 읽기 어려울 듯. 구조화된 데이터로 공개됐으면 한다",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:08:49+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q1-4",
+    "body": "위임·인증·책임의 세 가지를 한 세트로 설계. 고객이 안심하고 맡길 수 있는 장치가 곧 경쟁력이 된다. 기술보다 신뢰 설계를 먼저 해 두는 은행이 에이전트 시대에 선택받을 것이라고 본다",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:44+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q2-1",
+    "body": "초안은 빨리 나오는데 사실관계 확인과 출처 검증에 처음부터 쓰는 것만큼 시간이 들었다. 특히 숫자와 규정 인용은 하나하나 원문 대조를 해야 해서, 빨라진 느낌은 있는데 실제로는 시간이 안 줄었다",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:33:42+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q2-2",
+    "body": "결재와 승인의 구조를 AI 시대에 맞게 재설계하여 의사결정 속도를 높여야 한다. 단계가 많을수록 AI로 줄인 시간이 무의미해짐",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:40:15+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q2-3a",
+    "body": "팀 단위 AI 활용 학습 모임을 정례화하여 조직 내 활용 수준을 끌어올리겠다. 월 1회 사례 발표와 실습을 병행할 예정",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:47:13+09:00"
+  },
+  {
+    "team_id": "18B",
+    "item_id": "Q2-3b",
+    "body": "AI가 사내 지식을 활용할 수 있는 데이터 기반 마련이 모든 활용의 출발점이다. 문서·규정·상품 정보를 검색 가능한 형태로 정리해 두지 않으면 어떤 도구를 줘도 일반적인 답변밖에 못 얻는다고 본다",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:47:13+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q1-1",
+    "body": "비상금 채우는 것만 자동으로 해 줘도 충분",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:03:09+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q1-2",
+    "body": "사람 상담 남겨주세요",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:00+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q1-3",
+    "body": "중도상환수수료 언제 얼마인지 바로 보게",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:08:55+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q1-4",
+    "body": "사내 AI 도구 계정 먼저 풀어 주기",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:10:20+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q2-1",
+    "body": "유료 계정 비용 처리가 안 돼서 개인 카드로 결제함",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:35:08+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q2-2",
+    "body": "주 4일 근무하게 되면 좋겠다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:40:23+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q2-3a",
+    "body": "주간보고 AI 초안부터.",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:46:36+09:00"
+  },
+  {
+    "team_id": "19A",
+    "item_id": "Q2-3b",
+    "body": "뭐는 써도 되고 뭐는 안 되는지 명확한 기준",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:46:36+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q1-1",
+    "body": "큰돈은 내가 눈으로 보고 직접 누를 것.",
+    "label": "keep_manual",
+    "submitted_at": "2026-10-14T16:01:42+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q1-2",
+    "body": "해킹당했을 때 책임져 주는 것",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:31+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q1-3",
+    "body": "재택근무 일수가 더 늘었으면",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:07:03+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q1-4",
+    "body": "에이전트용 API 먼저 열기",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:25+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q2-1",
+    "body": "쓸 수 있는 데이터가 없어서",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:32:51+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q2-2",
+    "body": "일단 AI한테 시키고 내가 결정",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:42:44+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q2-3a",
+    "body": "회의록 요약",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:46:37+09:00"
+  },
+  {
+    "team_id": "19B",
+    "item_id": "Q2-3b",
+    "body": "AI 헬프 데스크",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:46:37+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q1-1",
+    "body": "에이전트한테 \"지난달보다 식비 왜 늘었어?\" 물어보고 원인까지 듣는 식으로 쓸 듯. 앱 홈 화면은 거의 안 볼 것 같고, 이체 같은 건 음성으로 확인 한 번 하고 끝낼 것 같다",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:01:27+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q1-2",
+    "body": "급할 때 전화하면 받아 주는 사람",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:05:57+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q1-3",
+    "body": "중도해지 이자 손해 때문에 못 옮기는 걸 풀어 줬으면 좋겠다. 갈아타고 싶은데 손해가 더 커서 그냥 둠",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:07:39+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q1-4",
+    "body": "데이터 카탈로그부터 제대로 만들기",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:10:42+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q2-1",
+    "body": "질문을 어떻게 해야 할지 몰라서",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:32:25+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q2-2",
+    "body": "검토자가 처음부터 다 읽지 않고 AI가 위험 부분만 표시해 주는 식으로 순서를 바꿔 일한다. 사람은 표시된 곳 위주로 판단",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:41:16+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q2-3a",
+    "body": "전략 쪽이라 보고서 많은데 초안 작성부터 맡기겠다",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:45:23+09:00"
+  },
+  {
+    "team_id": "20A",
+    "item_id": "Q2-3b",
+    "body": "점심시간에 30분 AI 실습 시간",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:45:23+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q1-1",
+    "body": "포트폴리오 리밸런싱은 에이전트에게 위임하고, 나는 월 1회 리포트만 확인할 것 같다",
+    "label": "invest_delegate",
+    "submitted_at": "2026-10-14T16:02:27+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q1-2",
+    "body": "예금자보호",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:16+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q1-3",
+    "body": "신규 상품 가입할 때 약관 동의 항목이 열 개 넘는데, 필요한 것만 묻는 식으로 정리됐으면 좋겠다. 에이전트가 대신 동의하는 구조면 더더욱 핵심만 남겨야 하고, 고객은 변경된 부분만 확인하면 되게",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:08:33+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q1-4",
+    "body": "자체 에이전트로 고객 접점을 지키는 것이 우선. 외부에 다 넘기면 우리는 배관만 된다",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:10:57+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q2-1",
+    "body": "생성 속도는 빨라졌지만 결재 단계는 그대로라서 오히려 검토 요청이 쌓이기만 했다. AI로 만든 문서가 많아져서 검토자가 더 바빠졌고, 처리 순서는 예전 방식 그대로라 전체 속도는 거의 그대로",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:36:57+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q2-2",
+    "body": "검토와 승인이 순차가 아니라 병렬로 돌아가도록 프로세스를 정비한다. 한 사람 기다리느라 멈추는 일이 줄어야 AI 효과가 남음",
+    "label": "redesign_review",
+    "submitted_at": "2026-10-14T16:43:06+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q2-3a",
+    "body": "자주 쓰는 지표 조회를 자연어로 물어보면 쿼리를 만들어 주는 방식으로 바꿔 보겠다. 우선 월 마감 때 반복하는 조회 열 개 정도만 골라서, 결과가 맞는지 기존 쿼리와 대조하면서 시험해 볼 것",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:45:32+09:00"
+  },
+  {
+    "team_id": "20B",
+    "item_id": "Q2-3b",
+    "body": "각 팀 프로젝트를 같이 해 주는 AI 지원팀",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:45:32+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q1-1",
+    "body": "카드값 나갈 돈은 미리 떼 놓고 나머지만 보이게 해 줬으면 좋겠다. 얼마 쓸 수 있는지만 알면 되니까",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:02:34+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q1-2",
+    "body": "돈 문제로 불안할 때 안심시켜 주는 정서적인 역할",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:04:20+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q1-3",
+    "body": "프로모션 위주 추천이 아니라 내 이력에 맞는 제안을 해 줬으면 한다. 쿠폰 던져 주는 식 추천은 이제 피곤함",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:08:03+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q1-4",
+    "body": "고객 거래 데이터를 에이전트가 활용할 수 있게 정제·표준화하는 작업",
+    "label": "data_ready",
+    "submitted_at": "2026-10-14T16:10:12+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q2-1",
+    "body": "일이 너무 바빠서 AI 써 볼 시간 자체가 없었다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:36:04+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q2-2",
+    "body": "일하는 시간을 좀 줄이는 쪽으로",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:40:19+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q2-3a",
+    "body": "엑셀 피벗 정리부터 시켜 보기",
+    "label": "data_query",
+    "submitted_at": "2026-10-14T16:44:52+09:00"
+  },
+  {
+    "team_id": "21A",
+    "item_id": "Q2-3b",
+    "body": "일하는 시간에 AI 배우는 시간을 인정해 줬으면",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:44:52+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q1-1",
+    "body": "여러 은행 상품을 내 조건에 맞춰 한꺼번에 비교해 주고, 수수료까지 따져서 추천해 주는 식으로 쓸 것 같다. 금리만 보는 게 아니라 총비용 기준으로 갈아타기를 판단해 주면 좋겠다",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:26+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q1-2",
+    "body": "예금자보호 같은 안전망은 그대로 유지됐으면 좋겠다",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:05+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q1-3",
+    "body": "챗봇이 내 말을 못 알아듣는 경우가 많아서 개선됐으면 한다. 같은 말 세 번 하면 지쳐서 포기하게 됨",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:09:26+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q1-4",
+    "body": "상품 정보와 금리를 에이전트가 읽기 쉬운 형태로 공개하는 것",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:23+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q2-1",
+    "body": "업무 문서가 PDF나 이미지로만 있어서 AI가 읽을 수 있는 형태로 바꾸는 게 일이었다",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:35+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q2-2",
+    "body": "AI 도입 전후 소요 시간을 측정해서 효과 있는 업무에만 확대한다. 감으로 쓰지 말고 숫자로 확인해 가면서 일하기",
+    "label": "measure",
+    "submitted_at": "2026-10-14T16:41:45+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q2-3a",
+    "body": "주간 업무 정리 메일을 AI 초안으로 쓰고 내가 다듬기만 하겠다. 매주 한 시간은 아낄 듯. 일단 이번 주 금요일 메일부터 해 보고, 괜찮으면 팀원들한테도 같은 프롬프트를 공유해서 같이 써 볼 생각",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:44:11+09:00"
+  },
+  {
+    "team_id": "21B",
+    "item_id": "Q2-3b",
+    "body": "자료 찾는 거부터 AI가 해 줬으면",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:44:11+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q1-1",
+    "body": "\"이번 달 카드값 얼마야\" 한마디면 끝",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:03:18+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q1-2",
+    "body": "금융이랑 별개로 AI 딥페이크 규제부터 먼저 됐으면",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:05:10+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q1-3",
+    "body": "예적금 갈아타는 게 번거로움",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:09:51+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q1-4",
+    "body": "카뱅 자체 AI 비서 만들기",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:11:05+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q2-1",
+    "body": "보안 때문에 파일 업로드가 막혀서",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:17+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q2-2",
+    "body": "분기마다 AI 실험 하나씩 해 보는 걸 목표로",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:41:14+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q2-3a",
+    "body": "퇴근 시간 칼같이 지키기부터",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:47:28+09:00"
+  },
+  {
+    "team_id": "22A",
+    "item_id": "Q2-3b",
+    "body": "데이터 연결",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:47:28+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q1-1",
+    "body": "대출갈아타기 자동으로",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:02:10+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q1-2",
+    "body": "인프라/보안 쪽에서 보면 에이전트 사칭이 제일 걱정임. 목소리도 얼굴도 가짜 만들기 쉬워질 텐데 막아 주는 보안은 더 세져야 함",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:04:08+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q1-3",
+    "body": "우대금리 조건을 투명하게 공개",
+    "label": "transparency",
+    "submitted_at": "2026-10-14T16:09:04+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q1-4",
+    "body": "API 개방",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:10:41+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q2-1",
+    "body": "사내 데이터를 못 넣음",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:34:16+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q2-2",
+    "body": "팀마다 AI 잘하는 사람 한 명 지정",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:42:40+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q2-3a",
+    "body": "VOC 분류부터",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:49:26+09:00"
+  },
+  {
+    "team_id": "22B",
+    "item_id": "Q2-3b",
+    "body": "인프라 쪽 보안 승인이 한 달 넘게 걸리는 것 좀 줄여 줘",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:49:26+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q1-1",
+    "body": "월급날 쪼개 주는 것부터 맡길 듯",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:01:52+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q1-2",
+    "body": "내 돈 안전한 거",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:18+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q1-3",
+    "body": "인증서 깔고 갱신하는 거 없애 줬으면",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:08:40+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q1-4",
+    "body": "외환 서비스 확대",
+    "label": "offtopic_service",
+    "submitted_at": "2026-10-14T16:10:58+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q2-1",
+    "body": "라이선스 부족",
+    "label": "tooling_cost",
+    "submitted_at": "2026-10-14T16:36:56+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q2-2",
+    "body": "일단 해 보고 실패해도 뭐라 안 하기",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:43:58+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q2-3a",
+    "body": "회의 끝나자마자 AI로 요약해서 바로 공유",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:49:11+09:00"
+  },
+  {
+    "team_id": "23A",
+    "item_id": "Q2-3b",
+    "body": "사용 가이드.",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:49:11+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q1-1",
+    "body": "대출이나 투자 같은 건 맡기고 싶지 않다",
+    "label": "keep_manual",
+    "submitted_at": "2026-10-14T16:03:57+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q1-2",
+    "body": "마지막 승인 버튼은 내가 누른다",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:05:35+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q1-3",
+    "body": "타 은행 대출 상환하고 새로 받는 과정이 너무 복잡함. 중간에 돈이 비는 시간도 불안하고",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:07:30+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q1-4",
+    "body": "카뱅 자체 AI비서 만들기",
+    "label": "own_agent",
+    "submitted_at": "2026-10-14T16:11:46+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q2-1",
+    "body": "AI가 써 준 보고서는 우리 은행 말투랑 안 맞아서 다 고쳐야 했다. 고치는 시간이 새로 쓰는 시간이랑 비슷함. 결국 AI는 틀만 잡아 주고 내용은 사람이 거의 다시 쓰는 꼴이라 효과를 체감하기 어려웠다",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:34:29+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q2-2",
+    "body": "회의 줄이고 메신저로만 소통하게",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:39:30+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q2-3a",
+    "body": "코드 리뷰 1차는 AI한테 맡기기",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:44:29+09:00"
+  },
+  {
+    "team_id": "23B",
+    "item_id": "Q2-3b",
+    "body": "AI 쓸 때 주의사항 한 장",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:44:29+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q1-1",
+    "body": "앱 안 열고 말로 물어볼 듯",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:03:00+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q1-2",
+    "body": "이름값",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:04:10+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q1-3",
+    "body": "내 소비 습관에 맞춰 주는 적금",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:09:25+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q1-4",
+    "body": "외부 에이전트가 카뱅 상품을 불러 쓸 수 있는 API",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:14+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q2-1",
+    "body": "환각이 심해서 믿고 쓰기 어려웠음",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:32:31+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q2-2",
+    "body": "혼자 삽질하지 말고 먼저 해 본 사람 거 가져다 쓰게",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:50+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q2-3a",
+    "body": "보고용 한 장 요약본부터 만들기",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:49:52+09:00"
+  },
+  {
+    "team_id": "24A",
+    "item_id": "Q2-3b",
+    "body": "허용 도구 목록을 먼저 공개",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:49:52+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q1-1",
+    "body": "말로 하면 끝",
+    "label": "conversational",
+    "submitted_at": "2026-10-14T16:01:11+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q1-2",
+    "body": "예금자 보호",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:58+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q1-3",
+    "body": "어디가 좋은지 모르겠어서 비교가 어렵다",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:07:10+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q1-4",
+    "body": "외부 AI가 카뱅을 쉽게 쓰게",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:20+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q2-1",
+    "body": "결과물이 너무 뻔해서 쓸 데가 없음",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:33:01+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q2-2",
+    "body": "팀마다 AI 잘하는 사람 한 명씩 지정",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:41:34+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q2-3a",
+    "body": "보고서 초안 쓰는 것부터 시켜 보겠다",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:49:55+09:00"
+  },
+  {
+    "team_id": "24B",
+    "item_id": "Q2-3b",
+    "body": "막히면 물어볼 곳이 있었으면",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:49:55+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q1-1",
+    "body": "금리 비교는 맡기고 싶은데 갈아타기 실행은 직접 누르고 싶기도 하다. 팀원들 의견이 반반이라 둘 다 적음",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:02:53+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q1-2",
+    "body": "연체나 사기 의심처럼 불안한 상황에선 결국 사람과 통화하고 싶을 것 같다. 목소리로 확인받으면 안심이 되니까",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:54+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q1-3",
+    "body": "서류 제출 대신 마이데이터로 처리됐으면",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:08:21+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q1-4",
+    "body": "다른 AI가 우리 서비스를 추천 목록에 올리게 연결부터",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:04+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q2-1",
+    "body": "AI 쓴다고 하면 일 편하게 한다고 볼까 봐 말을 못 꺼냈다. 몰래 쓰는 사람만 늘고 공유는 안 되는 분위기",
+    "label": "culture_fear",
+    "submitted_at": "2026-10-14T16:34:27+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q2-2",
+    "body": "고객 관점에서 먼저 보고 AI 쓸지 말지 정하며",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:40:06+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q2-3a",
+    "body": "주 1회 30분 AI 써 본 것 공유하는 시간을 정례화하겠다",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:48:24+09:00"
+  },
+  {
+    "team_id": "25A",
+    "item_id": "Q2-3b",
+    "body": "AI 활용을 도와주는 전담팀이 있어서 질문하면 바로 답해 주는 곳이 있었으면 한다. 사내 메신저로 바로 물어볼 수 있게",
+    "label": "dedicated_team",
+    "submitted_at": "2026-10-14T16:48:24+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q1-1",
+    "body": "예금 만기 되면 더 높은 데로 알아서 옮겨 줬으면",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:02:40+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q1-2",
+    "body": "큰 금액은 한 번 더 물어보기",
+    "label": "final_confirm",
+    "submitted_at": "2026-10-14T16:05:14+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q1-3",
+    "body": "예적금 갈아타는 게 번거로움.",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:09:01+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q1-4",
+    "body": "당국이랑 위임 거래 기준 미리 협의",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:11:42+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q2-1",
+    "body": "데이터 쪽에서는 마스킹 처리해서 넣으려고 했는데 절차가 너무 길어서 포기했다. 마스킹 규칙 승인만 3주",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:36:20+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q2-2",
+    "body": "밑작업은 AI, 마무리는 사람 손으로",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:48+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q2-3a",
+    "body": "상담 내용 요약해서 이력에 남기는 것부터",
+    "label": "customer_inquiry",
+    "submitted_at": "2026-10-14T16:45:09+09:00"
+  },
+  {
+    "team_id": "25B",
+    "item_id": "Q2-3b",
+    "body": "고급 사용자용 에이전트 만들기 심화 교육",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:45:09+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q1-1",
+    "body": "저축 목표만 정해 주면 알아서 모아 주는 건 편할 듯. 다만 처음 세팅은 내가 직접 하고 싶다",
+    "label": "auto_budget",
+    "submitted_at": "2026-10-14T16:01:27+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q1-2",
+    "body": "에이전트가 고를 때도 신뢰도 높은 기관 위주로 고르지 않을까",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:04:38+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q1-3",
+    "body": "조건이 은행마다 달라서 비교 기준을 맞추기 어렵다. 같은 기준으로 비교할 수 있었으면",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:07:50+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q1-4",
+    "body": "마케팅 쪽에서는 에이전트 시대에 어울리는 카뱅다운 브랜드 메시지를 미리 고민해 둬야 할 듯",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:11:09+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q2-1",
+    "body": "망분리 때문에 AI에 올릴 수 있는 자료가 거의 없어서 결국 일반적인 질문만 하게 됨",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:36:45+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q2-2",
+    "body": "팀별 챔피언을 두고 그 사람이 질문받고 노하우를 전파하는 구조로 일한다. 챔피언이 모여서 서로 배우는 자리도 한 달에 한 번",
+    "label": "champion",
+    "submitted_at": "2026-10-14T16:40:48+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q2-3a",
+    "body": "주간보고 초안부터 하자는 쪽과 코드 리뷰부터 하자는 쪽이 있었음",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:48:36+09:00"
+  },
+  {
+    "team_id": "26A",
+    "item_id": "Q2-3b",
+    "body": "데이터 쪽에서 마스킹된 학습용 샘플 데이터셋을 만들어 줬으면",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:48:36+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q1-1",
+    "body": "큰돈은 내가 눈으로 보고 직접 누를 것",
+    "label": "keep_manual",
+    "submitted_at": "2026-10-14T16:01:54+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q1-2",
+    "body": "에이전트가 해킹당하는 경우까지 포함해서 내 돈은 안전하게 지켜 준다는 보장. 새로운 공격 방식이 나와도 은행이 먼저 막아야 함",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:27+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q1-3",
+    "body": "앱 화면 구성을 더 단순하게",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:08:02+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q1-4",
+    "body": "이상거래 막는 장치",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:11:13+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q2-1",
+    "body": "재무 쪽은 숫자 하나 틀려도 문제라 처음부터 다시 확인함",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:35:18+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q2-2",
+    "body": "AI 답은 참고만 하고 판단은 내가",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:39:57+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q2-3a",
+    "body": "주간보고 AI 초안부터",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:46:05+09:00"
+  },
+  {
+    "team_id": "26B",
+    "item_id": "Q2-3b",
+    "body": "내부 시스템 API 열어서 에이전트가 직접 조회하게",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:46:05+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q1-1",
+    "body": "금리 비교 사이트 안 들어가도 될 듯",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:12+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q1-2",
+    "body": "사람 상담 남겨 주세요",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:06:03+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q1-3",
+    "body": "추천이 다 비슷비슷해서 나한테 안 맞음",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:07:56+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q1-4",
+    "body": "퇴직연금 서비스 강화",
+    "label": "offtopic_service",
+    "submitted_at": "2026-10-14T16:10:54+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q2-1",
+    "body": "사내 데이터를 못 넣음.",
+    "label": "data_access",
+    "submitted_at": "2026-10-14T16:33:58+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q2-2",
+    "body": "시간이 얼마나 줄었는지 재 보기",
+    "label": "measure",
+    "submitted_at": "2026-10-14T16:42:01+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q2-3a",
+    "body": "쿼리 짜기",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:44:00+09:00"
+  },
+  {
+    "team_id": "27A",
+    "item_id": "Q2-3b",
+    "body": "사내 데이터 AI에 연결해 주세요",
+    "label": "data_connect",
+    "submitted_at": "2026-10-14T16:44:00+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q1-1",
+    "body": "정산 자동으로",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:02:32+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q1-2",
+    "body": "AI가 1차로 받고 안 풀리면 사람한테 넘기는 흐름은 유지됐으면 좋겠다. 그때 앞선 대화를 다시 설명 안 해도 되게 이력이 같이 넘어가야 하고, 연결 대기가 길면 그냥 끊게 되니까 그것도 줄여 줬으면",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:45+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q1-3",
+    "body": "대출 갈아탈 때 신청서 다시 쓰는 거 없애기",
+    "label": "compare_switch",
+    "submitted_at": "2026-10-14T16:09:00+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q1-4",
+    "body": "ChatGPT나 제미나이 같은 데서 카뱅 상품이 바로 호출되게. 사용자가 어디서 물어봐도 카뱅 금리가 후보에 뜨도록 하고, 연결해서 실제 가입까지 이어지는 흐름을 먼저 만들어 보면 좋겠다",
+    "label": "agent_api",
+    "submitted_at": "2026-10-14T16:11:16+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q2-1",
+    "body": "회의가 너무 많아서 무슨 일을 해도 집중이 안 됐다",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:35:36+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q2-2",
+    "body": "틀려도 괜찮은 분위기.",
+    "label": "allow_experiment",
+    "submitted_at": "2026-10-14T16:40:57+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q2-3a",
+    "body": "금요일 점심에 AI 시연회 열기",
+    "label": "team_ritual",
+    "submitted_at": "2026-10-14T16:44:02+09:00"
+  },
+  {
+    "team_id": "27B",
+    "item_id": "Q2-3b",
+    "body": "검증된 도구는 패스트트랙으로 바로 승인",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:44:02+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q1-1",
+    "body": "월세·보험료·통신비처럼 매달 나가는 건 에이전트가 날짜 맞춰 결제하고 나는 내역만 보게 될 듯",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:01:49+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q1-2",
+    "body": "사고가 나도 보상받을 수 있다는 확신. 속도나 편의보다 이게 먼저라고 본다. 에이전트가 빨라져도 이건 양보 못 함",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:22+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q1-3",
+    "body": "연령대별로 뭉뚱그린 상품 말고 내 소비 패턴에 맞춘 상품 설계가 됐으면 한다. 같은 30대라도 쓰는 방식이 전혀 다름",
+    "label": "personalization",
+    "submitted_at": "2026-10-14T16:08:11+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q1-4",
+    "body": "주담대 상품 라인업을 넓히는 게 먼저일 듯",
+    "label": "offtopic_service",
+    "submitted_at": "2026-10-14T16:10:15+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q2-1",
+    "body": "AI가 만든 거 검토하는 시간이 더 걸림",
+    "label": "review_overhead",
+    "submitted_at": "2026-10-14T16:34:02+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q2-2",
+    "body": "개발 쪽은 이미 코드 스니펫 공유하는데 기획·운영 쪽도 똑같이 해야 한다. 직군마다 쓰는 방식이 달라서 직군별 사례 모음이 필요",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:40:28+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q2-3a",
+    "body": "월간 실적 보고서의 코멘트 초안을 AI에게 맡겨 보겠다",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:47:03+09:00"
+  },
+  {
+    "team_id": "28A",
+    "item_id": "Q2-3b",
+    "body": "기초부터 차근차근 알려 주는 교육",
+    "label": "training",
+    "submitted_at": "2026-10-14T16:47:03+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q1-1",
+    "body": "이자 제일 많이 주는 데 어딘지 물어보면 알려 주는 정도",
+    "label": "rate_switch",
+    "submitted_at": "2026-10-14T16:03:25+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q1-2",
+    "body": "이름값",
+    "label": "brand_trust",
+    "submitted_at": "2026-10-14T16:04:23+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q1-3",
+    "body": "이체 한도 올려 주세요",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:07:49+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q1-4",
+    "body": "내가 허락한 것만 AI가 하게 하는 설정",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:43+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q2-1",
+    "body": "프롬프트를 잘 못 써서 결과가 맨날 별로",
+    "label": "skill_quality",
+    "submitted_at": "2026-10-14T16:32:08+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q2-2",
+    "body": "처음부터 쓰지 말고 AI가 써 준 거 고쳐 쓰기",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:42:00+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q2-3a",
+    "body": "회의록은 일단 AI로 해 보고 틀린 데 고치는 식으로",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:45:56+09:00"
+  },
+  {
+    "team_id": "28B",
+    "item_id": "Q2-3b",
+    "body": "야근할 때 식대 지원 늘려 주세요",
+    "label": "other",
+    "submitted_at": "2026-10-14T16:45:56+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q1-1",
+    "body": "결제 쪽에서 일해서 그런지, 결제는 앱 안 열고 에이전트가 최저가로 알아서 처리해 주는 식. 쿠폰이나 카드 혜택 조합까지 골라 주면 더 좋고",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:02:30+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q1-2",
+    "body": "사람 상담이 남아야 한다는 의견도 있고, 사람은 비싸니까 AI 상담이 충분히 좋아지면 된다는 의견도 있었다. 우리 조는 복잡하거나 불안한 상황은 사람이 받는 쪽으로 기울었고, 단순 문의는 AI도 괜찮다는 정도로 정리",
+    "label": "human_contact",
+    "submitted_at": "2026-10-14T16:04:39+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q1-3",
+    "body": "한도 제한이 일괄적이지 않고 고객 상황에 따라 유연하게 조정되었으면 좋겠다. 오래 거래한 사람은 좀 더 풀어 주는 식으로",
+    "label": "limits_hours",
+    "submitted_at": "2026-10-14T16:08:53+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q1-4",
+    "body": "에이전트가 대신 움직이는 거래에는 한도와 승인 규칙을 고객이 직접 정하는 설정이 있어야 한다. 기본값은 보수적으로",
+    "label": "safeguards",
+    "submitted_at": "2026-10-14T16:10:08+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q2-1",
+    "body": "외부 AI 사용 시 고객정보 유출 우려 때문에 준법 감사에서 지적될까 걱정됨. 그래서 업무 자료는 아예 안 넣는 쪽으로 정함",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:32:30+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q2-2",
+    "body": "팀별로 쓴 사례를 월 단위로 모아서 서로 따라 해 볼 수 있게 일한다. 잘 된 것만이 아니라 안 된 것도 같이 올리면 좋겠음",
+    "label": "share_cases",
+    "submitted_at": "2026-10-14T16:43:06+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q2-3a",
+    "body": "회의 녹음 → 텍스트 → 요약 → 담당자별 할 일 정리까지 한 번에 돌려 보겠다. 이번 주 팀 회의부터 시험해서 사람이 직접 정리한 것과 비교해 보고, 빠지는 내용이 얼마나 되는지 먼저 확인할 계획",
+    "label": "reports_minutes",
+    "submitted_at": "2026-10-14T16:47:49+09:00"
+  },
+  {
+    "team_id": "29A",
+    "item_id": "Q2-3b",
+    "body": "사용 가이드",
+    "label": "guide_policy",
+    "submitted_at": "2026-10-14T16:47:49+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q1-1",
+    "body": "해외 결제나 환전도 에이전트가 가장 싼 타이밍에 해 주면 쓰게 될 것 같다",
+    "label": "auto_pay",
+    "submitted_at": "2026-10-14T16:03:02+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q1-2",
+    "body": "내 정보가 AI 학습에 쓰이지 않는다는 믿음",
+    "label": "safety_trust",
+    "submitted_at": "2026-10-14T16:05:03+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q1-3",
+    "body": "얼굴 한 번 찍으면 끝나는 가입",
+    "label": "onboarding",
+    "submitted_at": "2026-10-14T16:07:40+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q1-4",
+    "body": "망분리 완화 요청",
+    "label": "regulation",
+    "submitted_at": "2026-10-14T16:10:22+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q2-1",
+    "body": "규정이 불명확해서라는 의견도 있고, 우리가 규정 핑계를 대는 거라는 의견도 있었다",
+    "label": "compliance",
+    "submitted_at": "2026-10-14T16:34:33+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q2-2",
+    "body": "AI가 만든 결과는 반드시 사람이 한 번 걸러서 쓰는 것을 기본으로 삼는다. 특히 숫자와 인용은 원문을 한 번 더 확인하는 습관",
+    "label": "draft_ai_judge_human",
+    "submitted_at": "2026-10-14T16:41:09+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q2-3a",
+    "body": "개발팀은 PR 요약과 테스트 케이스 생성을 AI로 먼저 돌려 보겠다. 리뷰어가 읽는 시간이 줄어드는지 한 달 정도 지켜볼 것",
+    "label": "code_test",
+    "submitted_at": "2026-10-14T16:46:57+09:00"
+  },
+  {
+    "team_id": "29B",
+    "item_id": "Q2-3b",
+    "body": "신규 AI 도구에 대한 보안 심의 기간을 단축해 달라",
+    "label": "fast_security",
+    "submitted_at": "2026-10-14T16:46:57+09:00"
+  }
+]

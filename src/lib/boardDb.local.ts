@@ -1,11 +1,13 @@
-// 토의보드 로컬 어댑터 (Board v1.1) — 환경변수 없이 한 브라우저 안에서 전체 흐름을 시연·테스트한다.
+// 토의보드 로컬 어댑터 (Board v1.2) — 환경변수 없이 한 브라우저 안에서 전체 흐름을 시연·테스트한다.
 //   저장: localStorage['eb:board:v1'] · 동기화: BroadcastChannel('eb:board') + storage 이벤트 + 3초 폴링
-//   규칙은 supabase/board_v1.0_migration.sql · board_v1.1_migration.sql 의 함수와 똑같이 맞췄다. 실서비스는 Supabase.
+//   규칙은 supabase/board_v1.0_migration.sql · board_v1.1_migration.sql · board_v1.2_migration.sql 의 함수와 똑같이 맞췄다. 실서비스는 Supabase.
 //   카드 키(card)는 서버의 HMAC 대신 간단한 해시다(로컬 시연용 — 보안 경계가 아니다).
 
 import { OPERATOR_KEY } from './admin';
 import type { BoardAdapter } from './boardDb';
 import { BOARD_GROUPS, BOARD_ITEMS, BOARD_MAX_LEN, BOARD_TEAMS, type BoardGroupId, type BoardItemId } from './boardSeed';
+import type { BoardSummary, BoardSummarySource } from './boardSummary';
+import { requestSummary } from './boardSummaryClient';
 import {
   BOARD_STATE_POLL_MS,
   BoardError,
@@ -47,6 +49,8 @@ interface LocalDb {
   /** card 는 읽을 때 채운다(저장된 값은 쓰지 않는다) */
   submissions: Omit<BoardAdminSubmission, 'card'>[];
   votes: LocalVote[];
+  /** AI 갈무리 저장본 (그룹당 하나) */
+  summaries: Record<string, BoardSummary>;
 }
 
 const LOCAL_SALT = 'eb-board-local-salt';
@@ -77,7 +81,7 @@ function nowIso(): string {
 }
 
 function empty(): LocalDb {
-  return { state: { ...EMPTY_BOARD_STATE, updated_at: nowIso() }, participants: [], submissions: [], votes: [] };
+  return { state: { ...EMPTY_BOARD_STATE, updated_at: nowIso() }, participants: [], submissions: [], votes: [], summaries: {} };
 }
 
 function read(): LocalDb {
@@ -88,6 +92,7 @@ function read(): LocalDb {
     const db = JSON.parse(raw) as LocalDb;
     db.state = { ...EMPTY_BOARD_STATE, ...db.state };
     db.votes ??= [];
+    db.summaries ??= {};
     // v1.0 때 저장된 참가자 · 크게 보기 호환
     for (const p of db.participants) p.role ??= 'recorder';
     if (db.state.focus && !(db.state.focus as { card?: string }).card) db.state.focus = null;
@@ -430,6 +435,9 @@ class LocalBoardAdapter implements BoardAdapter {
     } else {
       s.item_opened_at = null;
     }
+    // v1.2: 모아보기가 아니거나 탭이 바뀌면 띄워 둔 AI 갈무리 리포트는 내린다 (서버 board_set_state 와 같다)
+    if (s.phase !== 'wall') s.summary = null;
+    if (s.current_item !== oldItem) s.summary = null;
     db.state = s;
     write(db, true);
     return db.state;
@@ -463,6 +471,8 @@ class LocalBoardAdapter implements BoardAdapter {
     const db = read();
     if (scope === 'group') {
       db.votes = db.votes.filter((v) => v.group_key !== group);
+      if (group) delete db.summaries[group];
+      if (db.state.summary?.group === group) db.state.summary = null;
       db.submissions = db.submissions.filter((x) => groupOfItem(x.item_id) !== group);
       db.state.opened_groups = db.state.opened_groups.filter((g) => g !== group);
       db.state.focus = null;
@@ -471,6 +481,7 @@ class LocalBoardAdapter implements BoardAdapter {
       db.submissions = [];
       db.participants = [];
       db.votes = [];
+      db.summaries = {};
       db.state = {
         ...keep,
         phase: 'waiting',
@@ -484,9 +495,55 @@ class LocalBoardAdapter implements BoardAdapter {
         item_opened_at: null,
         vote_open: false,
         vote_reveal: false,
+        summary: null,
       };
     }
     write(db, true);
+  }
+
+  async summaries(key: string): Promise<BoardSummary[]> {
+    checkKey(key);
+    return Object.values(read().summaries).sort((a, b) => a.group.localeCompare(b.group));
+  }
+
+  async summarize(key: string, group: BoardGroupId): Promise<BoardSummary> {
+    checkKey(key);
+    if (!BOARD_GROUPS.some((g) => g.id === group)) throw new BoardError('BOARD_UNKNOWN', 'group');
+    const db = read();
+    // 서버의 board_summary_source 와 같다 — 숨김·빈 답 제외, 항목 순·수정 시각 순. 반조 정보는 싣지 않는다
+    const items = itemsOf(group);
+    const source: BoardSummarySource = {
+      items: items.map((i) => ({ item_id: i.id, title: i.title, prompt: i.prompt })),
+      answers: items.flatMap((it) =>
+        db.submissions
+          .filter((x) => x.item_id === it.id && !x.hidden && x.body.trim() !== '')
+          .sort((a, b) => a.updated_at.localeCompare(b.updated_at))
+          .map((x) => ({ item_id: x.item_id, body: x.body })),
+      ),
+    };
+    const out = await requestSummary(key, group, source);
+    // 요청하는 동안 바뀐 저장소를 다시 읽어서 저장한다
+    const fresh = read();
+    fresh.summaries[group] = out;
+    // 그 그룹이 지금 송출 중이면 송출본도 새 값으로 (서버 board_summary_save 와 같다)
+    const onAir = fresh.state.summary?.group === group;
+    if (onAir) fresh.state.summary = out;
+    write(fresh, onAir);
+    return out;
+  }
+
+  async showSummary(key: string, group: BoardGroupId | null): Promise<BoardState> {
+    checkKey(key);
+    const db = read();
+    if (!group) {
+      db.state.summary = null;
+    } else {
+      const saved = db.summaries[group];
+      if (!saved) throw new BoardError('BOARD_UNKNOWN', 'summary');
+      db.state.summary = saved;
+    }
+    write(db, true);
+    return db.state;
   }
 }
 
