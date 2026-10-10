@@ -91,6 +91,8 @@ export function SummaryReport({ summary, still = false }: { summary: BoardSummar
   const dual = sections.length > 1;
   // 눈여겨볼 의견은 섹션을 합쳐 최대 2개
   const standouts = sections.flatMap((s) => s.standouts).slice(0, 2);
+  // '그래서' 라벨이 이미 박스에 있으니, 문장이 '그래서 우리는…'으로 시작하면 앞의 '그래서'는 뗀다
+  const takeaway = data.takeaway.replace(/^그래서[\s,]*/, '').trim() || data.takeaway;
   const offtopic = sections.reduce((n, s) => n + s.offtopic, 0);
   const fade = (delay: number) => ({
     initial: still ? (false as const) : { opacity: 0, y: 14 },
@@ -101,7 +103,7 @@ export function SummaryReport({ summary, still = false }: { summary: BoardSummar
   return (
     <div data-testid="summary-report" className="flex h-full flex-col px-[72px] pb-[40px] pt-[34px]">
       {/* 상단 줄 */}
-      <div className="flex h-[58px] items-center gap-5">
+      <div className="flex h-[58px] items-center gap-5 pr-[96px]">
         <span className="rounded-full px-5 py-1.5 text-[26px] font-black" style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}>
           AI 갈무리
         </span>
@@ -122,7 +124,7 @@ export function SummaryReport({ summary, still = false }: { summary: BoardSummar
       <motion.h1
         {...fade(0)}
         data-testid="summary-headline"
-        className="mt-[22px] text-[76px] font-black leading-[1.16] tracking-[-0.01em]"
+        className="mt-[20px] text-[76px] font-black leading-[1.2] tracking-[-0.01em]"
         style={{ wordBreak: 'keep-all', ...clampLines(2) }}
       >
         {data.headline}
@@ -181,7 +183,7 @@ export function SummaryReport({ summary, still = false }: { summary: BoardSummar
               ))}
             </>
           ) : null}
-          {data.takeaway ? (
+          {takeaway ? (
             <motion.div
               {...fade(0.8)}
               data-testid="summary-takeaway"
@@ -192,7 +194,7 @@ export function SummaryReport({ summary, still = false }: { summary: BoardSummar
                 그래서
               </p>
               <p className="mt-1 text-[36px] font-black leading-[1.28]" style={{ wordBreak: 'keep-all', ...clampLines(3) }}>
-                {data.takeaway}
+                {takeaway}
               </p>
             </motion.div>
           ) : null}
