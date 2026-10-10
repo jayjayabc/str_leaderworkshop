@@ -27,8 +27,8 @@ export const SUMMARY_SYSTEM_PROMPT = `당신은 카카오뱅크 리더 워크샵
 - 답에 실제로 있는 내용만 쓴다. 지어내지 않는다.
 - 비슷한 답을 4~6개 주제로 묶는다. 주제 제목은 16자 이내 명사형, 읽는 사람이 바로 이해하는 말로.
 - count 는 그 주제로 묶은 답의 수(대략이어도 된다). 큰 주제부터 정렬한다.
-- quote 는 그 주제를 대표하는 답 하나에서 원문 그대로 옮긴 구절(80자 이내, 자르면 끝에 …). 고치거나 요약하지 않는다.
-- standouts 는 수는 적어도 짚어 볼 만한 의견 최대 2개(원문 그대로) + why(30자 이내, 왜 눈여겨볼지).
+- quote 는 그 주제를 대표하는 답 하나에서 원문 그대로 옮긴 핵심 구절(50자 안팎, 스크린에서 한 줄에 읽히게. 자르면 끝에 …). 고치거나 요약하지 않는다.
+- standouts 는 수는 적어도 짚어 볼 만한 의견 최대 2개(원문 그대로, 80자 이내) + why(20자 안팎, 왜 눈여겨볼지).
 - 질문과 무관한 답은 주제에 넣지 말고 offtopic 수로만 센다.
 - headline 은 방 전체가 한 말을 한 문장(40자 이내)으로. takeaway 는 "그래서 우리는" 관점의 시사점 한 문장(60자 이내).
 - 반조 이름, 사람 이름, 특정 부서명은 쓰지 않는다. 존댓말 대신 간결한 명사형·평서형.
@@ -57,7 +57,7 @@ export function reportToolSchema(itemIds: string[]) {
                 properties: {
                   title: { type: 'string', description: '16자 이내 명사형 주제 제목' },
                   count: { type: 'integer', description: '그 주제로 묶은 답의 수(대략)' },
-                  quote: { type: 'string', description: '대표 답에서 원문 그대로 옮긴 구절(80자 이내). 없으면 빈 문자열' },
+                  quote: { type: 'string', description: '대표 답에서 원문 그대로 옮긴 핵심 구절(50자 안팎). 없으면 빈 문자열' },
                 },
                 required: ['title', 'count', 'quote'],
               },

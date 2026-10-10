@@ -104,8 +104,9 @@ export async function POST(req: Request) {
 
   // 3) AI 키 — 없으면 (BOARD_SUMMARY_FAKE=1 일 때만) 가짜 요약, 아니면 안내용 오류
   const apiKey = (process.env.ANTHROPIC_API_KEY ?? '').trim();
-  // 로컬 모드는 키 검사가 없으므로, 환경변수를 빠뜨린 Vercel 운영 배포에서 API 비용이 나가지 않도록 가짜만 쓴다
-  const localOnProd = !supabase && process.env.VERCEL_ENV === 'production';
+  // 로컬 모드는 키 검사가 없으므로, Supabase 환경변수를 빠뜨린 Vercel 배포(운영·미리보기 모두)에서는
+  // 아무나 API 비용을 쓰지 못하도록 가짜만 쓴다
+  const localOnProd = !supabase && Boolean(process.env.VERCEL);
   let data: BoardSummaryData;
   let model: string;
   if (!apiKey || localOnProd) {
