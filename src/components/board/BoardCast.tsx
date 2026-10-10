@@ -26,6 +26,8 @@ import {
 } from '@/lib/boardSeed';
 import type { BoardCounts, BoardFocus, BoardRankRow, BoardState } from '@/lib/boardTypes';
 import { NewVersionBanner } from '@/components/quiz/NewVersionBanner';
+import { BOARD_SCREEN_THEMES as THEMES } from './boardScreenTheme';
+import { SummaryReport } from './SummaryReport';
 
 const W = 1920;
 const H = 1080;
@@ -45,31 +47,6 @@ const joinUrl = cachedSnapshot(
     process.env.NEXT_PUBLIC_BOARD_URL ||
     (window.location.pathname.startsWith('/board') ? `${window.location.origin}/board` : window.location.origin),
 );
-
-const THEMES = {
-  dark: {
-    '--bg': '#0E0F13',
-    '--panel': 'rgba(255,255,255,0.07)',
-    '--card': '#1B1D24',
-    '--ink': '#FFFFFF',
-    '--sub': 'rgba(255,255,255,0.62)',
-    '--faint': 'rgba(255,255,255,0.35)',
-    '--accent': '#FFE300',
-    '--accent-ink': '#1E1E1E',
-    '--line': 'rgba(255,255,255,0.12)',
-  },
-  light: {
-    '--bg': '#F4F2EC',
-    '--panel': 'rgba(30,30,30,0.06)',
-    '--card': '#FFFFFF',
-    '--ink': '#1E1E1E',
-    '--sub': 'rgba(30,30,30,0.66)',
-    '--faint': 'rgba(30,30,30,0.38)',
-    '--accent': '#FFE300',
-    '--accent-ink': '#1E1E1E',
-    '--line': 'rgba(30,30,30,0.12)',
-  },
-} as const;
 
 function layoutFor(n: number): { cols: number; font: number } {
   if (n <= 4) return { cols: 2, font: 36 };
@@ -132,6 +109,9 @@ export function BoardCast() {
           <Center title="휴식" sub="잠시 쉬어 갑니다" />
         ) : state.phase === 'ended' ? (
           <Center title="수고하셨습니다" sub={`${counts?.joined ?? 0}개 반조가 함께했습니다 · ${BOARD_TOPIC}`} />
+        ) : state.phase === 'wall' && state.summary && state.summary.group === state.current_item ? (
+          // AI 갈무리 리포트 — 모아보기 화면을 대신한다(크게 보기는 아래 FocusCard 가 계속 위에 뜬다)
+          <SummaryReport summary={state.summary} />
         ) : group ? (
           <Wall
             state={state}

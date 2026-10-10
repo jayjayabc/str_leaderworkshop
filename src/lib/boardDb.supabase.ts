@@ -1,4 +1,4 @@
-// 토의보드 Supabase 어댑터 (Board v1.1) — 스키마는 supabase/board_v1.0_migration.sql · board_v1.1_migration.sql.
+// 토의보드 Supabase 어댑터 (Board v1.2) — 스키마는 supabase/board_v1.0_migration.sql · board_v1.1_migration.sql · board_v1.2_migration.sql.
 //   - 쓰기·조회는 모두 RPC. 테이블 직접 접근은 board_state 읽기뿐이다.
 //   - 참가자·송출·운영자 모두 board_state만 구독한다(제출 테이블은 방송하지 않는다).
 //     송출 월은 board_feed 를 1초마다, 운영자는 스냅샷을 2초마다 읽는다.
@@ -9,6 +9,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { sb } from './supabaseClient';
 import type { BoardAdapter } from './boardDb';
 import type { BoardGroupId } from './boardSeed';
+import type { BoardSummary } from './boardSummary';
+import { requestSummary } from './boardSummaryClient';
 import {
   BOARD_STATE_POLL_MS,
   BoardError,
@@ -52,6 +54,7 @@ export function normalizeBoardState(row: Partial<BoardState> | null | undefined)
     ...(row ?? {}),
     opened_groups: (row?.opened_groups as BoardState['opened_groups']) ?? [],
     vote_items: (row?.vote_items as BoardState['vote_items'] | undefined) ?? EMPTY_BOARD_STATE.vote_items,
+    summary: row?.summary ?? null,
   };
 }
 
@@ -104,6 +107,12 @@ class SupabaseBoardAdapter implements BoardAdapter {
     const channel: RealtimeChannel = sb()
       .channel('board_state')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'board_state' }, (payload) => {
+        // 큰 jsonb(summary)는 값이 안 바뀐 UPDATE 의 payload.new 에서 빠질 수 있다 — 그대로 쓰면 송출 중인 리포트가 잠깐 사라진다.
+        // 열이 없으면 payload 를 쓰지 않고 전체 행을 다시 읽는다.
+        if (!payload.new || !('summary' in payload.new)) {
+          pull();
+          return;
+        }
         emit(normalizeBoardState(payload.new as Partial<BoardState>));
       })
       .subscribe((status) => {
@@ -209,6 +218,23 @@ class SupabaseBoardAdapter implements BoardAdapter {
   async reset(key: string, scope: 'group' | 'all', group?: BoardGroupId): Promise<void> {
     const { error } = await sb().rpc('board_reset', { p_key: key, p_scope: scope, p_group: group ?? null });
     if (error) throw toBoardError(error);
+  }
+
+  async summaries(key: string): Promise<BoardSummary[]> {
+    const { data, error } = await withTimeout(sb().rpc('board_summary_list', { p_key: key }));
+    if (error) throw toBoardError(error);
+    return (data as BoardSummary[] | null) ?? [];
+  }
+
+  /** 서버 라우트가 운영자 키를 확인하고 → Claude → 검증 → 저장까지 한다. 기존 8초 RPC 제한은 쓰지 않는다 */
+  async summarize(key: string, group: BoardGroupId): Promise<BoardSummary> {
+    return requestSummary(key, group);
+  }
+
+  async showSummary(key: string, group: BoardGroupId | null): Promise<BoardState> {
+    const { data, error } = await sb().rpc('board_summary_show', { p_key: key, p_group: group });
+    if (error || !data) throw toBoardError(error);
+    return normalizeBoardState(data as Partial<BoardState>);
   }
 }
 
