@@ -1,0 +1,583 @@
+{
+  "_note": "항목별 주제 라벨 정의(SPEC §2)와 실제 건수. offtopic/mixed 는 answers.json 의 어느 답이 off-topic·두 의견 병기인지 표시한다(정답 라벨과 별개).",
+  "items": {
+    "Q1-1": {
+      "title": "나의 변화 — \"AI 에이전트 시대에 나는 금융을 이렇게 쓰게 될 것 같다\"",
+      "labels": [
+        {
+          "id": "auto_budget",
+          "desc": "월급 자동 배분·저축·예산",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 14
+        },
+        {
+          "id": "rate_switch",
+          "desc": "금리 비교·갈아타기 자동",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "conversational",
+          "desc": "앱 안 열고 대화로 질의·지시",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "auto_pay",
+          "desc": "결제·송금·정기지출 자동화",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "invest_delegate",
+          "desc": "투자·자산관리 위임",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "keep_manual",
+          "desc": "큰돈·중요 결정은 여전히 직접 (회의적)",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 5
+        }
+      ]
+    },
+    "Q1-2": {
+      "title": "남았으면 하는 것 — \"그래도 은행에 남았으면 하는 것\"",
+      "labels": [
+        {
+          "id": "human_contact",
+          "desc": "사람 상담·책임지는 사람",
+          "target_pct": 30,
+          "target_count": 17.4,
+          "actual_count": 17
+        },
+        {
+          "id": "safety_trust",
+          "desc": "안전·보안·예금자보호·사고 시 보상",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 15
+        },
+        {
+          "id": "brand_trust",
+          "desc": "믿을 만한 브랜드·공신력",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "final_confirm",
+          "desc": "큰 거래 최종 확인 단계",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "other",
+          "desc": "금융 교육, 기록 보관, 정서적 안정감 등",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 8
+        }
+      ]
+    },
+    "Q1-3": {
+      "title": "바뀌었으면 하는 것",
+      "labels": [
+        {
+          "id": "onboarding",
+          "desc": "가입·인증·서류 절차",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 14
+        },
+        {
+          "id": "compare_switch",
+          "desc": "상품 비교·갈아타기 번거로움",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "transparency",
+          "desc": "약관·수수료·조건 불투명",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "limits_hours",
+          "desc": "이체 한도·영업시간·대기",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "personalization",
+          "desc": "획일적 상품·추천",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 5
+        }
+      ]
+    },
+    "Q1-4": {
+      "title": "카뱅이 준비할 것",
+      "labels": [
+        {
+          "id": "agent_api",
+          "desc": "외부 에이전트가 쓸 수 있는 연결(API)·상품 데이터 개방",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 15
+        },
+        {
+          "id": "safeguards",
+          "desc": "위임 한도·확인·인증·책임 체계",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "own_agent",
+          "desc": "카뱅 자체 에이전트·대화형 서비스",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "data_ready",
+          "desc": "데이터·상품 정보 정비",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "regulation",
+          "desc": "규제·당국 대응·망분리",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "offtopic_service",
+          "desc": "퇴직연금·외환·주담대 등 AI와 무관한 서비스 아이디어",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 4
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        }
+      ]
+    },
+    "Q2-1": {
+      "title": "막힌 것 — \"올해 AI를 써 보니 우리는 ___ 때문에 막혔다\"",
+      "labels": [
+        {
+          "id": "data_access",
+          "desc": "사내 데이터 못 넣음·망분리·보안",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 14
+        },
+        {
+          "id": "skill_quality",
+          "desc": "프롬프트 숙련 부족·결과 품질",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "tooling_cost",
+          "desc": "쓸 수 있는 도구 제한·승인·비용",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 8
+        },
+        {
+          "id": "review_overhead",
+          "desc": "검토·검증에 시간이 더 듦",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 8
+        },
+        {
+          "id": "culture_fear",
+          "desc": "조직 분위기·실수 두려움·책임",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "compliance",
+          "desc": "규제·컴플라이언스 불확실",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 5,
+          "target_count": 2.9,
+          "actual_count": 4
+        }
+      ]
+    },
+    "Q2-2": {
+      "title": "일하는 방식 — \"그래서 앞으로는 ___ 하게 일해야 한다\"",
+      "labels": [
+        {
+          "id": "share_cases",
+          "desc": "프롬프트·사례 공유",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 14
+        },
+        {
+          "id": "draft_ai_judge_human",
+          "desc": "초안은 AI, 판단은 사람",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 14
+        },
+        {
+          "id": "redesign_review",
+          "desc": "검토·승인 순서 재설계",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "champion",
+          "desc": "팀별 담당자·챔피언",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "allow_experiment",
+          "desc": "실험·실패 허용",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "measure",
+          "desc": "효과 측정·기준",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 5
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 5,
+          "target_count": 2.9,
+          "actual_count": 4
+        }
+      ]
+    },
+    "Q2-3a": {
+      "title": "당장 할 것 — \"당장 ___ 부터 해 보겠다\"",
+      "labels": [
+        {
+          "id": "reports_minutes",
+          "desc": "주간보고·회의록·보고서 초안",
+          "target_pct": 30,
+          "target_count": 17.4,
+          "actual_count": 17
+        },
+        {
+          "id": "code_test",
+          "desc": "코드·테스트·쿼리",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "data_query",
+          "desc": "데이터 조회·분석 자동화",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "customer_inquiry",
+          "desc": "고객 문의·VOC 분류",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "doc_review",
+          "desc": "문서·규정·계약 검토",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "team_ritual",
+          "desc": "팀 공유 시간·스터디",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 5
+        }
+      ]
+    },
+    "Q2-3b": {
+      "title": "회사가 지원해 줬으면 하는 것",
+      "labels": [
+        {
+          "id": "guide_policy",
+          "desc": "도구 사용 가이드·허용 기준",
+          "target_pct": 25,
+          "target_count": 14.5,
+          "actual_count": 13
+        },
+        {
+          "id": "data_connect",
+          "desc": "사내 데이터·시스템 연결",
+          "target_pct": 20,
+          "target_count": 11.6,
+          "actual_count": 12
+        },
+        {
+          "id": "training",
+          "desc": "교육·실습",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "budget_license",
+          "desc": "예산·라이선스·계정",
+          "target_pct": 15,
+          "target_count": 8.7,
+          "actual_count": 9
+        },
+        {
+          "id": "fast_security",
+          "desc": "보안 검토 빠르게",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "dedicated_team",
+          "desc": "전담 조직·헬프데스크",
+          "target_pct": 10,
+          "target_count": 5.8,
+          "actual_count": 6
+        },
+        {
+          "id": "other",
+          "desc": "",
+          "target_pct": 5,
+          "target_count": 2.9,
+          "actual_count": 3
+        }
+      ]
+    }
+  },
+  "offtopic": [
+    {
+      "team_id": "7A",
+      "item_id": "Q2-3a",
+      "label": "other"
+    },
+    {
+      "team_id": "8A",
+      "item_id": "Q1-3",
+      "label": "other"
+    },
+    {
+      "team_id": "9A",
+      "item_id": "Q1-4",
+      "label": "offtopic_service"
+    },
+    {
+      "team_id": "9A",
+      "item_id": "Q2-1",
+      "label": "other"
+    },
+    {
+      "team_id": "10A",
+      "item_id": "Q1-2",
+      "label": "other"
+    },
+    {
+      "team_id": "10A",
+      "item_id": "Q1-3",
+      "label": "other"
+    },
+    {
+      "team_id": "12A",
+      "item_id": "Q2-3a",
+      "label": "other"
+    },
+    {
+      "team_id": "12A",
+      "item_id": "Q2-3b",
+      "label": "other"
+    },
+    {
+      "team_id": "15A",
+      "item_id": "Q1-2",
+      "label": "other"
+    },
+    {
+      "team_id": "15A",
+      "item_id": "Q2-1",
+      "label": "other"
+    },
+    {
+      "team_id": "19A",
+      "item_id": "Q1-4",
+      "label": "other"
+    },
+    {
+      "team_id": "19A",
+      "item_id": "Q2-2",
+      "label": "other"
+    },
+    {
+      "team_id": "19B",
+      "item_id": "Q1-3",
+      "label": "other"
+    },
+    {
+      "team_id": "21A",
+      "item_id": "Q2-2",
+      "label": "other"
+    },
+    {
+      "team_id": "22A",
+      "item_id": "Q1-2",
+      "label": "other"
+    },
+    {
+      "team_id": "22A",
+      "item_id": "Q2-3a",
+      "label": "other"
+    },
+    {
+      "team_id": "23A",
+      "item_id": "Q1-4",
+      "label": "offtopic_service"
+    },
+    {
+      "team_id": "23B",
+      "item_id": "Q2-2",
+      "label": "other"
+    },
+    {
+      "team_id": "27A",
+      "item_id": "Q1-4",
+      "label": "offtopic_service"
+    },
+    {
+      "team_id": "27B",
+      "item_id": "Q2-1",
+      "label": "other"
+    },
+    {
+      "team_id": "28A",
+      "item_id": "Q1-4",
+      "label": "offtopic_service"
+    },
+    {
+      "team_id": "28B",
+      "item_id": "Q2-3b",
+      "label": "other"
+    }
+  ],
+  "mixed": [
+    {
+      "team_id": "3B",
+      "item_id": "Q2-1",
+      "label": "data_access"
+    },
+    {
+      "team_id": "5A",
+      "item_id": "Q1-1",
+      "label": "invest_delegate"
+    },
+    {
+      "team_id": "5A",
+      "item_id": "Q1-3",
+      "label": "onboarding"
+    },
+    {
+      "team_id": "5A",
+      "item_id": "Q1-4",
+      "label": "agent_api"
+    },
+    {
+      "team_id": "5A",
+      "item_id": "Q2-2",
+      "label": "draft_ai_judge_human"
+    },
+    {
+      "team_id": "5A",
+      "item_id": "Q2-3b",
+      "label": "training"
+    },
+    {
+      "team_id": "10B",
+      "item_id": "Q1-1",
+      "label": "conversational"
+    },
+    {
+      "team_id": "16B",
+      "item_id": "Q1-2",
+      "label": "final_confirm"
+    },
+    {
+      "team_id": "25A",
+      "item_id": "Q1-1",
+      "label": "rate_switch"
+    },
+    {
+      "team_id": "26A",
+      "item_id": "Q2-3a",
+      "label": "reports_minutes"
+    },
+    {
+      "team_id": "29A",
+      "item_id": "Q1-2",
+      "label": "human_contact"
+    },
+    {
+      "team_id": "29B",
+      "item_id": "Q2-1",
+      "label": "compliance"
+    }
+  ]
+}

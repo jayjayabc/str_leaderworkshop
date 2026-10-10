@@ -1,0 +1,835 @@
+[
+  {
+    "team_id": "1A",
+    "table_no": 1,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "결제/카드",
+      "데이터/AI"
+    ],
+    "ai_maturity": "low",
+    "stance": "skeptical",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "1B",
+    "table_no": 1,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "인사/조직"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "formal"
+  },
+  {
+    "team_id": "2A",
+    "table_no": 2,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "인사/조직",
+      "고객센터(CS)"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "formal"
+  },
+  {
+    "team_id": "2B",
+    "table_no": 2,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "투자/신사업",
+      "수신/예적금"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "3A",
+    "table_no": 3,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "해외(동남아)",
+      "고객센터(CS)"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "3B",
+    "table_no": 3,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "리스크"
+    ],
+    "ai_maturity": "high",
+    "stance": "skeptical",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "4A",
+    "table_no": 4,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "투자/신사업",
+      "고객센터(CS)"
+    ],
+    "ai_maturity": "high",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "4B",
+    "table_no": 4,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "해외(동남아)"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "5A",
+    "table_no": 5,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "인사/조직"
+    ],
+    "ai_maturity": "low",
+    "stance": "skeptical",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "5B",
+    "table_no": 5,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "수신/예적금",
+      "IT개발"
+    ],
+    "ai_maturity": "mid",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "6A",
+    "table_no": 6,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "UX/디자인"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "6B",
+    "table_no": 6,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "마케팅/브랜드",
+      "고객센터(CS)"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "7A",
+    "table_no": 7,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "전략/재무",
+      "준법/감사"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "7B",
+    "table_no": 7,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "투자/신사업",
+      "수신/예적금"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "8A",
+    "table_no": 8,
+    "half": "A",
+    "is_exec": true,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "전략/재무",
+      "수신/예적금"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "8B",
+    "table_no": 8,
+    "half": "B",
+    "is_exec": true,
+    "members": 4,
+    "divisions": [
+      "해외(동남아)",
+      "데이터/AI"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "9A",
+    "table_no": 9,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "IT개발"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "9B",
+    "table_no": 9,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "인사/조직",
+      "전략/재무"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "formal"
+  },
+  {
+    "team_id": "10A",
+    "table_no": 10,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "해외(동남아)",
+      "데이터/AI",
+      "마케팅/브랜드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "10B",
+    "table_no": 10,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "리스크",
+      "IT개발",
+      "여신"
+    ],
+    "ai_maturity": "mid",
+    "stance": "skeptical",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "11A",
+    "table_no": 11,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "마케팅/브랜드",
+      "플랫폼/제휴",
+      "준법/감사"
+    ],
+    "ai_maturity": "high",
+    "stance": "cautious",
+    "tone": "formal"
+  },
+  {
+    "team_id": "11B",
+    "table_no": 11,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "해외(동남아)",
+      "여신"
+    ],
+    "ai_maturity": "low",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "12A",
+    "table_no": 12,
+    "half": "A",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "여신",
+      "마케팅/브랜드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "12B",
+    "table_no": 12,
+    "half": "B",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "고객센터(CS)",
+      "데이터/AI"
+    ],
+    "ai_maturity": "low",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "13A",
+    "table_no": 13,
+    "half": "A",
+    "is_exec": true,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "결제/카드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "formal"
+  },
+  {
+    "team_id": "13B",
+    "table_no": 13,
+    "half": "B",
+    "is_exec": true,
+    "members": 3,
+    "divisions": [
+      "준법/감사",
+      "해외(동남아)"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "14A",
+    "table_no": 14,
+    "half": "A",
+    "is_exec": true,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "전략/재무",
+      "IT개발"
+    ],
+    "ai_maturity": "high",
+    "stance": "skeptical",
+    "tone": "formal"
+  },
+  {
+    "team_id": "14B",
+    "table_no": 14,
+    "half": "B",
+    "is_exec": true,
+    "members": 3,
+    "divisions": [
+      "데이터/AI",
+      "리스크"
+    ],
+    "ai_maturity": "high",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "15A",
+    "table_no": 15,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "준법/감사",
+      "UX/디자인",
+      "마케팅/브랜드"
+    ],
+    "ai_maturity": "low",
+    "stance": "skeptical",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "15B",
+    "table_no": 15,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "해외(동남아)"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "16A",
+    "table_no": 16,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "투자/신사업",
+      "해외(동남아)",
+      "결제/카드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "16B",
+    "table_no": 16,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "전략/재무",
+      "마케팅/브랜드"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "17A",
+    "table_no": 17,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "UX/디자인"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "formal"
+  },
+  {
+    "team_id": "17B",
+    "table_no": 17,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "준법/감사",
+      "IT개발",
+      "여신"
+    ],
+    "ai_maturity": "high",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "18A",
+    "table_no": 18,
+    "half": "A",
+    "is_exec": true,
+    "members": 3,
+    "divisions": [
+      "마케팅/브랜드",
+      "IT개발",
+      "여신"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "formal"
+  },
+  {
+    "team_id": "18B",
+    "table_no": 18,
+    "half": "B",
+    "is_exec": true,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "수신/예적금",
+      "IT개발"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "formal"
+  },
+  {
+    "team_id": "19A",
+    "table_no": 19,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "마케팅/브랜드",
+      "IT개발",
+      "결제/카드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "19B",
+    "table_no": 19,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "해외(동남아)",
+      "플랫폼/제휴"
+    ],
+    "ai_maturity": "mid",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "20A",
+    "table_no": 20,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "전략/재무",
+      "인프라/보안",
+      "인사/조직"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "20B",
+    "table_no": 20,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "투자/신사업",
+      "데이터/AI"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "21A",
+    "table_no": 21,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "여신",
+      "해외(동남아)"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "21B",
+    "table_no": 21,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "인프라/보안",
+      "투자/신사업"
+    ],
+    "ai_maturity": "low",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "22A",
+    "table_no": 22,
+    "half": "A",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "결제/카드",
+      "수신/예적금",
+      "해외(동남아)"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "22B",
+    "table_no": 22,
+    "half": "B",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "인사/조직",
+      "인프라/보안"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "23A",
+    "table_no": 23,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "인프라/보안",
+      "리스크",
+      "플랫폼/제휴"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "23B",
+    "table_no": 23,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "고객센터(CS)",
+      "UX/디자인"
+    ],
+    "ai_maturity": "mid",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "24A",
+    "table_no": 24,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "인사/조직"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "24B",
+    "table_no": 24,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "고객센터(CS)",
+      "인프라/보안"
+    ],
+    "ai_maturity": "low",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "25A",
+    "table_no": 25,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "수신/예적금"
+    ],
+    "ai_maturity": "mid",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "25B",
+    "table_no": 25,
+    "half": "B",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "데이터/AI",
+      "고객센터(CS)"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "26A",
+    "table_no": 26,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "마케팅/브랜드",
+      "전략/재무",
+      "데이터/AI"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "26B",
+    "table_no": 26,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "여신",
+      "전략/재무"
+    ],
+    "ai_maturity": "high",
+    "stance": "skeptical",
+    "tone": "casual"
+  },
+  {
+    "team_id": "27A",
+    "table_no": 27,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "마케팅/브랜드",
+      "결제/카드"
+    ],
+    "ai_maturity": "mid",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "27B",
+    "table_no": 27,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "해외(동남아)",
+      "고객센터(CS)",
+      "마케팅/브랜드"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "casual"
+  },
+  {
+    "team_id": "28A",
+    "table_no": 28,
+    "half": "A",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "UX/디자인",
+      "IT개발"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "28B",
+    "table_no": 28,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "데이터/AI",
+      "플랫폼/제휴"
+    ],
+    "ai_maturity": "low",
+    "stance": "cautious",
+    "tone": "casual"
+  },
+  {
+    "team_id": "29A",
+    "table_no": 29,
+    "half": "A",
+    "is_exec": false,
+    "members": 3,
+    "divisions": [
+      "준법/감사",
+      "결제/카드"
+    ],
+    "ai_maturity": "high",
+    "stance": "optimistic",
+    "tone": "neutral"
+  },
+  {
+    "team_id": "29B",
+    "table_no": 29,
+    "half": "B",
+    "is_exec": false,
+    "members": 4,
+    "divisions": [
+      "IT개발",
+      "수신/예적금"
+    ],
+    "ai_maturity": "low",
+    "stance": "optimistic",
+    "tone": "neutral"
+  }
+]
